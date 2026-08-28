@@ -134,7 +134,7 @@ jobs:
           -e OIDC_ALLOWED_GROUPS='Werkblatt Users'
           werkblatt:ci
           python manage.py shell -c
-          "from django.test import Client; r=Client(HTTP_HOST='werkblatt.example.invalid', HTTP_X_FORWARDED_PROTO='https').get('/static/css/app.css'); assert r.status_code == 200; assert b'--color' in b''.join(r.streaming_content)"
+          "from django.test import Client; r=Client(HTTP_HOST='werkblatt.example.invalid', HTTP_X_FORWARDED_PROTO='https').get('/static/werkblatt/css/app.css'); assert r.status_code == 200; assert b'@font-face' in b''.join(r.streaming_content)"
       - run: >-
           docker run --rm
           --read-only
