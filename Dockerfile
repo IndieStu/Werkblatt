@@ -26,7 +26,9 @@ COPY --chown=werkblatt:werkblatt templates ./templates
 COPY --chown=werkblatt:werkblatt static ./static
 RUN mkdir -p /app/var/media /tmp/werkblatt \
     && chown -R werkblatt:werkblatt /app/var /tmp/werkblatt \
-    && DJANGO_DEBUG=true python manage.py collectstatic --noinput
+    && DJANGO_DEBUG=true python manage.py collectstatic --noinput \
+    && chown -R werkblatt:werkblatt /app/staticfiles \
+    && chmod -R u=rwX,go=rX /app/staticfiles
 USER 10001:10001
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind=0.0.0.0:8000", "--workers=2", "--timeout=30", "--error-logfile=-", "--capture-output"]
