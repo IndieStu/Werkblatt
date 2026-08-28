@@ -6,7 +6,7 @@ WORKDIR /build
 COPY --from=uv /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-editable
 
 FROM python:3.13-slim
 ENV PATH="/app/.venv/bin:$PATH" \

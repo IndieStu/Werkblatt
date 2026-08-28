@@ -575,7 +575,7 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     generated = render_attendance_sheet(documentation, admin)
     settings.WEBDAV_BASE_URL = "https://cloud.example.invalid/remote.php/dav/files/werkblatt"
     settings.WEBDAV_USERNAME = "werkblatt"
-    settings.WEBDAV_PASSWORD = "SECRET-MARKER-WEBDAV-9f86d081"
+    settings.WEBDAV_PASSWORD = "test-password-not-a-real-secret"
     settings.WEBDAV_ROOT = "Werkblatt"
     settings.WEBDAV_TRUST_MODE = "self_hosted"
 
