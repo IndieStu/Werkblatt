@@ -22,6 +22,8 @@ Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Applicat
 
 Client-ID und Client-Secret werden erst für den integrierten Test erzeugt. Das Secret wird ausschließlich als `OIDC_CLIENT_SECRET` auf dem Host gesetzt. Werkblatt verwendet keine Authentik-Admin-API.
 
+`OIDC_ISSUER` enthält zusätzlich den exakt erwarteten Issuer aus Authentik. Werkblatt akzeptiert Identitäten ausschließlich über `(issuer, sub)`; eine E-Mail-Adresse ist kein Identitätsschlüssel.
+
 ## Pretix
 
 Der vorbereitete Ursprung ist `https://www.pretix.eu`, Organizer `WERK`. Groß-/Kleinschreibung des tatsächlichen Organizer-Slugs wird vor dem ersten Live-Test bestätigt.
@@ -47,3 +49,9 @@ Ohne `WEBDAV_BASE_URL` verbleiben PDFs ausschließlich im privaten lokalen Volum
 ```bash
 python manage.py retry_document_storage
 ```
+
+`WEBDAV_TRUST_MODE=hosted` lehnt interne, Loopback- und Link-Local-Ziele ab. Einzelne administrativ kontrollierte Hosts können über `WEBDAV_ALLOWED_HOSTS` freigegeben werden. `self_hosted` erlaubt bewusst interne HTTPS-Ziele für selbst betriebene Nextcloud-Installationen; damit übernimmt der Betreiber die Netzvertrauensgrenze. Redirects bleiben in beiden Modi deaktiviert, URL-Credentials sind verboten und Secrets werden weder in Datensätzen noch Fehlermeldungen gespeichert.
+
+## Produktionsmodus und Lockfile
+
+Bei `DJANGO_DEBUG=false` startet Werkblatt nicht mit leerem, `CHANGE_ME` oder dem Development-Secret. `DJANGO_SECRET_KEY` muss als starkes Environment Secret gesetzt sein. Die Abhängigkeiten werden mit uv 0.8.15 in `uv.lock` inklusive Artefakt-Hashes festgehalten. Entwicklung, CI und Container verwenden `uv sync --frozen`; Updates erfolgen bewusst über `uv lock --upgrade-package <paket>` mit anschließendem Test- und Vulnerability-Gate.

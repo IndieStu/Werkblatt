@@ -3,16 +3,62 @@ import io
 import json
 from ctypes.util import find_library
 from pathlib import Path
+from types import SimpleNamespace
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
+from django.db import IntegrityError, transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from werkblatt.documentation.models import DocumentationRevision, TemplateOutputDefinition
+from werkblatt.identities.models import Membership
 from werkblatt.organizations.models import BrandAssetVersion
 
 from .models import GeneratedDocument
+
+
+def _require_document_access(organization_id, user):
+    if (
+        not user.is_authenticated
+        or not user.memberships.filter(
+            organization_id=organization_id, status=Membership.Status.ACTIVE
+        ).exists()
+    ):
+        raise PermissionDenied("Keine Berechtigung für diese Organisation")
+
+
+def render_html_with_weasyprint(html: str, allowed_uris: set[str]) -> bytes:
+    if not find_library("pango-1.0") and not find_library("pango-1.0-0"):
+        raise OSError("Pango-Laufzeit nicht verfügbar")
+    from weasyprint import HTML, default_url_fetcher
+
+    def restricted_fetcher(url, *args, **kwargs):
+        if url not in allowed_uris:
+            raise ValueError("PDF-Ressource ist nicht freigegeben")
+        return default_url_fetcher(url, *args, **kwargs)
+
+    return HTML(string=html, url_fetcher=restricted_fetcher).write_pdf()
+
+
+def _get_or_create_generated_document(**kwargs):
+    lookup = {key: value for key, value in kwargs.items() if key != "defaults"}
+    try:
+        with transaction.atomic():
+            return GeneratedDocument.objects.get_or_create(**kwargs)
+    except IntegrityError:
+        return GeneratedDocument.objects.get(**lookup), False
+
+
+def _claim_render(document: GeneratedDocument) -> bool:
+    claimed = GeneratedDocument.objects.filter(
+        pk=document.pk,
+        status__in=[GeneratedDocument.Status.PENDING, GeneratedDocument.Status.RENDER_FAILED],
+    ).update(status=GeneratedDocument.Status.RENDERING)
+    document.refresh_from_db()
+    return claimed == 1
 
 
 def _reportlab_pdf(template_name, context):
@@ -193,9 +239,10 @@ def _reportlab_pdf(template_name, context):
                 ]
             )
         revision = context["revision"]
+        finalization = snapshot["finalization"]
         audit_text = (
-            f"Revision {revision.number} · {revision.created_at:%d.%m.%Y, %H:%M} · "
-            f"{revision.created_by.get_full_name()}"
+            f"Revision {revision.number} · {finalization['created_at']} · "
+            f"{finalization['created_by_display_name']}"
         )
         story.extend([Spacer(1, 6 * mm), Paragraph(audit_text, styles["Italic"])])
     footer_assets = [
@@ -247,12 +294,18 @@ def _render(document, template_name, context):
     try:
         html = render_to_string(template_name, context)
         try:
-            if not find_library("pango-1.0") and not find_library("pango-1.0-0"):
-                raise OSError("Pango-Laufzeit nicht verfügbar")
-            from weasyprint import HTML
+            allowed_uris = {
+                value
+                for value in [
+                    context.get("font_regular_uri"),
+                    context.get("font_semibold_uri"),
+                    *(asset.get("uri") for asset in context.get("assets", [])),
+                ]
+                if value
+            }
 
-            pdf = HTML(string=html, base_url=str(settings.BASE_DIR)).write_pdf()
-            renderer_version = "weasyprint-66/v1"
+            pdf = render_html_with_weasyprint(html, allowed_uris)
+            renderer_version = "weasyprint-69/v1"
         except (ImportError, OSError):
             pdf = _reportlab_pdf(template_name, context)
             renderer_version = "reportlab-fallback/v1"
@@ -274,11 +327,23 @@ def _render(document, template_name, context):
 
 
 def render_revision_outputs(revision: DocumentationRevision, user):
+    _require_document_access(revision.organization_id, user)
     snapshot = revision.snapshot
     template = snapshot.get("template")
     if not template:
         return []
     assets = _asset_context(revision.organization_id, template["assets"])
+    workshop_snapshot = snapshot["workshop"]
+    workshop = SimpleNamespace(
+        title=workshop_snapshot["title"],
+        starts_at=parse_datetime(workshop_snapshot["starts_at"]),
+        ends_at=(
+            parse_datetime(workshop_snapshot["ends_at"])
+            if workshop_snapshot.get("ends_at")
+            else None
+        ),
+        location=workshop_snapshot["location"],
+    )
     generated = []
     for output in template["outputs"]:
         if output["kind"] == TemplateOutputDefinition.Kind.ATTENDANCE_SHEET:
@@ -290,7 +355,7 @@ def render_revision_outputs(revision: DocumentationRevision, user):
             separators=(",", ":"),
         )
         input_hash = hashlib.sha256(canonical.encode()).hexdigest()
-        document, created = GeneratedDocument.objects.get_or_create(
+        document, _created = _get_or_create_generated_document(
             organization_id=revision.organization_id,
             workshop_id=revision.documentation.workshop_id,
             revision=revision,
@@ -299,16 +364,13 @@ def render_revision_outputs(revision: DocumentationRevision, user):
             input_sha256=input_hash,
             defaults={"output_name": output["display_name"], "created_by": user},
         )
-        if created or document.status in {
-            GeneratedDocument.Status.PENDING,
-            GeneratedDocument.Status.RENDER_FAILED,
-        }:
+        if _claim_render(document):
             _render(
                 document,
                 "documents/final_report.html",
                 {
                     "snapshot": snapshot,
-                    "workshop": revision.documentation.workshop,
+                    "workshop": workshop,
                     "output": output,
                     "assets": assets,
                     "created_at": timezone.now(),
@@ -326,6 +388,7 @@ def render_revision_outputs(revision: DocumentationRevision, user):
 
 
 def render_attendance_sheet(documentation, user):
+    _require_document_access(documentation.organization_id, user)
     assignment = documentation.template_assignment
     if not assignment:
         raise ValueError("Keine Dokumentvorlage gewählt")
@@ -349,7 +412,7 @@ def render_attendance_sheet(documentation, user):
     input_hash = hashlib.sha256(
         json.dumps(input_data, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    document, created = GeneratedDocument.objects.get_or_create(
+    document, _created = _get_or_create_generated_document(
         organization_id=documentation.organization_id,
         workshop=documentation.workshop,
         revision=None,
@@ -358,10 +421,7 @@ def render_attendance_sheet(documentation, user):
         input_sha256=input_hash,
         defaults={"output_name": output.display_name, "created_by": user},
     )
-    if created or document.status in {
-        GeneratedDocument.Status.PENDING,
-        GeneratedDocument.Status.RENDER_FAILED,
-    }:
+    if _claim_render(document):
         assets = [
             {
                 "asset_name": placement.asset_version.asset.display_name,

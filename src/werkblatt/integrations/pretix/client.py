@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import socket
 from collections.abc import Iterator
 from typing import Any
@@ -13,6 +14,9 @@ class PretixConfigurationError(ValueError):
 
 class PretixUnavailable(RuntimeError):
     pass
+
+
+MAX_PRETIX_RESPONSE_BYTES = 5 * 1024 * 1024
 
 
 def validate_public_https_origin(value: str) -> str:
@@ -68,10 +72,17 @@ class PretixClient:
             raise ValueError("Pretix requests are restricted to fixed API paths")
         validate_public_https_origin(self.base_url)
         try:
-            response = self._client.get(path, params=params)
-            response.raise_for_status()
-            payload = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
+            with self._client.stream("GET", path, params=params) as response:
+                response.raise_for_status()
+                chunks = []
+                size = 0
+                for chunk in response.iter_bytes():
+                    size += len(chunk)
+                    if size > MAX_PRETIX_RESPONSE_BYTES:
+                        raise PretixUnavailable("Pretix response exceeds the safe size limit")
+                    chunks.append(chunk)
+            payload = json.loads(b"".join(chunks))
+        except (httpx.HTTPError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise PretixUnavailable("Pretix request failed") from exc
         if not isinstance(payload, dict):
             raise PretixUnavailable("Pretix returned an invalid response")

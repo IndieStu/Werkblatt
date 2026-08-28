@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -10,6 +12,10 @@ def env(name: str, default: str = "") -> str:
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "development-only-change-me")
 DEBUG = env("DJANGO_DEBUG", "false").lower() == "true"
+if not DEBUG and SECRET_KEY in {"", "development-only-change-me", "CHANGE_ME"}:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY muss im Produktionsmodus als starkes Secret gesetzt sein"
+    )
 ALLOWED_HOSTS = [v for v in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if v]
 CSRF_TRUSTED_ORIGINS = [v for v in env("DJANGO_CSRF_TRUSTED_ORIGINS").split(",") if v]
 
@@ -91,6 +97,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_ROOT = BASE_DIR / "var" / "media"
 MEDIA_URL = "/media/"
+FILE_UPLOAD_PERMISSIONS = 0o600
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o700
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DEFAULT_ORGANIZATION_SLUG = env("WERKBLATT_DEFAULT_ORGANIZATION", "zircula")
@@ -99,10 +107,32 @@ SOFTWARE_AUTHOR_URL = env("WERKBLATT_SOFTWARE_AUTHOR_URL", "https://zircula.org"
 HOSTING_PROVIDER_LABEL = env("WERKBLATT_HOSTING_PROVIDER_LABEL", "")
 
 OIDC_DISCOVERY_URL = env("OIDC_DISCOVERY_URL")
+OIDC_ISSUER = env("OIDC_ISSUER")
 OIDC_CLIENT_ID = env("OIDC_CLIENT_ID")
 OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET")
 OIDC_ALLOWED_GROUPS = {v.strip() for v in env("OIDC_ALLOWED_GROUPS").split(",") if v.strip()}
 OIDC_ADMIN_GROUPS = {v.strip() for v in env("OIDC_ADMIN_GROUPS").split(",") if v.strip()}
+
+if not DEBUG:
+    required_production_settings = {
+        "POSTGRES_DB": env("POSTGRES_DB"),
+        "POSTGRES_USER": env("POSTGRES_USER"),
+        "POSTGRES_PASSWORD": env("POSTGRES_PASSWORD"),
+        "OIDC_DISCOVERY_URL": OIDC_DISCOVERY_URL,
+        "OIDC_ISSUER": OIDC_ISSUER,
+        "OIDC_CLIENT_ID": OIDC_CLIENT_ID,
+        "OIDC_CLIENT_SECRET": OIDC_CLIENT_SECRET,
+        "OIDC_ALLOWED_GROUPS": ",".join(OIDC_ALLOWED_GROUPS),
+    }
+    missing_production_settings = [
+        name
+        for name, value in required_production_settings.items()
+        if not value or value == "CHANGE_ME"
+    ]
+    if missing_production_settings:
+        raise ImproperlyConfigured(
+            "Produktionskonfiguration fehlt: " + ", ".join(missing_production_settings)
+        )
 
 PRETIX_BASE_URL = env("PRETIX_BASE_URL", "https://www.pretix.eu")
 PRETIX_API_TOKEN = env("PRETIX_API_TOKEN")
@@ -112,6 +142,10 @@ WEBDAV_BASE_URL = env("WEBDAV_BASE_URL")
 WEBDAV_USERNAME = env("WEBDAV_USERNAME")
 WEBDAV_PASSWORD = env("WEBDAV_PASSWORD")
 WEBDAV_ROOT = env("WEBDAV_ROOT", "Werkblatt")
+WEBDAV_TRUST_MODE = env("WEBDAV_TRUST_MODE", "hosted")
+WEBDAV_ALLOWED_HOSTS = {
+    value.strip().lower() for value in env("WEBDAV_ALLOWED_HOSTS").split(",") if value.strip()
+}
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
@@ -128,4 +162,3 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 # Zircula aktiviert HSTS zentral am Reverse Proxy. IncludeSubDomains und Browser-Preload
 # bleiben bewusste Infrastrukturentscheidungen und werden nicht von der App erzwungen.
-SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]

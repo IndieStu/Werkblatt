@@ -14,18 +14,19 @@ dependencies = [
   "Django>=5.2,<5.3",
   "gunicorn>=23,<24",
   "httpx>=0.28,<0.29",
-  "Pillow>=11,<12",
+  "Pillow>=12.3,<13",
   "psycopg[binary]>=3.2,<4",
   "requests>=2.32,<3",
   "reportlab>=4.4,<5",
-  "weasyprint>=66,<67",
+  "weasyprint>=69,<70",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "pip-audit>=2.9,<3",
   "pypdf>=6,<7",
   "PyMuPDF>=1.26,<2",
-  "pytest>=8.4,<9",
+  "pytest>=9.0.3,<10",
   "pytest-django>=4.11,<5",
   "respx>=0.22,<0.23",
   "ruff>=0.12,<0.14",
@@ -38,6 +39,7 @@ packages = ["src/werkblatt"]
 DJANGO_SETTINGS_MODULE = "config.test_settings"
 pythonpath = [".", "src"]
 testpaths = ["tests"]
+markers = ["security: adversarial security and tenant-isolation tests"]
 
 [tool.ruff]
 line-length = 100

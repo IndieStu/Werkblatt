@@ -25,6 +25,7 @@ from werkblatt.documentation.services import (
     build_snapshot,
     finalize_documentation,
     get_or_create_documentation,
+    snapshot_sha256,
 )
 from werkblatt.documentation.templates_service import (
     duplicate_template,
@@ -225,6 +226,11 @@ def test_workshop_user_cannot_manage_assets_but_cannot_leak_foreign_preview(phas
 
     other = Organization.objects.create(slug="other", name="Andere Organisation")
     other_admin = get_user_model().objects.create_user(username="other-admin")
+    Membership.objects.create(
+        organization=other,
+        user=other_admin,
+        role=Membership.Role.ORGANIZATION_ADMIN,
+    )
     foreign = create_asset(
         organization=other,
         user=other_admin,
@@ -486,6 +492,7 @@ def test_revision_output_rendering_is_idempotent_and_download_is_tenant_scoped(
 
     fake_weasyprint = types.ModuleType("weasyprint")
     fake_weasyprint.HTML = FakeHTML
+    fake_weasyprint.default_url_fetcher = lambda *_args, **_kwargs: {}
     monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
     first = render_revision_outputs(revision, admin)
     second = render_revision_outputs(revision, admin)
@@ -538,12 +545,12 @@ def test_attendance_sheet_creates_readable_pdf_with_local_fallback(phase3_setup)
     assert len(reader.pages) >= 1
     assert "Klimawerkstatt" in text
     assert "Bremerhaven" in text
-    assert generated.renderer_version in {"weasyprint-66/v1", "reportlab-fallback/v1"}
+    assert generated.renderer_version in {"weasyprint-69/v1", "reportlab-fallback/v1"}
 
 
 @pytest.mark.django_db(transaction=True)
 def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
-    phase3_setup, monkeypatch, settings
+    phase3_setup, monkeypatch, settings, caplog
 ):
     organization, admin, _, workshop = phase3_setup
     template = save_template(
@@ -568,8 +575,9 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     generated = render_attendance_sheet(documentation, admin)
     settings.WEBDAV_BASE_URL = "https://cloud.example.invalid/remote.php/dav/files/werkblatt"
     settings.WEBDAV_USERNAME = "werkblatt"
-    settings.WEBDAV_PASSWORD = "secret"
+    settings.WEBDAV_PASSWORD = "SECRET-MARKER-WEBDAV-9f86d081"
     settings.WEBDAV_ROOT = "Werkblatt"
+    settings.WEBDAV_TRUST_MODE = "self_hosted"
 
     class FakeResponse:
         status_code = 201
@@ -599,6 +607,8 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     stored = store_via_webdav(generated)
     assert stored.status == GeneratedDocument.Status.STORED
     assert stored.storage_key.endswith(".pdf")
+    stored.status = GeneratedDocument.Status.RENDERED
+    stored.save(update_fields=["status"])
 
     class FailingClient(FakeClient):
         def put(self, *_args, **_kwargs):
@@ -609,8 +619,115 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     failed = store_via_webdav(stored)
     assert failed.status == GeneratedDocument.Status.STORAGE_FAILED
     assert failed.last_error_class == "TimeoutError"
+    assert settings.WEBDAV_PASSWORD not in caplog.text
+    assert settings.WEBDAV_PASSWORD not in failed.storage_key
+    assert settings.WEBDAV_PASSWORD not in failed.last_error_class
 
     monkeypatch.setattr("werkblatt.documents.storage.httpx.Client", FakeClient)
     retried = store_via_webdav(failed)
     assert retried.status == GeneratedDocument.Status.STORED
     assert retried.last_error_class == ""
+
+
+@pytest.mark.django_db
+def test_historical_render_uses_frozen_asset_template_and_escaped_text(phase3_setup, monkeypatch):
+    organization, admin, _, workshop = phase3_setup
+    asset = create_asset(
+        organization=organization,
+        user=admin,
+        display_name="Historisches Logo",
+        default_role=BrandAsset.Role.ORGANIZATION,
+        upload=png_upload(color="#111111"),
+    )
+    first_asset_version = asset.current_version
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data(name="Historische Vorlage"),
+        assets=[
+            {
+                "asset": asset,
+                "role": BrandAsset.Role.ORGANIZATION,
+                "zone": "header",
+                "show_funded_by_label": False,
+            }
+        ],
+        outputs=output_rows(),
+        fields=gender_fields()[:1],
+    )
+    assignment = WorkshopTemplateAssignment.objects.create(
+        organization=organization,
+        workshop=workshop,
+        template=template,
+        template_version=template.current_version,
+        assigned_by=admin,
+    )
+    documentation = get_or_create_documentation(workshop=workshop, user=admin)
+    documentation.template_assignment = assignment
+    documentation.report = '<script>alert("marker")</script> sehr_lang_' + "x" * 500
+    documentation.save(update_fields=["template_assignment", "report"])
+    revision = finalize_documentation(
+        documentation_id=documentation.id,
+        organization_id=organization.id,
+        user=admin,
+        expected_version=documentation.version,
+    )
+    frozen_snapshot = deepcopy(revision.snapshot)
+    frozen_hash = revision.snapshot_sha256
+
+    add_asset_version(
+        asset=asset,
+        organization=organization,
+        user=admin,
+        upload=png_upload(color="#222222"),
+    )
+    changed = template_initial(template)
+    changed["template"]["project_title"] = "Neuer Projektname"
+    changed["assets"][0]["use_current_version"] = True
+    save_template(
+        organization=organization,
+        user=admin,
+        template=template,
+        template_data=changed["template"],
+        assets=changed["assets"],
+        outputs=changed["outputs"],
+        fields=changed["fields"],
+    )
+    Workshop.objects.filter(pk=workshop.pk).update(title="Später geänderter Workshop")
+    admin.display_name = "Später geänderter Admin"
+    admin.save(update_fields=["display_name"])
+
+    captured = {}
+
+    class FakeHTML:
+        def __init__(self, **kwargs):
+            captured["html"] = kwargs["string"]
+
+        def write_pdf(self):
+            return b"%PDF-1.4\n% historical renderer\n%%EOF"
+
+    fake_weasyprint = types.ModuleType("weasyprint")
+    fake_weasyprint.HTML = FakeHTML
+    fake_weasyprint.default_url_fetcher = lambda *_args, **_kwargs: {}
+    monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
+    monkeypatch.setattr("werkblatt.documents.rendering.find_library", lambda _name: "available")
+    render_revision_outputs(revision, admin)
+
+    revision.refresh_from_db()
+    assert revision.snapshot == frozen_snapshot
+    assert revision.snapshot_sha256 == frozen_hash
+    assert str(first_asset_version.id) in captured["html"]
+    assert str(asset.current_version.id) not in captured["html"]
+    assert "Klimawerkstatt" in captured["html"]
+    assert "Später geänderter Workshop" not in captured["html"]
+    assert "Admin Person" in captured["html"]
+    assert "Später geänderter Admin" not in captured["html"]
+    assert "<script>" not in captured["html"]
+    assert "&lt;script&gt;" in captured["html"]
+
+
+def test_snapshot_hash_is_canonical_and_deterministic():
+    first = {"date": "2026-08-28", "decimal": "4.20", "boolean": True, "choice": "divers"}
+    second = {"choice": "divers", "boolean": True, "decimal": "4.20", "date": "2026-08-28"}
+    assert snapshot_sha256(first) == snapshot_sha256(second)

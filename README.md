@@ -8,15 +8,14 @@ Aktueller Stand: Phase 3b - Dokumentvorlagen und PDF-Ausgaben. Noch kein produkt
 
 ## Entwicklung
 
-Produktionsziel ist Python 3.13; für die lokale Entwicklung und CI wird auch Python 3.12 unterstützt. Alternativ kann Docker Compose verwendet werden.
+Produktionsziel ist Python 3.13; für die lokale Entwicklung und CI wird auch Python 3.12 unterstützt. Abhängigkeiten sind mit uv reproduzierbar gelockt. Alternativ kann Docker Compose verwendet werden.
 
 ```bash
-python3.13 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
+uv sync --frozen --all-extras
 export DJANGO_DEBUG=true
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py bootstrap_organization --name "Zircula e.V."
-.venv/bin/python manage.py runserver
+uv run python manage.py migrate
+uv run python manage.py bootstrap_organization --name "Zircula e.V."
+uv run python manage.py runserver
 ```
 
 Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md`](docs/phase-0-architektur.md). Konfiguration und Secrets werden in [`docs/configuration.md`](docs/configuration.md) beschrieben.

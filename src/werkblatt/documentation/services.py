@@ -20,6 +20,11 @@ from .models import (
 )
 
 
+def snapshot_sha256(snapshot: dict) -> str:
+    canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 class ConcurrentDocumentationUpdate(ValidationError):
     pass
 
@@ -371,8 +376,12 @@ def finalize_documentation(
         raise ValidationError(f"Pflichtfelder fehlen: {', '.join(missing)}")
     if documentation.template_assignment_id and not documentation.workshop.location.strip():
         raise ValidationError("Für die Dokumentausgabe muss ein Workshoport angegeben werden")
+    finalized_at = timezone.now()
     snapshot = build_snapshot(documentation)
-    canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    snapshot["finalization"] = {
+        "created_by_display_name": user.get_full_name(),
+        "created_at": finalized_at.isoformat(),
+    }
     previous_number = (
         documentation.revisions.select_for_update().aggregate(maximum=models.Max("number"))[
             "maximum"
@@ -384,12 +393,12 @@ def finalize_documentation(
         documentation=documentation,
         number=previous_number + 1,
         snapshot=snapshot,
-        snapshot_sha256=hashlib.sha256(canonical.encode()).hexdigest(),
+        snapshot_sha256=snapshot_sha256(snapshot),
         optional_change_reason=optional_change_reason.strip(),
         created_by=user,
     )
     documentation.status = Documentation.Status.FINALIZED
-    documentation.finalized_at = timezone.now()
+    documentation.finalized_at = finalized_at
     documentation.updated_by = user
     documentation.version += 1
     documentation.save(

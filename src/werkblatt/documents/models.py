@@ -21,7 +21,9 @@ class GeneratedDocumentQuerySet(models.QuerySet):
 class GeneratedDocument(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Ausstehend"
+        RENDERING = "rendering", "Wird erzeugt"
         RENDERED = "rendered", "Erzeugt"
+        STORING = "storing", "Wird extern gespeichert"
         STORED = "stored", "Extern gespeichert"
         RENDER_FAILED = "render_failed", "PDF-Erzeugung fehlgeschlagen"
         STORAGE_FAILED = "storage_failed", "Externe Speicherung fehlgeschlagen"
@@ -44,7 +46,7 @@ class GeneratedDocument(models.Model):
     output_kind = models.CharField(max_length=32)
     output_name = models.CharField(max_length=200)
     input_sha256 = models.CharField(max_length=64)
-    renderer_version = models.CharField(max_length=32, default="weasyprint-66/v1")
+    renderer_version = models.CharField(max_length=32, default="weasyprint-69/v1")
     status = models.CharField(max_length=24, choices=Status, default=Status.PENDING)
     pdf_file = models.FileField(upload_to=generated_document_path, max_length=500, blank=True)
     pdf_sha256 = models.CharField(max_length=64, blank=True)
@@ -71,6 +73,18 @@ class GeneratedDocument(models.Model):
                     "output_kind",
                     "input_sha256",
                 ],
+                condition=models.Q(revision__isnull=False),
                 name="generated_document_idempotent_output",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=[
+                    "organization",
+                    "workshop",
+                    "template_version",
+                    "output_kind",
+                    "input_sha256",
+                ],
+                condition=models.Q(revision__isnull=True),
+                name="generated_document_idempotent_draft_output",
+            ),
         ]

@@ -23,6 +23,15 @@ services:
         condition: service_healthy
     expose:
       - "8000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 256
+    tmpfs:
+      - /tmp/werkblatt:mode=1777
     volumes:
       - werkblatt_media:/app/var/media
     healthcheck:

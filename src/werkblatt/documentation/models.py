@@ -274,6 +274,11 @@ class TemplateAssetPlacement(models.Model):
     class Meta:
         ordering = ["zone", "sort_order"]
 
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+            raise ValueError("Bestandteile eines Vorlagenstands sind unveränderlich")
+        return super().save(*args, **kwargs)
+
 
 class TemplateOutputDefinition(models.Model):
     class Kind(models.TextChoices):
@@ -304,6 +309,11 @@ class TemplateOutputDefinition(models.Model):
                 name="template_output_unique_kind_per_version",
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+            raise ValueError("Bestandteile eines Vorlagenstands sind unveränderlich")
+        return super().save(*args, **kwargs)
 
 
 class TemplateCustomFieldDefinition(models.Model):
@@ -347,6 +357,11 @@ class TemplateCustomFieldDefinition(models.Model):
                 name="template_custom_field_unique_stable_key_per_version",
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+            raise ValueError("Bestandteile eines Vorlagenstands sind unveränderlich")
+        return super().save(*args, **kwargs)
 
 
 class WorkshopTemplateAssignment(models.Model):

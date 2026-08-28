@@ -10,4 +10,5 @@ staticfiles/
 media/
 var/
 tmp/
+qa-output/
 .DS_Store

@@ -5,8 +5,10 @@ import httpx
 import pytest
 
 from werkblatt.integrations.pretix.client import (
+    MAX_PRETIX_RESPONSE_BYTES,
     PretixClient,
     PretixConfigurationError,
+    PretixUnavailable,
     validate_public_https_origin,
 )
 from werkblatt.integrations.pretix.provider import PretixWorkshopProvider
@@ -71,3 +73,29 @@ def test_maps_event_series_and_subevent():
     assert len(workshops) == 1
     assert workshops[0].reference == "reihe:42"
     assert workshops[0].title == "Termin"
+
+
+def test_resolution_change_to_private_address_is_rejected_before_request():
+    private_dns = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))]
+    with patch("socket.getaddrinfo", side_effect=[PUBLIC_DNS, private_dns]):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(lambda _request: pytest.fail("request must not run")),
+        )
+        with pytest.raises(PretixConfigurationError):
+            client.get("/api/v1/organizers/WORK/events/")
+
+
+def test_response_size_is_bounded():
+    response_body = b'{"padding":"' + b"x" * MAX_PRETIX_RESPONSE_BYTES + b'"}'
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(
+                lambda _request: httpx.Response(200, content=response_body)
+            ),
+        )
+        with pytest.raises(PretixUnavailable, match="size limit"):
+            client.get("/api/v1/organizers/WORK/events/")

@@ -11,29 +11,154 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: werkblatt_test
+          POSTGRES_USER: werkblatt
+          POSTGRES_PASSWORD: ci-database-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U werkblatt -d werkblatt_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]'
-      - run: python -m ruff check .
-      - run: python manage.py makemigrations --check --dry-run
-      - run: python manage.py check
-      - run: python -m pytest -q
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.8.15"
+          enable-cache: true
+      - run: uv sync --frozen --all-extras
+      - run: uv lock --check
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run python manage.py makemigrations --check --dry-run
+        env:
+          DJANGO_DEBUG: "true"
+      - run: uv run python manage.py check
+        env:
+          DJANGO_DEBUG: "true"
+      - run: uv run pytest -q
+        env:
+          POSTGRES_DB: werkblatt_test
+          POSTGRES_USER: werkblatt
+          POSTGRES_PASSWORD: ci-database-password
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: "5432"
+      - run: uv run pytest -q -m security
+        env:
+          POSTGRES_DB: werkblatt_test
+          POSTGRES_USER: werkblatt
+          POSTGRES_PASSWORD: ci-database-password
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: "5432"
+
+  production-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.8.15"
+      - run: uv sync --frozen --all-extras
+      - run: uv run python manage.py check --deploy
+        env:
+          DJANGO_DEBUG: "false"
+          DJANGO_SECRET_KEY: "ci-only-strong-secret-8ce149b85537c81e5da8756dd42bc204"
+          DJANGO_ALLOWED_HOSTS: "werkblatt.example.invalid"
+          DJANGO_CSRF_TRUSTED_ORIGINS: "https://werkblatt.example.invalid"
+          POSTGRES_DB: "ci-production-check"
+          POSTGRES_USER: "ci-production-check"
+          POSTGRES_PASSWORD: "ci-production-password"
+          OIDC_DISCOVERY_URL: "https://auth.example.invalid/application/o/werkblatt/.well-known/openid-configuration"
+          OIDC_ISSUER: "https://auth.example.invalid/application/o/werkblatt/"
+          OIDC_CLIENT_ID: "ci-werkblatt"
+          OIDC_CLIENT_SECRET: "ci-only-oidc-secret"
+          OIDC_ALLOWED_GROUPS: "Werkblatt Users"
+      - run: uv run pip-audit
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   container:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.8.15"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
+          load: true
           push: false
-
+          tags: werkblatt:ci
+      - run: mkdir -p qa-output && chmod 0777 qa-output
+      - run: >-
+          docker run --rm
+          --read-only
+          --tmpfs /tmp/werkblatt:mode=1777
+          -e DJANGO_SECRET_KEY=ci-only-strong-secret-8ce149b85537c81e5da8756dd42bc204
+          -e DJANGO_DEBUG=false
+          -e DJANGO_ALLOWED_HOSTS=werkblatt.example.invalid
+          -e POSTGRES_DB=ci-render-check
+          -e POSTGRES_USER=ci-render-check
+          -e POSTGRES_PASSWORD=ci-render-password
+          -e OIDC_DISCOVERY_URL=https://auth.example.invalid/application/o/werkblatt/.well-known/openid-configuration
+          -e OIDC_ISSUER=https://auth.example.invalid/application/o/werkblatt/
+          -e OIDC_CLIENT_ID=ci-werkblatt
+          -e OIDC_CLIENT_SECRET=ci-only-oidc-secret
+          -e OIDC_ALLOWED_GROUPS='Werkblatt Users'
+          -v "$PWD/qa-output:/output"
+          werkblatt:ci
+          python manage.py verify_pdf_renderer --output-dir /output/run-one
+      - run: >-
+          docker run --rm
+          --read-only
+          --tmpfs /tmp/werkblatt:mode=1777
+          -e DJANGO_SECRET_KEY=ci-only-strong-secret-8ce149b85537c81e5da8756dd42bc204
+          -e DJANGO_DEBUG=false
+          -e DJANGO_ALLOWED_HOSTS=werkblatt.example.invalid
+          -e POSTGRES_DB=ci-render-check
+          -e POSTGRES_USER=ci-render-check
+          -e POSTGRES_PASSWORD=ci-render-password
+          -e OIDC_DISCOVERY_URL=https://auth.example.invalid/application/o/werkblatt/.well-known/openid-configuration
+          -e OIDC_ISSUER=https://auth.example.invalid/application/o/werkblatt/
+          -e OIDC_CLIENT_ID=ci-werkblatt
+          -e OIDC_CLIENT_SECRET=ci-only-oidc-secret
+          -e OIDC_ALLOWED_GROUPS='Werkblatt Users'
+          -v "$PWD/qa-output:/output"
+          werkblatt:ci
+          python manage.py verify_pdf_renderer --output-dir /output/run-two
+      - run: uv sync --frozen --all-extras
+      - run: uv run python tests/verify_container_pdfs.py qa-output/run-one qa-output/run-two
+      - uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # v0.32.0
+        with:
+          image-ref: werkblatt:ci
+          format: table
+          exit-code: "1"
+          severity: CRITICAL
+          ignore-unfixed: true
