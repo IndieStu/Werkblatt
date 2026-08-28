@@ -12,7 +12,8 @@ FROM python:3.13-slim
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    TMPDIR=/tmp/werkblatt
+    TMPDIR=/tmp/werkblatt \
+    XDG_CACHE_HOME=/tmp/werkblatt/.cache
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdk-pixbuf-2.0-0 libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
     libharfbuzz-subset0 shared-mime-info \
