@@ -11,5 +11,6 @@ urlpatterns = [
     path("health/", health, name="health"),
     path("admin/", admin.site.urls),
     path("auth/", include("werkblatt.identities.urls")),
+    path("documentation/", include("werkblatt.documentation.urls")),
     path("", include("werkblatt.workshops.urls")),
 ]

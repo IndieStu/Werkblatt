@@ -4,7 +4,7 @@
 
 Werkblatt entsteht zunächst für den Zircula-Pilot und wird von Anfang an als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeldung und Workshopquelle sind über OIDC beziehungsweise Pretix integrierbar; die internen Fachmodelle bleiben davon unabhängig.
 
-Aktueller Stand: Phase 1 - Fundament. Noch kein produktiver Release.
+Aktueller Stand: Phase 2 - Dokumentationsworkflow. Noch kein produktiver Release.
 
 ## Entwicklung
 
@@ -23,8 +23,8 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
 
 ## Status der Funktionen
 
-- vorhanden im Phase-1-Fundament: tenantgebundene Organisationen, internes User-/Identity-Modell, Rollen, OIDC-Vorbereitung, Pretix-Adapter, Workshopliste, Werkblatt Web-Branding;
-- noch nicht vorhanden: Dokumentationsworkflow, PDF, WebDAV, lokale Accounts und manuelle Workshop-UI.
+- vorhanden: tenantgebundene Organisationen, internes User-/Identity-Modell, Rollen, OIDC-Vorbereitung, Pretix-Adapter, Workshopliste, Werkblatt Web-Branding sowie Entwürfe, Anwesenheit, Walk-ins, Durchführende, Abschluss und unveränderliche Revisionen;
+- noch nicht vorhanden: PDF, WebDAV, lokale Accounts und manuelle Workshop-UI.
 
 ## Lizenz
 

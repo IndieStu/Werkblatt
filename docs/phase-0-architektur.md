@@ -431,10 +431,13 @@ Falls maximale Verbreitung wichtiger ist als Copyleft, wäre Apache-2.0 die perm
 5. Pretix: Base-URL, Organizer, repräsentative Event-/Subevent-Testdaten und Token werden zum Start von Phase 1 bereitgestellt; der Token ausschließlich als Environment Secret.
 6. Rollen: Der Pilot verwendet ausschließlich `Organization Admin` und `Workshop User`.
 
-### Spätestens vor Phase 2/3
+### Vor Phase 2 beantwortet / entschieden
 
-7. Darf eine abgeschlossene Dokumentation wieder geöffnet werden, und falls ja: mit Revision/Audit oder einfachem Zurücksetzen?
-8. Wer darf abgeschlossene Dokumentationen sehen und ändern? Reicht in V1 `Organization Admin` plus Ersteller:in, oder alle Workshop User der Organisation?
+7. Abgeschlossene Dokumentationen dürfen alltagstauglich zur Korrektur geöffnet werden. Jeder erneute Abschluss erzeugt automatisch eine neue unveränderliche Revision mit Snapshot; frühere Revisionen bleiben erhalten. Es gibt keinen separaten Freigabe- oder Entsperrprozess.
+8. Alle aktiven `Workshop User` und `Organization Admin` dürfen Dokumentationen der eigenen Organisation sehen, Entwürfe bearbeiten und abgeschlossene Dokumentationen wieder öffnen. `Organization Admin` besitzt dabei kein exklusives fachliches Recht. Organisationsübergreifender Zugriff ist ausgeschlossen.
+
+### Spätestens vor Phase 3
+
 9. Bitte den aktuellen Papier-Workshopbogen bereitstellen. Bei realen Daten behandle ich ihn ausschließlich lokal, committe und protokolliere ihn nicht.
 10. Benötigt werden: Zircula-Organisationslogo, Anschrift/Kontaktdaten, aktuelle Projekt-/Förderlogos, Projektbezeichnungen und fachliche Zuordnungsregeln. SVG bevorzugt; keine Masterdaten verändern.
 11. Welche Nextcloud/WebDAV-Testdaten, Zielstruktur und Rechte stehen bereit? Dedizierter eingeschränkter technischer Account empfohlen.

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ workshop.title }} - Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'workshop-list' %}">Workshops</a> / Dokumentation</nav>
+<header class="document-header">
+  <div>
+    <p class="eyebrow">{{ documentation.get_status_display }}</p>
+    <h1>{{ workshop.title }}</h1>
+    <p class="lead">{{ workshop.starts_at|date:"d.m.Y, H:i" }}{% if workshop.location %} · {{ workshop.location }}{% endif %}</p>
+  </div>
+  {% if documentation.status == "finalized" %}<span class="status-badge">Abgeschlossen · Revision {{ latest_revision.number }}</span>{% endif %}
+</header>
+
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+
+<section class="statistics" aria-label="Teilnehmerstatistik">
+  <div><strong>{{ statistics.registered|default:0 }}</strong><span>Angemeldet</span></div>
+  <div><strong>{{ statistics.present_total|default:0 }}</strong><span>Anwesend</span></div>
+  <div><strong>{{ statistics.no_shows|default:0 }}</strong><span>No-Shows</span></div>
+  <div><strong>{{ statistics.walk_ins|default:0 }}</strong><span>Spontan</span></div>
+</section>
+
+{% if documentation.status == "finalized" %}
+  <section class="content-card">
+    <h2>Abgeschlossene Dokumentation</h2>
+    <dl class="summary-list">
+      <div><dt>Wie geplant durchgeführt</dt><dd>{% if latest_revision.snapshot.documentation.conducted_as_planned %}Ja{% else %}Nein{% endif %}</dd></div>
+      <div><dt>Kurzbericht</dt><dd>{{ latest_revision.snapshot.documentation.report|default:"–"|linebreaksbr }}</dd></div>
+      <div><dt>Durchführende</dt><dd>{% for item in latest_revision.snapshot.facilitators %}{{ item.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd></div>
+    </dl>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="expected_version" value="{{ documentation.version }}">
+      <button class="button secondary" type="submit" name="action" value="reopen">Zur Korrektur öffnen</button>
+    </form>
+  </section>
+{% else %}
+  <form method="post" class="documentation-form">
+    {% csrf_token %}
+    {{ form.expected_version }}
+    {% if form.non_field_errors %}<div class="message message-error">{{ form.non_field_errors }}</div>{% endif %}
+
+    <section class="content-card">
+      <h2>Teilnehmer:innen</h2>
+      {{ participant_formset.management_form }}
+      {% for participant_form in participant_formset %}
+        <div class="participant-row {% if participant_form.instance.origin == registered_origin %}registered{% endif %}">
+          {{ participant_form.id }}
+          <div class="field grow">{{ participant_form.display_name.label_tag }}{{ participant_form.display_name }}{{ participant_form.display_name.errors }}</div>
+          <label class="check-field">{{ participant_form.present }} <span>Anwesend</span></label>
+          {% if participant_form.instance.pk and participant_form.instance.origin != registered_origin %}<label class="delete-field">{{ participant_form.DELETE }} Entfernen</label>{% endif %}
+          {% if participant_form.instance.origin == registered_origin %}<span class="origin-label">Pretix</span>{% else %}<span class="origin-label">Spontan</span>{% endif %}
+        </div>
+      {% endfor %}
+      <p class="form-hint">Freie Zeilen können für spontan erschienene Personen verwendet werden.</p>
+    </section>
+
+    <section class="content-card">
+      <h2>Durchführende</h2>
+      {{ facilitator_formset.management_form }}
+      {% for facilitator_form in facilitator_formset %}
+        <div class="facilitator-row">
+          {{ facilitator_form.id }}
+          <div class="field grow">{{ facilitator_form.display_name.label_tag }}{{ facilitator_form.display_name }}{{ facilitator_form.display_name.errors }}</div>
+          {% if facilitator_form.instance.pk %}<label class="delete-field">{{ facilitator_form.DELETE }} Entfernen</label>{% endif %}
+        </div>
+      {% endfor %}
+    </section>
+
+    <section class="content-card">
+      <h2>Workshop-Feedback</h2>
+      <label class="check-field prominent">{{ form.conducted_as_planned }} <span>{{ form.conducted_as_planned.label }}</span></label>
+      <div class="field">{{ form.report.label_tag }}{{ form.report }}{{ form.report.errors }}</div>
+    </section>
+
+    <div class="form-actions">
+      <button class="button secondary" type="submit" name="action" value="save">Entwurf speichern</button>
+      <button class="button" type="submit" name="action" value="finalize">Dokumentation abschließen</button>
+    </div>
+  </form>
+{% endif %}
+
+{% if revisions %}
+  <section class="revision-history">
+    <h2>Frühere Revisionen</h2>
+    <ol>{% for revision in revisions %}<li>Revision {{ revision.number }} · {{ revision.created_at|date:"d.m.Y, H:i" }} · {{ revision.created_by.get_full_name }}</li>{% endfor %}</ol>
+  </section>
+{% endif %}
+{% endblock %}

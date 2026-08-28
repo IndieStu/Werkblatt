@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "werkblatt.organizations",
     "werkblatt.identities",
     "werkblatt.workshops",
+    "werkblatt.documentation",
 ]
 
 MIDDLEWARE = [
