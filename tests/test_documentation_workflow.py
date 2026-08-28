@@ -25,7 +25,7 @@ from werkblatt.workshops.models import Workshop, WorkshopRegistration
 
 @pytest.fixture
 def documentation_setup(db):
-    organization = Organization.objects.create(slug="zircula", name="Zircula e.V.")
+    organization = Organization.objects.create(slug="example", name="Example Organization")
     user = get_user_model().objects.create_user(
         username="workshop-user",
         display_name="Alex Beispiel",

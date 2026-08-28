@@ -2,7 +2,7 @@
 
 **Werkblatt is an open-source application for documenting workshops, attendance and project-related reporting.**
 
-Werkblatt entsteht zunächst für den Zircula-Pilot und wird von Anfang an als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeldung und Workshopquelle sind über OIDC beziehungsweise Pretix integrierbar; die internen Fachmodelle bleiben davon unabhängig.
+Werkblatt ist als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeldung und Workshopquelle sind über OIDC beziehungsweise Pretix integrierbar; die internen Fachmodelle bleiben davon unabhängig.
 
 Aktueller Stand: Phase 3b - Dokumentvorlagen und PDF-Ausgaben. Noch kein produktiver Release.
 
@@ -14,7 +14,7 @@ Produktionsziel ist Python 3.13; für die lokale Entwicklung und CI wird auch Py
 uv sync --frozen --all-extras
 export DJANGO_DEBUG=true
 uv run python manage.py migrate
-uv run python manage.py bootstrap_organization --name "Zircula e.V."
+uv run python manage.py bootstrap_organization --name "Example Organization"
 uv run python manage.py runserver
 ```
 

@@ -23,7 +23,7 @@
   <main class="page-shell">{% block content %}{% endblock %}</main>
   <footer class="app-footer">
     <span>Werkblatt</span>
-    <span>Open Source software by <a href="{{ software_author_url }}">Zircula e.V.</a></span>
+    {% if software_author_label %}<span>Open Source software by <a href="{{ software_author_url }}">{{ software_author_label }}</a></span>{% endif %}
     {% if hosting_provider_label %}<span>{{ hosting_provider_label }}</span>{% endif %}
   </footer>
 </body>

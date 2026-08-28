@@ -11,13 +11,13 @@ from werkblatt.workshops.models import Workshop
 
 @pytest.mark.django_db
 def test_workshop_list_never_leaks_other_organization(settings):
-    settings.DEFAULT_ORGANIZATION_SLUG = "zircula"
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
     user = get_user_model().objects.create_user(username="pilot", password="test-password")
-    zircula = Organization.objects.create(slug="zircula", name="Zircula e.V.")
+    example = Organization.objects.create(slug="example", name="Example Organization")
     other = Organization.objects.create(slug="other", name="Andere Organisation")
-    Membership.objects.create(organization=zircula, user=user, role=Membership.Role.WORKSHOP_USER)
+    Membership.objects.create(organization=example, user=user, role=Membership.Role.WORKSHOP_USER)
     own = Workshop.objects.create(
-        organization=zircula,
+        organization=example,
         source_type=Workshop.SourceType.PRETIX,
         external_reference="own",
         title="Eigener Workshop",
@@ -41,8 +41,8 @@ def test_workshop_list_never_leaks_other_organization(settings):
 
 @pytest.mark.django_db
 def test_user_without_membership_is_denied(settings):
-    settings.DEFAULT_ORGANIZATION_SLUG = "zircula"
-    Organization.objects.create(slug="zircula", name="Zircula e.V.")
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
+    Organization.objects.create(slug="example", name="Example Organization")
     user = get_user_model().objects.create_user(username="outsider", password="test-password")
     client = Client()
     client.force_login(user)

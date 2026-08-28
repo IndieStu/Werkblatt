@@ -9,12 +9,12 @@ from werkblatt.organizations.models import Organization
 
 
 def test_normalizes_oidc_claims(settings):
-    settings.OIDC_ISSUER = "https://auth.zircula.org/application/o/werkblatt/"
+    settings.OIDC_ISSUER = "https://auth.example.org/application/o/werkblatt/"
     settings.OIDC_CLIENT_ID = "werkblatt"
     settings.OIDC_ALLOWED_GROUPS = {"Werkblatt Users"}
     claims = normalized_claims(
         {
-            "iss": "https://auth.zircula.org/application/o/werkblatt/",
+            "iss": "https://auth.example.org/application/o/werkblatt/",
             "sub": "stable-user-id",
             "name": "Erika Beispiel",
             "email": "erika@example.invalid",
@@ -63,12 +63,12 @@ def test_rejects_invalid_identity_binding(settings, payload):
 
 @pytest.mark.django_db
 def test_group_changes_update_only_configured_organization_role(settings):
-    settings.DEFAULT_ORGANIZATION_SLUG = "zircula"
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
     settings.OIDC_ISSUER = "https://issuer.invalid"
     settings.OIDC_CLIENT_ID = "werkblatt"
     settings.OIDC_ALLOWED_GROUPS = {"Werkblatt Users", "Werkblatt Admins"}
     settings.OIDC_ADMIN_GROUPS = {"Werkblatt Admins"}
-    organization = Organization.objects.create(slug="zircula", name="Zircula")
+    organization = Organization.objects.create(slug="example", name="Example Organization")
     other = Organization.objects.create(slug="other", name="Andere")
     admin_claims = normalized_claims(
         {

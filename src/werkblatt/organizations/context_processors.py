@@ -15,6 +15,7 @@ def organization(request):
     return {
         "current_organization": getattr(request, "organization", None),
         "software_author_url": settings.SOFTWARE_AUTHOR_URL,
+        "software_author_label": settings.SOFTWARE_AUTHOR_LABEL,
         "hosting_provider_label": settings.HOSTING_PROVIDER_LABEL,
         "is_org_admin": is_org_admin,
     }

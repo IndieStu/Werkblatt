@@ -74,7 +74,7 @@ def test_maps_event_series_and_subevent():
         client = PretixClient(
             "https://www.pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
         )
-        workshops = PretixWorkshopProvider(client, "WERK").list_workshops()
+        workshops = PretixWorkshopProvider(client, "example-organizer").list_workshops()
     assert len(workshops) == 1
     assert workshops[0].reference == "reihe:42"
     assert workshops[0].title == "Termin"
@@ -103,14 +103,14 @@ def test_testmode_events_require_explicit_opt_in():
         client = PretixClient(
             "https://www.pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
         )
-        provider = PretixWorkshopProvider(client, "WERK")
+        provider = PretixWorkshopProvider(client, "example-organizer")
         assert provider.list_workshops() == []
         assert provider.list_workshops(include_testmode=True)[0].reference == "synthetic-preflight"
 
 
 @pytest.mark.django_db
 def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations(settings):
-    organization = Organization.objects.create(slug="zircula", name="Synthetische Organisation")
+    organization = Organization.objects.create(slug="example", name="Example Organization")
     settings.PRETIX_API_TOKEN = "synthetic-token"
     settings.PRETIX_ORGANIZER = "synthetic-organizer"
     settings.DEFAULT_ORGANIZATION_SLUG = organization.slug
@@ -157,10 +157,10 @@ def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations
 
 @pytest.mark.django_db
 def test_sync_rejects_unbounded_test_event_import(settings):
-    Organization.objects.create(slug="zircula", name="Synthetische Organisation")
+    Organization.objects.create(slug="example", name="Example Organization")
     settings.PRETIX_API_TOKEN = "synthetic-token"
     settings.PRETIX_ORGANIZER = "synthetic-organizer"
-    settings.DEFAULT_ORGANIZATION_SLUG = "zircula"
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
 
     with pytest.raises(CommandError, match="erfordert"):
         call_command("sync_pretix", "--include-test-events")

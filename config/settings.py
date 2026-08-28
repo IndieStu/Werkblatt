@@ -124,6 +124,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DEFAULT_ORGANIZATION_SLUG = env("WERKBLATT_DEFAULT_ORGANIZATION", "default")
 PUBLIC_BASE_URL = env("WERKBLATT_PUBLIC_BASE_URL", "http://localhost:8000")
+SOFTWARE_AUTHOR_LABEL = env("WERKBLATT_SOFTWARE_AUTHOR_LABEL", "Zircula e.V.")
 SOFTWARE_AUTHOR_URL = env("WERKBLATT_SOFTWARE_AUTHOR_URL", "https://zircula.org")
 HOSTING_PROVIDER_LABEL = env("WERKBLATT_HOSTING_PROVIDER_LABEL", "")
 
@@ -181,5 +182,5 @@ SECURE_SSL_REDIRECT = not DEBUG
 SECURE_HSTS_SECONDS = 0 if DEBUG else 31_536_000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
-# Zircula aktiviert HSTS zentral am Reverse Proxy. IncludeSubDomains und Browser-Preload
-# bleiben bewusste Infrastrukturentscheidungen und werden nicht von der App erzwungen.
+# IncludeSubDomains und Browser-Preload bleiben bewusste Entscheidungen der
+# jeweiligen Zielinfrastruktur und werden nicht von der App erzwungen.

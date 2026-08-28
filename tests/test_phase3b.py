@@ -50,8 +50,8 @@ def png_upload(name="logo.png", color="#00545a"):
 @pytest.fixture
 def phase3_setup(db, tmp_path, settings):
     settings.MEDIA_ROOT = tmp_path / "media"
-    settings.DEFAULT_ORGANIZATION_SLUG = "zircula"
-    organization = Organization.objects.create(slug="zircula", name="Zircula e.V.")
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
+    organization = Organization.objects.create(slug="example", name="Example Organization")
     admin = get_user_model().objects.create_user(username="admin", display_name="Admin Person")
     workshop_user = get_user_model().objects.create_user(username="workshop-user")
     Membership.objects.create(
@@ -77,7 +77,7 @@ def phase3_setup(db, tmp_path, settings):
 def template_data(name="Fördernachweis"):
     return {
         "name": name,
-        "project_title": "Klimaschutz im Alltag",
+        "project_title": "Sample Program",
         "subtitle": "",
         "funding_text": "",
         "attendance_text": "Teilnahme wird mit Unterschrift bestätigt.",
@@ -134,7 +134,7 @@ def test_png_asset_is_versioned_and_old_hash_stays_immutable(phase3_setup):
     asset = create_asset(
         organization=organization,
         user=admin,
-        display_name="Dieckell Stiftung",
+        display_name="Example Foundation",
         default_role=BrandAsset.Role.FUNDER,
         upload=png_upload(color="#00529b"),
     )
@@ -182,7 +182,7 @@ def test_safe_svg_is_stored_with_generated_png_preview(phase3_setup, monkeypatch
     fake_cairosvg.svg2png = lambda **_kwargs: preview
     monkeypatch.setitem(sys.modules, "cairosvg", fake_cairosvg)
     upload = SimpleUploadedFile(
-        "zircula.svg",
+        "example-organization.svg",
         b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">'
         b'<path d="M0 0h100v40H0z" fill="#00545a"/></svg>',
         content_type="image/svg+xml",
@@ -191,7 +191,7 @@ def test_safe_svg_is_stored_with_generated_png_preview(phase3_setup, monkeypatch
     asset = create_asset(
         organization=organization,
         user=admin,
-        display_name="Zircula",
+        display_name="Example Organization",
         default_role=BrandAsset.Role.ORGANIZATION,
         upload=upload,
     )
@@ -216,7 +216,7 @@ def test_workshop_user_cannot_manage_assets_but_cannot_leak_foreign_preview(phas
     asset = create_asset(
         organization=organization,
         user=admin,
-        display_name="Zircula",
+        display_name="Example Organization",
         default_role=BrandAsset.Role.ORGANIZATION,
         upload=png_upload(),
     )
@@ -375,7 +375,7 @@ def test_duplicate_template_is_independent_complete_copy(phase3_setup):
         fields=duplicate_data["fields"],
     )
     original.refresh_from_db()
-    assert original.current_version.project_title == "Klimaschutz im Alltag"
+    assert original.current_version.project_title == "Sample Program"
 
 
 @pytest.mark.django_db
@@ -384,7 +384,7 @@ def test_snapshot_freezes_template_output_assets_and_custom_fields(phase3_setup)
     asset = create_asset(
         organization=organization,
         user=admin,
-        display_name="FHB",
+        display_name="Demo Municipality",
         default_role=BrandAsset.Role.FUNDER,
         upload=png_upload(color="#ff0000"),
     )

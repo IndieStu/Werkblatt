@@ -9,7 +9,7 @@ Scope: ausschließlich Phase 0; noch keine Feature-Implementierung
 
 Werkblatt wird als modularer Monolith auf Basis von Django 5.2 LTS und PostgreSQL 17 geplant. Die Benutzeroberfläche wird serverseitig gerendert und nur dort mit HTMX und kleinem, lokalem JavaScript ergänzt, wo Interaktion ohne vollständigen Seitenwechsel sinnvoll ist. Es gibt in V1 genau einen Webprozess und eine Datenbank; ein separater Worker oder Redis wird erst ergänzt, wenn reale Last oder betrieblich notwendige Hintergrundjobs dies rechtfertigen.
 
-Die fachliche Trennung erfolgt innerhalb einer Anwendung: Identität, Organisationen, Workshops, Dokumentationen, Projekte/Logos und Integrationen sind klar abgegrenzte Module. Pretix, OIDC, WebDAV und PDF-Erzeugung werden über kleine Ports/Adapter gekapselt. Das hält V1 klein, ohne die Kernlogik an Zircula oder einen externen Dienst zu binden.
+Die fachliche Trennung erfolgt innerhalb einer Anwendung: Identität, Organisationen, Workshops, Dokumentationen, Projekte/Logos und Integrationen sind klar abgegrenzte Module. Pretix, OIDC, WebDAV und PDF-Erzeugung werden über kleine Ports/Adapter gekapselt. Das hält V1 klein, ohne die Kernlogik an eine bestimmte Organisation oder einen externen Dienst zu binden.
 
 Die zentrale Sicherheitsregel lautet: Jeder organisationsbezogene Zugriff beginnt mit einem serverseitig ermittelten `organization_id`-Kontext. Mandantendaten werden nie über ungefilterte globale QuerySets geladen. IDs aus URLs oder Requests bestimmen nicht den Tenant.
 
@@ -176,7 +176,7 @@ Denormalisiertes `organization_id` auf abhängigen fachlichen Tabellen ist Absic
 4. Erst dann entsteht ein unveränderlicher `OrganizationContext` für den Request.
 5. Services und Repositories verlangen diesen Kontext explizit.
 
-In V1 ist nur Zircula konfiguriert, trotzdem läuft jeder Zugriff durch denselben Mechanismus. Es gibt keinen globalen Fallback-Tenant in Fachservices und kein `Organization.objects.first()`.
+Auch wenn eine Installation in V1 zunächst nur eine Organisation konfiguriert, läuft jeder Zugriff durch denselben Mechanismus. Es gibt keinen globalen Fallback-Tenant in Fachservices und kein `Organization.objects.first()`.
 
 ### Durchsetzung
 
@@ -291,7 +291,7 @@ Verbindliche Konsequenzen:
 - Inter Regular 400 und SemiBold 600; Fontdateien und OFL-Lizenztext müssen separat aus offizieller Quelle eingebracht werden.
 - Mindestgrößen und Schutzraum (`x = 1/8` der sichtbaren Signethöhe, rundum mindestens `1x`) werden in UI/PDF berücksichtigt.
 - Auf dunklen Hintergründen nur die vorgesehene invertierte/weiße Produktionsvariante. Monochrom ist kein Umfärben des Farbsignets.
-- Organisationslogo, Werkblatt-Produktmarke und optionale Zircula-Attribution sind getrennte Komponenten.
+- Organisationslogo, Werkblatt-Produktmarke und optionale Software-/Hosting-Attribution sind getrennte Komponenten.
 
 Produktionsassets für die Webanwendung in Phase 1: Primärlogo und bei tatsächlichem UI-Bedarf die invertierte Variante, Farbsignet, App-/Maskable-/Apple-Touch-Icons, Favicon-Satz, Brand-Tokens und Inter. Phase 3 übernimmt keine allgemeine Web-Branding-Grundlage mehr, sondern behandelt ausschließlich die PDF-/Dokumentanwendung des Werkblatt-CD sowie Organisations-, Projekt- und Förderlogos. Social-OG wird erst übernommen, wenn eine öffentliche Projektseite es tatsächlich nutzt.
 
@@ -346,7 +346,7 @@ Zunächst dieselbe Anwendung und dasselbe Schema. Shared-Database/Shared-Schema 
 - Organisationsdeaktivierung sperrt Zugriff und Synchronisation, löscht aber nicht automatisch Daten.
 - Per-Tenant-Export und Löschkonzept werden als spätere Application Services vorbereitet.
 - Vor Aufnahme der ersten Partnerorganisation ist ein eigener Tenant-Isolation-/IDOR-Review ein Release-Gate. Optional wird PostgreSQL RLS dann als zweite Schutzschicht evaluiert.
-- `software_author/project_origin` und `hosting_provider` sind getrennte Deployment-Metadaten. `Hosted by Zircula e.V.` erscheint nur bei entsprechender Konfiguration.
+- `software_author/project_origin` und `hosting_provider` sind getrennte Deployment-Metadaten. Eine Hosting-Angabe erscheint nur bei entsprechender Konfiguration.
 
 ## 15. Migrationen und Versionsstrategie
 
@@ -374,7 +374,7 @@ CI-Gates: Format/Lint, Unit/Integration, Migration-Check, Produktionsbuild, Cont
 
 ### V1 implementieren
 
-- Eine konfigurierte Organisation (Zircula), aber vollständig tenantgebundene Zugriffe.
+- Eine konfigurierte Organisation, aber vollständig tenantgebundene Zugriffe.
 - OIDC/Authentik über Standard-OIDC, Membership und Rollen.
 - Pretix inklusive Eventserien/Subevents, Workshopliste und Teilnehmerimport.
 - Anwesenheit, spontane Teilnehmende, Durchführende, Kurzbericht, Entwurf und Abschluss.
@@ -407,7 +407,7 @@ CI-Gates: Format/Lint, Unit/Integration, Migration-Check, Produktionsbuild, Cont
 2. **Phase 2 - Dokumentation:** Entwurf, Teilnehmer-Snapshot, Anwesenheit, Walk-ins, Durchführende, Feedback, Abschlusszustände und Statistik. Abhängigkeit: fachliche Klärung zu Bearbeitung/Unterschriften/Pflichtfeldern.
 3. **Phase 3a - Analyse-Gate:** realen Papierbogen datenschutzkonform analysieren; Feld- und Layoutvorschlag, Logo-/Organisationsbedarf und offene Fragen liefern; dann stoppen.
 4. **Phase 3b - PDF/Dokumentbranding/Storage:** nach Freigabe die PDF-/Dokumentanwendung des Werkblatt-CD implementieren, Organisations-/Projekt-/Förderlogos integrieren und WebDAV anbinden. Die Webanwendungs-Assets sind bereits Bestandteil von Phase 1. Abhängigkeit: Papierbogen, Organisations-/Projekt-/Förderlogos, Angaben und Storage-Testzugang.
-5. **Phase 4 - Produktionsreife:** vollständige Security-/Tenant-Tests, CI, Image, Backup/Restore, Betriebsdoku, VPS-Preflight und kontrollierter Zircula-Rollout. Keine Produktion ohne explizite Freigabe.
+5. **Phase 4 - Produktionsreife:** vollständige Security-/Tenant-Tests, CI, Image, generische Backup-/Restore-Dokumentation und Self-Hosting-Preflight. Konkrete Rollouts werden ausschließlich in der jeweiligen Infrastruktur dokumentiert.
 
 Jede Phase endet mit Tests, nachvollziehbarem Zwischenstand und Freigabe. Phase 0 ist freigegeben; Phase 1 beginnt nach einem ausdrücklichen Startsignal und Bereitstellung der dafür erforderlichen OIDC-/Pretix-Konfiguration.
 
@@ -439,11 +439,11 @@ Falls maximale Verbreitung wichtiger ist als Copyleft, wäre Apache-2.0 die perm
 ### Spätestens vor Phase 3
 
 9. Bitte den aktuellen Papier-Workshopbogen bereitstellen. Bei realen Daten behandle ich ihn ausschließlich lokal, committe und protokolliere ihn nicht.
-10. Benötigt werden: Zircula-Organisationslogo, Anschrift/Kontaktdaten, aktuelle Projekt-/Förderlogos, Projektbezeichnungen und fachliche Zuordnungsregeln. SVG bevorzugt; keine Masterdaten verändern.
+10. Organisations-, Projekt- und Förderlogos sowie konkrete Texte sind Laufzeitdaten der jeweiligen Installation und werden nicht in das allgemeine Software-Repository übernommen.
 11. Welche Nextcloud/WebDAV-Testdaten, Zielstruktur und Rechte stehen bereit? Dedizierter eingeschränkter technischer Account empfohlen.
 12. Soll Inter im Repository selbst gehostet werden? Dann benötige ich die freigegebene offizielle Bezugsquelle und werde OFL-1.1 samt Copyright-Hinweisen aufnehmen.
 13. Welche Aufbewahrungs- und Löschregeln sollen für Teilnehmernamen, strukturierte Dokumentationen und erzeugte PDFs gelten? Keine Frist wird ohne Vorgabe gewählt.
-14. Soll `Hosted by Zircula e.V.` in der Pilotinstanz erscheinen, und welche genaue deutsche Attribution ist freigegeben?
+14. Optionale Software- und Hosting-Attributionen werden getrennt und über Installationseinstellungen konfiguriert.
 
 ## 21. Freigabe-Gate
 
