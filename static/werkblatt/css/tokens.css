@@ -1,0 +1,17 @@
+:root {
+  --brand-petrol-dark: #004e55;
+  --brand-petrol: #037a84;
+  --brand-turquoise: #3db3b7;
+  --brand-turquoise-light: #a7dce0;
+  --color-ink: #101820;
+  --color-muted: #52666a;
+  --color-surface: #f7fafa;
+  --color-border: #d7e1e2;
+  --color-dark-surface: #102a2d;
+  --color-icon-background: #00383d;
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius-small: 0.5rem;
+  --radius-medium: 0.9rem;
+  --shadow-card: 0 0.5rem 2rem rgb(16 42 45 / 8%);
+}
+

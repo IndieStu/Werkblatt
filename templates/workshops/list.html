@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Workshops - Werkblatt{% endblock %}
+{% block content %}
+<p class="eyebrow">Workshop-Dokumentation</p>
+<h1>Workshops</h1>
+<p class="lead">Wähle einen Workshop aus, den du dokumentieren möchtest.</p>
+<div class="workshop-list">
+  {% for workshop in workshops %}
+    <article class="workshop-card">
+      <time datetime="{{ workshop.starts_at|date:'c' }}">{{ workshop.starts_at|date:"d.m.Y, H:i" }}</time>
+      <h2>{{ workshop.title }}</h2>
+      {% if workshop.location %}<p>{{ workshop.location }}</p>{% endif %}
+    </article>
+  {% empty %}
+    <div class="empty-state">
+      <h2>Keine Workshops gefunden</h2>
+      <p>Im ausgewählten Zeitraum liegen derzeit keine Workshops vor.</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
+

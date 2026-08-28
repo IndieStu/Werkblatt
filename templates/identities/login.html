@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Anmelden - Werkblatt{% endblock %}
+{% block content %}
+<section class="login-card">
+  <img class="login-mark" src="/static/werkblatt/brand/werkblatt-mark-color.svg" alt="" width="72" height="72">
+  <p class="eyebrow">Workshop-Dokumentation</p>
+  <h1>Willkommen bei Werkblatt</h1>
+  <p>Melde dich über den Identitätsanbieter deiner Organisation an.</p>
+  <a class="button" href="{% url 'oidc-login' %}">Mit Authentik anmelden</a>
+</section>
+{% endblock %}
+

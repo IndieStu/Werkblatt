@@ -1,0 +1,29 @@
+@import url("./tokens.css");
+
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/Inter-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--color-ink); background: var(--color-surface); font-family: var(--font-sans); line-height: 1.55; }
+a { color: var(--brand-petrol-dark); }
+.app-header { min-height: 5rem; padding: 1rem clamp(1rem, 4vw, 3rem); background: white; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+.brand { display: inline-flex; padding: 0.4rem; }
+.brand img { display: block; min-width: 140px; height: auto; }
+.organization { color: var(--color-muted); font-size: 0.9rem; }
+.page-shell { width: min(70rem, calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem, 6vw, 5rem) 0; }
+.eyebrow { color: var(--brand-petrol); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.78rem; }
+h1, h2 { line-height: 1.18; }
+h1 { margin: 0.25rem 0 0.75rem; font-size: clamp(2rem, 5vw, 3.4rem); }
+.lead { color: var(--color-muted); font-size: 1.1rem; }
+.workshop-list { display: grid; gap: 1rem; margin-top: 2rem; }
+.workshop-card, .empty-state, .login-card { background: white; border: 1px solid var(--color-border); border-radius: var(--radius-medium); box-shadow: var(--shadow-card); padding: clamp(1.25rem, 4vw, 2rem); }
+.workshop-card h2 { margin: 0.35rem 0; font-size: 1.25rem; }
+.workshop-card time, .workshop-card p { color: var(--color-muted); }
+.login-card { max-width: 34rem; margin: 4vh auto; text-align: center; }
+.login-mark { width: 72px; height: auto; margin-bottom: 1rem; }
+.button { display: inline-flex; justify-content: center; margin-top: 1rem; padding: 0.8rem 1.1rem; color: white; background: var(--brand-petrol-dark); border-radius: var(--radius-small); font-weight: 600; text-decoration: none; }
+.button:hover { background: var(--brand-petrol); }
+.button:focus-visible, a:focus-visible { outline: 3px solid var(--brand-turquoise); outline-offset: 3px; }
+.app-footer { padding: 1.5rem clamp(1rem, 4vw, 3rem); color: var(--color-muted); border-top: 1px solid var(--color-border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; font-size: 0.85rem; }
+@media (max-width: 36rem) { .app-header { align-items: flex-start; flex-direction: column; } .page-shell { width: min(100% - 1.25rem, 70rem); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+

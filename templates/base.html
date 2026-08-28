@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#00383D">
+  <title>{% block title %}Werkblatt{% endblock %}</title>
+  <link rel="icon" href="{% static 'werkblatt/favicon/favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'werkblatt/favicon/favicon-32x32.png' %}" sizes="32x32">
+  <link rel="apple-touch-icon" href="{% static 'werkblatt/icons/apple-touch-icon.png' %}">
+  <link rel="manifest" href="{% static 'werkblatt/manifest.webmanifest' %}">
+  <link rel="stylesheet" href="{% static 'werkblatt/css/app.css' %}">
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="Werkblatt Startseite">
+      <img src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="180">
+    </a>
+    {% if current_organization %}<span class="organization">{{ current_organization.name }}</span>{% endif %}
+  </header>
+  <main class="page-shell">{% block content %}{% endblock %}</main>
+  <footer class="app-footer">
+    <span>Werkblatt</span>
+    <span>Open Source software by <a href="{{ software_author_url }}">Zircula e.V.</a></span>
+    {% if hosting_provider_label %}<span>{{ hosting_provider_label }}</span>{% endif %}
+  </footer>
+</body>
+</html>

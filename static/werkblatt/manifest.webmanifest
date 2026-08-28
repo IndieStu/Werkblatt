@@ -1,0 +1,16 @@
+{
+  "name": "Werkblatt",
+  "short_name": "Werkblatt",
+  "description": "Workshops einfach dokumentieren.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7FAFA",
+  "theme_color": "#00383D",
+  "icons": [
+    {"src": "/static/werkblatt/icons/werkblatt-icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/werkblatt/icons/werkblatt-icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/static/werkblatt/icons/werkblatt-icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+    {"src": "/static/werkblatt/icons/werkblatt-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
+
