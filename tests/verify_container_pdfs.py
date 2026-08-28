@@ -28,6 +28,8 @@ for filename, markers in expected_text.items():
     reader = PdfReader(first_pdf)
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert reader.metadata is not None
-    missing = [marker for marker in markers if marker not in text]
+    # Embedded fonts may make PDF text extractors insert spaces inside words.
+    compact_text = "".join(text.split())
+    missing = [marker for marker in markers if "".join(marker.split()) not in compact_text]
     assert not missing, f"{filename}: Textmarker fehlen: {missing}; extrahiert={text!r}"
     assert rendered_hash(first_pdf) == rendered_hash(second_pdf)
