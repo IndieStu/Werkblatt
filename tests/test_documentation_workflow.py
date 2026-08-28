@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -150,6 +152,8 @@ def test_workshop_user_can_reopen_and_create_second_immutable_revision(documenta
     assert first.number == 1
     assert first.snapshot["documentation"]["report"] == "Erster Bericht"
     assert first.snapshot["statistics"]["present_total"] == 2
+    first_snapshot = deepcopy(first.snapshot)
+    first_hash = first.snapshot_sha256
 
     documentation.refresh_from_db()
     reopen_documentation(
@@ -185,7 +189,9 @@ def test_workshop_user_can_reopen_and_create_second_immutable_revision(documenta
     first.refresh_from_db()
     assert second.number == 2
     assert second.snapshot["documentation"]["report"] == "Korrigierter Bericht"
-    assert first.snapshot["documentation"]["report"] == "Erster Bericht"
+    assert first.snapshot == first_snapshot
+    assert first.snapshot_sha256 == first_hash
+    assert second.snapshot_sha256 != first_hash
     assert documentation.revisions.count() == 2
     with pytest.raises(ValueError):
         first.save()
@@ -211,17 +217,108 @@ def test_cross_tenant_reopen_is_denied(documentation_setup):
 def test_stale_version_cannot_overwrite_newer_draft(documentation_setup):
     data = documentation_setup
     documentation = data["documentation"]
+    stale_version = documentation.version
+    save_draft(
+        documentation_id=documentation.id,
+        organization_id=data["organization"].id,
+        user=data["user"],
+        expected_version=stale_version,
+        conducted_as_planned=True,
+        report="Aktueller Stand",
+        participants=_participant_rows(documentation, walk_in_name=""),
+        facilitators=[
+            FacilitatorInput(
+                facilitator_id=documentation.facilitators.get().id,
+                display_name="Alex Beispiel",
+            )
+        ],
+    )
     with pytest.raises(ConcurrentDocumentationUpdate):
         save_draft(
             documentation_id=documentation.id,
             organization_id=data["organization"].id,
             user=data["user"],
-            expected_version=documentation.version + 1,
+            expected_version=stale_version,
             conducted_as_planned=True,
             report="Veraltet",
             participants=[],
             facilitators=[],
         )
+    documentation.refresh_from_db()
+    assert documentation.report == "Aktueller Stand"
+
+
+@pytest.mark.django_db
+def test_finalize_twice_without_reopen_is_rejected(documentation_setup):
+    data = documentation_setup
+    documentation = data["documentation"]
+    first = finalize_documentation(
+        documentation_id=documentation.id,
+        organization_id=data["organization"].id,
+        user=data["user"],
+        expected_version=documentation.version,
+    )
+    documentation.refresh_from_db()
+
+    with pytest.raises(ValidationError, match="bereits abgeschlossen"):
+        finalize_documentation(
+            documentation_id=documentation.id,
+            organization_id=data["organization"].id,
+            user=data["user"],
+            expected_version=documentation.version,
+        )
+
+    assert documentation.revisions.count() == 1
+    assert documentation.revisions.get().id == first.id
+
+
+@pytest.mark.django_db
+def test_reopen_draft_is_rejected(documentation_setup):
+    data = documentation_setup
+    documentation = data["documentation"]
+
+    with pytest.raises(ValidationError, match="Nur abgeschlossene"):
+        reopen_documentation(
+            documentation_id=documentation.id,
+            organization_id=data["organization"].id,
+            user=data["user"],
+            expected_version=documentation.version,
+        )
+
+    documentation.refresh_from_db()
+    assert documentation.status == Documentation.Status.DRAFT
+    assert documentation.revisions.count() == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("operation", ["save", "finalize"])
+def test_cross_tenant_save_and_finalize_are_denied(documentation_setup, operation):
+    data = documentation_setup
+    documentation = data["documentation"]
+    other = Organization.objects.create(slug=f"other-{operation}", name="Andere Organisation")
+    common = {
+        "documentation_id": documentation.id,
+        "organization_id": other.id,
+        "user": data["user"],
+        "expected_version": documentation.version,
+    }
+
+    with pytest.raises(PermissionDenied):
+        if operation == "save":
+            save_draft(
+                **common,
+                conducted_as_planned=True,
+                report="Mandantenfremd",
+                participants=[],
+                facilitators=[],
+            )
+        else:
+            finalize_documentation(**common)
+
+    documentation.refresh_from_db()
+    assert documentation.status == Documentation.Status.DRAFT
+    assert documentation.report == ""
+    assert documentation.revisions.count() == 0
 
 
 @pytest.mark.django_db
