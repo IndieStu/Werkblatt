@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "werkblatt.identities",
     "werkblatt.workshops",
     "werkblatt.documentation",
+    "werkblatt.documents",
 ]
 
 MIDDLEWARE = [
@@ -88,6 +89,8 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_ROOT = BASE_DIR / "var" / "media"
+MEDIA_URL = "/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DEFAULT_ORGANIZATION_SLUG = env("WERKBLATT_DEFAULT_ORGANIZATION", "zircula")
@@ -104,6 +107,11 @@ OIDC_ADMIN_GROUPS = {v.strip() for v in env("OIDC_ADMIN_GROUPS").split(",") if v
 PRETIX_BASE_URL = env("PRETIX_BASE_URL", "https://www.pretix.eu")
 PRETIX_API_TOKEN = env("PRETIX_API_TOKEN")
 PRETIX_ORGANIZER = env("PRETIX_ORGANIZER", "WERK")
+
+WEBDAV_BASE_URL = env("WEBDAV_BASE_URL")
+WEBDAV_USERNAME = env("WEBDAV_USERNAME")
+WEBDAV_PASSWORD = env("WEBDAV_PASSWORD")
+WEBDAV_ROOT = env("WEBDAV_ROOT", "Werkblatt")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG

@@ -33,8 +33,15 @@
       <input type="hidden" name="expected_version" value="{{ documentation.version }}">
       <button class="button secondary" type="submit" name="action" value="reopen">Zur Korrektur öffnen</button>
     </form>
+    {% if generated_documents %}<h3>Dokumente</h3><ul>{% for document in generated_documents %}<li><a href="{% url 'document-download' document.id %}">{{ document.output_name }}</a> · {{ document.get_status_display }}</li>{% endfor %}</ul>{% endif %}
   </section>
 {% else %}
+  <section class="content-card">
+    <h2>Dokumentvorlage</h2>
+    <form method="post" class="inline-form">{% csrf_token %}{{ assignment_form.template }}<button class="button secondary" name="action" value="assign_template">Vorlage zuordnen</button></form>
+    {% if documentation.template_assignment %}<p class="form-hint">{{ documentation.template_assignment.template.name }} · Stand {{ documentation.template_assignment.template_version.number }}</p>{% endif %}
+    {% if attendance_available %}<form method="post" action="{% url 'generate-attendance' documentation.id %}">{% csrf_token %}<button class="button secondary" type="submit">Teilnahmeliste erzeugen</button></form>{% endif %}
+  </section>
   <form method="post" class="documentation-form">
     {% csrf_token %}
     {{ form.expected_version }}
@@ -54,6 +61,8 @@
       {% endfor %}
       <p class="form-hint">Freie Zeilen können für spontan erschienene Personen verwendet werden.</p>
     </section>
+
+    {% if custom_form.fields %}<section class="content-card form-stack"><h2>Zusatzangaben</h2>{{ custom_form.as_div }}</section>{% endif %}
 
     <section class="content-card">
       <h2>Durchführende</h2>

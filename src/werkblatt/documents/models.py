@@ -1,0 +1,76 @@
+import uuid
+
+from django.conf import settings
+from django.db import models
+
+
+def generated_document_path(instance, _filename):
+    return (
+        f"organizations/{instance.organization_id}/documents/{instance.workshop_id}/"
+        f"{instance.id}.pdf"
+    )
+
+
+class GeneratedDocumentQuerySet(models.QuerySet):
+    def for_organization(self, organization_id):
+        if organization_id is None:
+            raise ValueError("organization_id ist erforderlich")
+        return self.filter(organization_id=organization_id)
+
+
+class GeneratedDocument(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ausstehend"
+        RENDERED = "rendered", "Erzeugt"
+        STORED = "stored", "Extern gespeichert"
+        RENDER_FAILED = "render_failed", "PDF-Erzeugung fehlgeschlagen"
+        STORAGE_FAILED = "storage_failed", "Externe Speicherung fehlgeschlagen"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    workshop = models.ForeignKey(
+        "workshops.Workshop", on_delete=models.PROTECT, related_name="generated_documents"
+    )
+    revision = models.ForeignKey(
+        "documentation.DocumentationRevision",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="generated_documents",
+    )
+    template_version = models.ForeignKey(
+        "documentation.DocumentTemplateVersion", on_delete=models.PROTECT
+    )
+    output_kind = models.CharField(max_length=32)
+    output_name = models.CharField(max_length=200)
+    input_sha256 = models.CharField(max_length=64)
+    renderer_version = models.CharField(max_length=32, default="weasyprint-66/v1")
+    status = models.CharField(max_length=24, choices=Status, default=Status.PENDING)
+    pdf_file = models.FileField(upload_to=generated_document_path, max_length=500, blank=True)
+    pdf_sha256 = models.CharField(max_length=64, blank=True)
+    byte_size = models.PositiveIntegerField(default=0)
+    storage_key = models.CharField(max_length=500, blank=True)
+    attempt_count = models.PositiveIntegerField(default=0)
+    last_error_class = models.CharField(max_length=100, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="generated_documents"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = GeneratedDocumentQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "organization",
+                    "workshop",
+                    "revision",
+                    "template_version",
+                    "output_kind",
+                    "input_sha256",
+                ],
+                name="generated_document_idempotent_output",
+            )
+        ]

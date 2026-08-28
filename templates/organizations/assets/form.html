@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Logo hochladen - Werkblatt{% endblock %}
+{% block content %}<nav class="breadcrumb"><a href="{% url 'asset-list' %}">Logos & Assets</a> / Neu</nav><h1>Logo hochladen</h1>
+<p class="lead">SVG bis 2 MiB oder PNG bis 10 MiB. Aktive und externe SVG-Inhalte werden abgewiesen.</p>
+<form method="post" enctype="multipart/form-data" class="content-card form-stack">{% csrf_token %}{{ form.as_div }}{% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}<button class="button" type="submit">Prüfen und speichern</button></form>{% endblock %}

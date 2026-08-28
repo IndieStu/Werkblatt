@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.display_name }} - Werkblatt{% endblock %}
+{% block content %}<nav class="breadcrumb"><a href="{% url 'asset-list' %}">Logos & Assets</a> / Bearbeiten</nav><h1>{{ asset.display_name }}</h1>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+{% if asset.current_version %}<div class="asset-preview"><img src="{% url 'asset-preview' asset.current_version.id %}" alt="{{ asset.display_name }}"><p>Aktuell: Version {{ asset.current_version.number }}</p></div>{% endif %}
+<div class="two-column"><form method="post" class="content-card form-stack">{% csrf_token %}{{ form.as_div }}<button class="button" name="action" value="metadata">Metadaten speichern</button></form>
+<form method="post" enctype="multipart/form-data" class="content-card form-stack">{% csrf_token %}<h2>Neue Version</h2>{{ version_form.as_div }}<button class="button secondary" name="action" value="version">Neue Version prüfen</button></form></div>
+<section class="revision-history"><h2>Versionen</h2><ol>{% for version in asset.versions.all %}<li>Version {{ version.number }} · {{ version.created_at|date:"d.m.Y, H:i" }} · SHA-256 {{ version.sha256|slice:":12" }}…</li>{% endfor %}</ol></section>{% endblock %}

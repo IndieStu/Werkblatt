@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Logos & Assets - Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Einstellungen</a> / Logos & Assets</nav>
+<div class="section-heading"><div><h1>Logos & Assets</h1><p class="lead">Versionierte Logos deiner Organisation.</p></div><a class="button" href="{% url 'asset-create' %}">Logo hochladen</a></div>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<div class="asset-grid">{% for asset in assets %}<article class="content-card asset-card">
+  {% if asset.current_version %}<img src="{% url 'asset-preview' asset.current_version.id %}" alt="{{ asset.display_name }}">{% endif %}
+  <h2>{{ asset.display_name }}</h2><p>{{ asset.get_default_role_display }} · {{ asset.get_status_display }}</p>
+  {% if asset.current_version %}<p>Version {{ asset.current_version.number }} · {{ asset.current_version.media_type }} · {{ asset.current_version.width }} × {{ asset.current_version.height }}</p>{% endif %}
+  <a href="{% url 'asset-edit' asset.id %}">Verwalten</a>
+</article>{% empty %}<div class="empty-state"><h2>Noch keine Logos</h2><p>Lade das erste SVG- oder PNG-Logo hoch.</p></div>{% endfor %}</div>
+{% endblock %}

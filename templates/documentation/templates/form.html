@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{% if template %}{{ template.name }}{% else %}Neue Vorlage{% endif %} - Werkblatt{% endblock %}
+{% block content %}<nav class="breadcrumb"><a href="{% url 'template-list' %}">Dokumentvorlagen</a> / {% if template %}Bearbeiten{% else %}Neu{% endif %}</nav>
+<div class="section-heading"><div><h1>{% if template %}{{ template.name }}{% else %}Dokumentvorlage erstellen{% endif %}</h1>{% if template %}<p>Aktueller Vorlagenstand {{ template.current_version.number }}</p>{% endif %}</div><a class="button secondary" href="{% url 'asset-create' %}?next={{ request.path|urlencode }}">Neues Logo hochladen</a></div>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+{% if outdated_assets %}<div class="message message-warning"><strong>Neuere Logo-Version verfügbar.</strong> Aktiviere beim betreffenden Logo bewusst „Auf aktuelle Logo-Version aktualisieren“, um sie in einen neuen Vorlagenstand zu übernehmen.</div>{% endif %}
+<form method="post" class="documentation-form">{% csrf_token %}
+  <section class="content-card form-stack"><h2>Grunddaten</h2>{{ forms.0.as_div }}</section>
+  <section class="content-card"><h2>Logos</h2>{{ forms.1.management_form }}{% for form in forms.1 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
+  <section class="content-card"><h2>Ausgaben</h2><p class="form-hint">Klarnamen werden pro Ausgabe festgelegt.</p>{{ forms.2.management_form }}{% for form in forms.2 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
+  <section class="content-card"><h2>Zusatzfelder</h2><p class="form-hint">Auch aggregierte Geschlechtsangaben sind normale vorlagenbezogene Zusatzfelder.</p>{{ forms.3.management_form }}{% for form in forms.3 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
+  <button class="button" type="submit">{% if template %}Als neuen Vorlagenstand speichern{% else %}Vorlage erstellen{% endif %}</button>
+</form>{% endblock %}

@@ -37,3 +37,13 @@ python manage.py sync_pretix
 ```
 
 Die HTTP-Abfragen laufen vor der kurzen Datenbanktransaktion. Ein langsames oder nicht erreichbares Pretix hält daher keine lang laufende DB-Transaktion offen.
+
+## Private Dateien und WebDAV
+
+Logo-Originale, sichere PNG-Vorschauen und erzeugte PDFs liegen im privaten Medienverzeichnis. Im Compose-Betrieb wird dieses Verzeichnis über das Volume `werkblatt-media` persistent eingebunden und nicht direkt vom Webserver veröffentlicht. Downloads und Vorschauen laufen über tenantgeprüfte Django-Endpunkte.
+
+Ohne `WEBDAV_BASE_URL` verbleiben PDFs ausschließlich im privaten lokalen Volume. Für die optionale Ablage in Nextcloud/WebDAV werden zusätzlich `WEBDAV_USERNAME`, `WEBDAV_PASSWORD` und `WEBDAV_ROOT` gesetzt. Externe Aufrufe erfolgen erst nach der fachlichen Finalisierung und ohne offene Datenbanktransaktion. Fehlgeschlagene Uploads lassen sich wiederholen mit:
+
+```bash
+python manage.py retry_document_storage
+```

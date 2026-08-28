@@ -18,6 +18,7 @@
       <img src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="180">
     </a>
     {% if current_organization %}<span class="organization">{{ current_organization.name }}</span>{% endif %}
+    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a>{% if is_org_admin %}<a href="{% url 'settings-home' %}">Einstellungen</a>{% endif %}</nav>{% endif %}
   </header>
   <main class="page-shell">{% block content %}{% endblock %}</main>
   <footer class="app-footer">

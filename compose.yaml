@@ -23,6 +23,8 @@ services:
         condition: service_healthy
     expose:
       - "8000"
+    volumes:
+      - werkblatt_media:/app/var/media
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=2)"]
       interval: 30s
@@ -31,4 +33,4 @@ services:
 
 volumes:
   werkblatt_db:
-
+  werkblatt_media:
