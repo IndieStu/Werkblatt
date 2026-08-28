@@ -1,6 +1,6 @@
 # Phase 3a: Dokumentvorlagen, Assets und PDF-Konzept
 
-Status: Vorschlag zur fachlichen Freigabe  
+Status: vollständig konkretisierter Vorschlag zur fachlichen Freigabe
 Stand: 28. August 2026  
 Scope: Analyse und Architektur; keine Phase-3b-Implementierung
 
@@ -65,6 +65,10 @@ Asset-Versionen sind unveränderlich. „Logo ersetzen“ erzeugt eine neue Vers
 
 Die denormalisierte `organization_id` wird auf beiden Tabellen geführt. Services prüfen zusätzlich, dass Asset, Version und Organisation zusammengehören.
 
+### Organisationsprofil
+
+Das bestehende Organisationsmodell wird in V1 um ein optionales, über die normale Werkblatt-Oberfläche pflegbares Organisationsprofil ergänzt. Vorgesehen sind Organisationsname, Anschrift, Website, E-Mail und Telefonnummer. Dokumentvorlagen bestimmen, welche vorhandenen Angaben in einer Ausgabe erscheinen. Für interne Zircula-Bögen sind außer Name und Logo zunächst keine Kontaktdaten erforderlich. Das Profil bleibt organisationsbezogen und erzeugt keine neue fachliche Domäne.
+
 ## 4. Datenmodell für Dokumentvorlagen
 
 ### `DocumentTemplate`
@@ -95,11 +99,13 @@ Ein Vorlagenstand ist nach seiner Aktivierung unveränderlich. Die normale UI sp
 
 - `id`, `organization_id`, `template_version_id`, `asset_version_id`
 - `role`: Rolle dieses Logos in genau dieser Vorlage
+- `zone`: `header`, `project` oder `funding_footer`
 - `sort_order`
 - `enabled`
+- `show_funded_by_label`: optionale Anzeige „Gefördert durch“ in der zugehörigen Logo-Zone
 - optional `accessible_name` für barrierearme Metadaten
 
-Die PDF-Position folgt der definierten Ausgabeart. V1 bietet keine freie Koordinatenwahl, Größenregler oder Drag-and-Drop-Platzierung.
+Die Organisation wählt damit pro Logo die vorgesehene Dokumentzone und die Reihenfolge innerhalb dieser Zone. Die konkrete Geometrie folgt weiterhin dem stabilen Layout der Ausgabeart. V1 bietet keine freie Pixelpositionierung, Größenregler oder Drag-and-Drop-Platzierung.
 
 ## 5. Vorlagenversionierung
 
@@ -315,7 +321,7 @@ Ein geführtes Formular mit vier Abschnitten, nicht als Layoutdesigner:
 3. **Ausgaben:** Abschlussdokument, Teilnahmeliste und/oder anonymisierte Fassung aktivieren; erlaubte Optionen wählen.
 4. **Zusatzfelder:** Felder hinzufügen, typisieren, sortieren, Pflichtstatus und Ausgabezuordnung festlegen.
 
-Vor Aktivierung zeigt eine Zusammenfassung fehlende Pflichtkonfiguration und datenschutzrelevante Optionen wie Klarnamenausgabe.
+Im Logoabschnitt werden zusätzlich die Zone und die optionale Beschriftung „Gefördert durch“ gewählt. Vor Aktivierung zeigt eine Zusammenfassung fehlende Pflichtkonfiguration und datenschutzrelevante Optionen wie Klarnamenausgabe.
 
 ### Workshop zuordnen
 
@@ -349,7 +355,7 @@ Der Abschluss erzeugt atomar die neue Dokumentationsrevision samt vollständigem
 | Workshoptitel | `Workshop.title` | beide |
 | Name, Vorname | vorhandener Teilnehmer-Anzeigename; keine erzwungene Aufspaltung | Teilnahmeliste, optional Abschluss |
 | Unterschrift | leeres Druckfeld; keine digitale Speicherung | nur Teilnahmeliste |
-| Teilnahmebestätigungstext | konfigurierbarer, fachlich freizugebender Listentext | Teilnahmeliste |
+| Teilnahmebestätigungstext | konfigurierbarer Listentext; für die erste Vorlage zunächst wie im Papierbogen | Teilnahmeliste |
 | Anzahl Teilnehmer:innen | berechnete Phase-2-Statistik | Abschluss |
 | männlich/weiblich/divers | keine personenbezogenen Standardfelder; optionale aggregierte Ganzzahl-Zusatzfelder, gegebenenfalls zusätzlich „keine Angabe“ | nur konfigurierte Vorlagen |
 | durchführende Person | `Facilitator` | Abschluss; optional Teilnahmeliste |
@@ -393,7 +399,7 @@ Die Zahl leerer Zeilen wird als kleine, feste V1-Option angeboten, beispielsweis
 
 ## 17. Namen und anonymisierte Ausgaben
 
-Datensparsamer Default für das Abschlussdokument ist `include_participant_names = false`.
+Datensparsamer Default für neue Vorlagen ist `include_participant_names = false`. Die erste Zircula-Fördervorlage weicht davon bewusst ab und gibt Klarnamen im Abschlussdokument aus, weil die Fördergeber diesen Nachweis benötigen.
 
 Bei aktivierten Namen erscheinen ausschließlich:
 
@@ -406,13 +412,13 @@ Die anonymisierte Ausgabe erzwingt serverseitig den Ausschluss von Namen und per
 
 ## 18. Logo-/Förderbereich
 
-V1 verwendet je Ausgabe definierte Zonen statt freier Platzierung:
+V1 verwendet je Ausgabe auswählbare definierte Zonen statt freier Pixelpositionierung:
 
 - Organisationslogo im Kopf
 - Projekt-/Programmasset optional im Kopf oder Projektblock
 - Förderer/Auftraggeber/sonstige Assets im Logo-Footer
 
-Innerhalb einer Zone gilt die konfigurierte Reihenfolge. Die Rolle bestimmt die Zone als neutrale Layoutregel, nicht der Name des Logos. Abweichende Rollenzuordnung pro Vorlage ist möglich.
+Die Organisation wählt für jedes Logo Zone und Reihenfolge. Die Rolle beschreibt die fachliche Bedeutung, erzwingt aber keine namensbezogene Sonderlogik. Für Logo-Zonen kann optional die Beschriftung „Gefördert durch“ aktiviert werden.
 
 Für viele Logos wird ein festes Raster über mehrere Zeilen verwendet. Mindestgröße und verfügbare Fläche werden vor Aktivierung geprüft; Werkblatt warnt bei zu vielen Logos, statt sie unleserlich klein zu rendern.
 
@@ -472,29 +478,31 @@ Die Dateien wurden ausschließlich analysiert, nicht verändert oder als offizie
 
 | Datei | Technische Einordnung | Status |
 |---|---|---|
-| `ZIRCULA_Logo_210823_schwarz.svg` | echtes skalierbares SVG mit ViewBox; technisch sehr gute Grundlage | konkrete Verwendung und Kontaktdaten offen |
-| `FHB_Senatorin_fu…r_UKW_lang.png` | 3000 x 867, RGBA; Inhalt innerhalb großer transparenter Außenränder | Freigabestatus offen; keine automatische Beschneidung |
+| `ZIRCULA_Logo_210823_schwarz.svg` | echtes skalierbares SVG mit ViewBox; technisch sehr gute Grundlage | für die erste Vorlage als Organisationslogo vorgesehen; keine weiteren Kontaktdaten erforderlich |
+| `FHB_Senatorin_fu…r_UKW_lang.png` | 3000 x 867, RGBA; Inhalt innerhalb großer transparenter Außenränder | von FHB freigegeben und für die erste Vorlage gewählt; keine automatische Beschneidung |
 | `FHB_Senatorin-fuer-UKW_lang.jpg` | 2450 x 407, ohne Transparenz, weißer Hintergrund | JPEG in vorgeschlagenem V1-Upload nicht unterstützt; PNG-Kandidat vorhanden |
 | `Logo-Klimaschutz-Alltag-Icons.png` | 3544 x 2599, RGBA, großformatiges Projekt-/Programmmotiv | optional; konkrete Verwendung offen |
-| `Dieckell…preview-3.png` | 912 x 273, RGBA, transparente Außenränder | Freigabestatus offen; keine automatische Beschneidung |
+| `Dieckell…preview-3.png` | 912 x 273, RGBA, transparente Außenränder | von Dieckell freigegeben und für die erste Vorlage gewählt; keine automatische Beschneidung |
 | `Dieckell-Stiftung-Logo.png` | 562 x 188, RGBA, alternative Gestaltung | Freigabestatus offen |
 
 Die vorhandene PDF-Vorlage ist eine einseitige A4-Datei ohne interaktive Formularfelder. Sie verbindet Teilnahmeliste, Unterschriften, Statistik, Durchführungsbestätigung und Auswertung. Das neue Konzept trennt diese Zwecke in wiederverwendbare Ausgaben.
 
-## 23. Noch offene fachliche Fragen
+## 23. Festlegungen für die erste Zircula-Vorlage
 
-Folgende Punkte blockieren nicht das generische Modell, aber die Freigabe und konkrete Ausgestaltung der ersten Zircula-Vorlage:
+- Ausgaben: Abschlussdokument und druckbare Teilnahmeliste
+- Klarnamen: tatsächlich anwesende Personen erscheinen im Abschlussdokument, da die Fördergeber den Nachweis benötigen
+- Teilnahmeliste: Namen plus Unterschriftsfelder für Teilnehmende; kein zusätzliches Unterschriftsfeld für Durchführende
+- Teilnahmetext: initial „Mit dem Eintrag auf dieser Liste bestätige ich die Teilnahme an oben aufgeführtem Workshop.“; innerhalb der Vorlage anpassbar
+- Fördertext: zunächst kein verpflichtender Freitext; Logo-Zonen können optional mit „Gefördert durch“ beschriftet werden
+- Zusatzstatistik: freiwillige aggregierte Ganzzahlfelder `männlich`, `weiblich`, `divers` und `keine Angabe`, ohne Zuordnung zu einzelnen Personen
+- Organisationsprofil: für interne Zircula-Bögen zunächst keine umfangreichen Kontaktdaten; spätere Organisationen können diese im eigenen Profil pflegen
+- Dieckell: `Dieckell_Sitfung_Logo_Final_-_Marc_Bergman-removebg-preview-3.png`, Rolle Förderer, freigegeben
+- FHB/Senatorin: transparentes `FHB_Senatorin_fu…r_UKW_lang.png`, Rolle Förderer, freigegeben
+- Klimaschutz im Alltag: Rolle Projekt/Programm, optional auswählbar
+- Zircula e.V.: Rolle durchführende Organisation
+- Logo-Zone und Reihenfolge werden in der Dokumentvorlage gewählt und nicht global festgelegt
 
-1. Welche Dieckell-Datei ist offiziell freigegeben?
-2. Ist die konkrete FHB-/Senatorin-PNG in Wortlaut und Gestaltung freigegeben?
-3. Welche Zircula-Kontaktdaten sollen im Abschlussdokument beziehungsweise auf der Teilnahmeliste erscheinen?
-4. Welche konkreten Förderhinweise oder Pflichtwortlaute gelten für die erste Vorlage?
-5. Welcher Text soll auf der druckbaren Teilnahmeliste die Teilnahme und gegebenenfalls den Datenschutz erläutern?
-6. Soll ein leeres Unterschriftsfeld für Durchführende in der ersten Teilnahmeliste enthalten sein oder nur Teilnehmerunterschriften?
-7. Welche Ausgaben soll die erste Vorlage aktivieren: Abschlussdokument, Teilnahmeliste und/oder anonymisierte Fassung?
-8. Sollen im Abschlussdokument der ersten Vorlage Klarnamen erscheinen?
-9. Werden für die erste Vorlage aggregierte Geschlechtsangaben oder andere Zusatzfelder tatsächlich verlangt? Falls ja, mit welchem genauen Wortlaut und Pflichtstatus?
-10. Welche konkrete Logo-Reihenfolge und Rollenzuordnung soll die erste Vorlage verwenden?
+Konkrete spätere Förderpflichttexte oder weitere Anforderungen können als Vorlagenkonfiguration ergänzt werden. Für die generische V1-Architektur und die erste Vorlage bestehen derzeit keine weiteren fachlichen Blocker.
 
 ## 24. V1-Abgrenzung und Freigabe-Gate
 
