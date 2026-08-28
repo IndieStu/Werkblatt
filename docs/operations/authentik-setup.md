@@ -33,8 +33,8 @@ Nur Werkblatt-spezifische Entitlements dürfen im Gruppenclaim ankommen. Authent
 
 1. Provider unmittelbar vor dem integrierten Test anlegen.
 2. Client-ID in die lokale geschützte `.env` eintragen.
-3. Client-Secret ausschließlich als `OIDC_CLIENT_SECRET` in derselben Datei beziehungsweise im Deployment-Secret hinterlegen.
-4. `.env` mit Modus 600 schützen.
+3. Client-Secret ausschließlich in `/srv/zircula/werkblatt/secrets/oidc_client_secret` hinterlegen; nicht in `.env`.
+4. Secret-Verzeichnis mit Modus 700 und Dateien mit Modus 600 schützen.
 5. Konfiguration ausschließlich mit `docker compose config --quiet` prüfen.
 6. Secret niemals in Git, Chat, Screenshots oder Logs kopieren.
 
@@ -47,4 +47,3 @@ Nur Werkblatt-spezifische Entitlements dürfen im Gruppenclaim ankommen. Authent
 - Session-Rotation und Logout;
 - kein Nextcloud- oder Authentik-Adminrecht durch implizite Gruppennamen;
 - schmaler Viewport und MFA-Flow bleiben verwendbar.
-

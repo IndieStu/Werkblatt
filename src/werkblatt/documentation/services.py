@@ -72,7 +72,8 @@ def get_or_create_documentation(*, workshop: Workshop, user) -> Documentation:
             documentation.template_assignment = assignment
             documentation.save(update_fields=["template_assignment"])
         registrations = workshop.registrations.filter(
-            organization_id=workshop.organization_id
+            organization_id=workshop.organization_id,
+            active=True,
         ).order_by("display_name")
         ParticipantEntry.objects.bulk_create(
             [

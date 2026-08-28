@@ -10,7 +10,21 @@ def env(name: str, default: str = "") -> str:
     return os.environ.get(name, default)
 
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "development-only-change-me")
+def secret(name: str, default: str = "") -> str:
+    """Read a secret directly or from a Docker/Kubernetes-style *_FILE path."""
+    direct_value = os.environ.get(name)
+    file_path = os.environ.get(f"{name}_FILE")
+    if direct_value is not None and file_path:
+        raise ImproperlyConfigured(f"{name} und {name}_FILE dürfen nicht gemeinsam gesetzt sein")
+    if file_path:
+        try:
+            return Path(file_path).read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise ImproperlyConfigured(f"Secret-Datei für {name} ist nicht lesbar") from exc
+    return direct_value if direct_value is not None else default
+
+
+SECRET_KEY = secret("DJANGO_SECRET_KEY", "development-only-change-me")
 DEBUG = env("DJANGO_DEBUG", "false").lower() == "true"
 if not DEBUG and SECRET_KEY in {"", "development-only-change-me", "CHANGE_ME"}:
     raise ImproperlyConfigured(
@@ -35,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -68,7 +83,7 @@ if env("POSTGRES_DB"):
             "ENGINE": "django.db.backends.postgresql",
             "NAME": env("POSTGRES_DB"),
             "USER": env("POSTGRES_USER"),
-            "PASSWORD": env("POSTGRES_PASSWORD"),
+            "PASSWORD": secret("POSTGRES_PASSWORD"),
             "HOST": env("POSTGRES_HOST", "db"),
             "PORT": env("POSTGRES_PORT", "5432"),
             "CONN_MAX_AGE": 60,
@@ -95,6 +110,12 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 MEDIA_ROOT = BASE_DIR / "var" / "media"
 MEDIA_URL = "/media/"
 FILE_UPLOAD_PERMISSIONS = 0o600
@@ -109,7 +130,7 @@ HOSTING_PROVIDER_LABEL = env("WERKBLATT_HOSTING_PROVIDER_LABEL", "")
 OIDC_DISCOVERY_URL = env("OIDC_DISCOVERY_URL")
 OIDC_ISSUER = env("OIDC_ISSUER")
 OIDC_CLIENT_ID = env("OIDC_CLIENT_ID")
-OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET")
+OIDC_CLIENT_SECRET = secret("OIDC_CLIENT_SECRET")
 OIDC_ALLOWED_GROUPS = {v.strip() for v in env("OIDC_ALLOWED_GROUPS").split(",") if v.strip()}
 OIDC_ADMIN_GROUPS = {v.strip() for v in env("OIDC_ADMIN_GROUPS").split(",") if v.strip()}
 
@@ -117,7 +138,7 @@ if not DEBUG:
     required_production_settings = {
         "POSTGRES_DB": env("POSTGRES_DB"),
         "POSTGRES_USER": env("POSTGRES_USER"),
-        "POSTGRES_PASSWORD": env("POSTGRES_PASSWORD"),
+        "POSTGRES_PASSWORD": DATABASES["default"]["PASSWORD"],
         "OIDC_DISCOVERY_URL": OIDC_DISCOVERY_URL,
         "OIDC_ISSUER": OIDC_ISSUER,
         "OIDC_CLIENT_ID": OIDC_CLIENT_ID,
@@ -135,12 +156,12 @@ if not DEBUG:
         )
 
 PRETIX_BASE_URL = env("PRETIX_BASE_URL", "https://www.pretix.eu")
-PRETIX_API_TOKEN = env("PRETIX_API_TOKEN")
+PRETIX_API_TOKEN = secret("PRETIX_API_TOKEN")
 PRETIX_ORGANIZER = env("PRETIX_ORGANIZER", "WERK")
 
 WEBDAV_BASE_URL = env("WEBDAV_BASE_URL")
 WEBDAV_USERNAME = env("WEBDAV_USERNAME")
-WEBDAV_PASSWORD = env("WEBDAV_PASSWORD")
+WEBDAV_PASSWORD = secret("WEBDAV_PASSWORD")
 WEBDAV_ROOT = env("WEBDAV_ROOT", "Werkblatt")
 WEBDAV_TRUST_MODE = env("WEBDAV_TRUST_MODE", "hosted")
 WEBDAV_ALLOWED_HOSTS = {

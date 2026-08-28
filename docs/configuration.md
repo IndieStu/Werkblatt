@@ -1,6 +1,6 @@
 # Konfiguration
 
-Ausgangspunkt ist `.env.example`. Produktive `.env`-Dateien und Secrets werden niemals committet; auf dem Host erhalten sie Modus 600. `docker compose config` wird nur mit `--quiet` verwendet, damit interpolierte Werte nicht in Ausgaben gelangen.
+Ausgangspunkt ist `.env.example`. Produktive `.env`-Dateien und Secrets werden niemals committet. Im VPS-Compose enthält `.env` ausschließlich nicht geheime Konfiguration; Secrets liegen als einzelne Dateien unter `/srv/zircula/werkblatt/secrets` (Verzeichnis Modus 700, Dateien Modus 600) und werden über `*_FILE` eingelesen. Direkter Wert und zugehöriger `*_FILE`-Wert dürfen nie gleichzeitig gesetzt sein. `docker compose config` wird nur mit `--quiet` verwendet, damit Werte nicht in Ausgaben gelangen.
 
 ## Öffentliche URL
 
@@ -20,7 +20,7 @@ Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Applicat
 - Gruppen/Entitlements: `Werkblatt Admins` und `Werkblatt Users`;
 - Rollen: Admin-Gruppe -> `Organization Admin`, sonst freigegebene Gruppe -> `Workshop User`.
 
-Client-ID und Client-Secret werden erst für den integrierten Test erzeugt. Das Secret wird ausschließlich als `OIDC_CLIENT_SECRET` auf dem Host gesetzt. Werkblatt verwendet keine Authentik-Admin-API.
+Client-ID und Client-Secret werden erst für den integrierten Test erzeugt. Das Secret wird ausschließlich über `OIDC_CLIENT_SECRET_FILE` auf dem Host eingelesen. Werkblatt verwendet keine Authentik-Admin-API.
 
 `OIDC_ISSUER` enthält zusätzlich den exakt erwarteten Issuer aus Authentik. Werkblatt akzeptiert Identitäten ausschließlich über `(issuer, sub)`; eine E-Mail-Adresse ist kein Identitätsschlüssel.
 
@@ -28,21 +28,21 @@ Client-ID und Client-Secret werden erst für den integrierten Test erzeugt. Das 
 
 Der vorbereitete Ursprung ist `https://www.pretix.eu`, Organizer `WERK`. Groß-/Kleinschreibung des tatsächlichen Organizer-Slugs wird vor dem ersten Live-Test bestätigt.
 
-Ein dedizierter Team-API-Token soll nur lesenden Zugriff auf Organizer, Events, Subevents und für die Teilnehmerübernahme notwendige Orders/Positions erhalten. Er wird ausschließlich als `PRETIX_API_TOKEN` gesetzt und weder in Chat noch Git geschrieben.
+Ein dedizierter Team-API-Token soll nur lesenden Zugriff auf Organizer, Events, Subevents und für die Teilnehmerübernahme notwendige Orders/Positions erhalten. Er wird ausschließlich über `PRETIX_API_TOKEN_FILE` eingelesen und weder in Chat noch Git geschrieben.
 
 Phase 1 verwendet synthetische API-Fixtures. Reale Event-IDs sind erst für den integrierten Provider-Test erforderlich.
 
 Nach lokaler Secret-Konfiguration wird der Import bewusst manuell ausgelöst:
 
 ```bash
-python manage.py sync_pretix
+python manage.py sync_pretix --workshop-reference SYNTHETIC-TEST-EVENT --include-test-events
 ```
 
 Die HTTP-Abfragen laufen vor der kurzen Datenbanktransaktion. Ein langsames oder nicht erreichbares Pretix hält daher keine lang laufende DB-Transaktion offen.
 
 ## Private Dateien und WebDAV
 
-Logo-Originale, sichere PNG-Vorschauen und erzeugte PDFs liegen im privaten Medienverzeichnis. Im Compose-Betrieb wird dieses Verzeichnis über das Volume `werkblatt-media` persistent eingebunden und nicht direkt vom Webserver veröffentlicht. Downloads und Vorschauen laufen über tenantgeprüfte Django-Endpunkte.
+Logo-Originale, sichere PNG-Vorschauen und erzeugte PDFs liegen im privaten Medienverzeichnis. Auf dem VPS wird `/srv/zircula/werkblatt/media` nach `/app/var/media` eingebunden und nicht direkt vom Webserver veröffentlicht. Downloads und Vorschauen laufen über tenantgeprüfte Django-Endpunkte.
 
 Ohne `WEBDAV_BASE_URL` verbleiben PDFs ausschließlich im privaten lokalen Volume. Für die optionale Ablage in Nextcloud/WebDAV werden zusätzlich `WEBDAV_USERNAME`, `WEBDAV_PASSWORD` und `WEBDAV_ROOT` gesetzt. Externe Aufrufe erfolgen erst nach der fachlichen Finalisierung und ohne offene Datenbanktransaktion. Fehlgeschlagene Uploads lassen sich wiederholen mit:
 
@@ -54,4 +54,4 @@ python manage.py retry_document_storage
 
 ## Produktionsmodus und Lockfile
 
-Bei `DJANGO_DEBUG=false` startet Werkblatt nicht mit leerem, `CHANGE_ME` oder dem Development-Secret. `DJANGO_SECRET_KEY` muss als starkes Environment Secret gesetzt sein. Die Abhängigkeiten werden mit uv 0.8.15 in `uv.lock` inklusive Artefakt-Hashes festgehalten. Entwicklung, CI und Container verwenden `uv sync --frozen`; Updates erfolgen bewusst über `uv lock --upgrade-package <paket>` mit anschließendem Test- und Vulnerability-Gate.
+Bei `DJANGO_DEBUG=false` startet Werkblatt nicht mit leerem, `CHANGE_ME` oder dem Development-Secret. `DJANGO_SECRET_KEY_FILE`, `POSTGRES_PASSWORD_FILE`, `OIDC_CLIENT_SECRET_FILE`, `PRETIX_API_TOKEN_FILE` und `WEBDAV_PASSWORD_FILE` zeigen im VPS-Compose auf geschützte Secret-Dateien. Direkte Variablen bleiben für lokale Entwicklung und CI möglich. Die Abhängigkeiten werden mit uv 0.8.15 in `uv.lock` inklusive Artefakt-Hashes festgehalten. Entwicklung, CI und Container verwenden `uv sync --frozen`; Updates erfolgen bewusst über `uv lock --upgrade-package <paket>` mit anschließendem Test- und Vulnerability-Gate.

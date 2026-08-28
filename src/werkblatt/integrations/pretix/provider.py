@@ -30,11 +30,13 @@ class PretixWorkshopProvider:
         self.client = client
         self.organizer = quote(organizer, safe="")
 
-    def list_workshops(self) -> list[ExternalWorkshop]:
+    def list_workshops(self, *, include_testmode: bool = False) -> list[ExternalWorkshop]:
         workshops: list[ExternalWorkshop] = []
         event_path = f"/api/v1/organizers/{self.organizer}/events/"
         for event in self.client.pages(event_path):
-            if event.get("live") is not True or event.get("testmode") is True:
+            if event.get("live") is not True or (
+                event.get("testmode") is True and not include_testmode
+            ):
                 continue
             event_slug = quote(str(event.get("slug", "")), safe="")
             if not event_slug:

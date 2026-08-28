@@ -124,6 +124,24 @@ jobs:
           -e DJANGO_SECRET_KEY=ci-only-strong-secret-8ce149b85537c81e5da8756dd42bc204
           -e DJANGO_DEBUG=false
           -e DJANGO_ALLOWED_HOSTS=werkblatt.example.invalid
+          -e POSTGRES_DB=ci-static-check
+          -e POSTGRES_USER=ci-static-check
+          -e POSTGRES_PASSWORD=ci-static-password
+          -e OIDC_DISCOVERY_URL=https://auth.example.invalid/application/o/werkblatt/.well-known/openid-configuration
+          -e OIDC_ISSUER=https://auth.example.invalid/application/o/werkblatt/
+          -e OIDC_CLIENT_ID=ci-werkblatt
+          -e OIDC_CLIENT_SECRET=ci-only-oidc-secret
+          -e OIDC_ALLOWED_GROUPS='Werkblatt Users'
+          werkblatt:ci
+          python manage.py shell -c
+          "from django.test import Client; r=Client(HTTP_HOST='werkblatt.example.invalid', HTTP_X_FORWARDED_PROTO='https').get('/static/css/app.css'); assert r.status_code == 200; assert b'--color' in b''.join(r.streaming_content)"
+      - run: >-
+          docker run --rm
+          --read-only
+          --tmpfs /tmp/werkblatt:mode=1777
+          -e DJANGO_SECRET_KEY=ci-only-strong-secret-8ce149b85537c81e5da8756dd42bc204
+          -e DJANGO_DEBUG=false
+          -e DJANGO_ALLOWED_HOSTS=werkblatt.example.invalid
           -e POSTGRES_DB=ci-render-check
           -e POSTGRES_USER=ci-render-check
           -e POSTGRES_PASSWORD=ci-render-password

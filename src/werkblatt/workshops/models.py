@@ -49,6 +49,7 @@ class WorkshopRegistration(models.Model):
     workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name="registrations")
     external_reference = models.CharField(max_length=255)
     display_name = models.CharField(max_length=200)
+    active = models.BooleanField(default=True)
     imported_at = models.DateTimeField(auto_now=True)
 
     class Meta:

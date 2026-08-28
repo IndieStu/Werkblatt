@@ -282,3 +282,47 @@ def test_production_rejects_development_secret():
     )
     assert result.returncode != 0
     assert "DJANGO_SECRET_KEY" in result.stderr
+
+
+def test_secret_can_be_read_from_file(tmp_path):
+    secret_file = tmp_path / "secret"
+    secret_file.write_text("file-secret\n", encoding="utf-8")
+    environment = os.environ.copy()
+    environment["DJANGO_DEBUG"] = "true"
+    environment.pop("TEST_SECRET", None)
+    environment["TEST_SECRET_FILE"] = str(secret_file)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from config.settings import secret; print(secret('TEST_SECRET'))",
+        ],
+        cwd=os.getcwd(),
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == "file-secret"
+
+
+def test_secret_rejects_direct_and_file_values(tmp_path):
+    secret_file = tmp_path / "secret"
+    secret_file.write_text("file-secret", encoding="utf-8")
+    environment = os.environ.copy()
+    environment["DJANGO_DEBUG"] = "true"
+    environment["TEST_SECRET"] = "direct-secret"
+    environment["TEST_SECRET_FILE"] = str(secret_file)
+    result = subprocess.run(
+        [sys.executable, "-c", "from config.settings import secret; secret('TEST_SECRET')"],
+        cwd=os.getcwd(),
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "dürfen nicht gemeinsam gesetzt sein" in result.stderr
+    assert "direct-secret" not in result.stderr
+    assert "file-secret" not in result.stderr

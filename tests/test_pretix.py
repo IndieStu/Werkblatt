@@ -3,6 +3,8 @@ from unittest.mock import patch
 
 import httpx
 import pytest
+from django.core.management import CommandError, call_command
+from django.utils import timezone
 
 from werkblatt.integrations.pretix.client import (
     MAX_PRETIX_RESPONSE_BYTES,
@@ -12,6 +14,9 @@ from werkblatt.integrations.pretix.client import (
     validate_public_https_origin,
 )
 from werkblatt.integrations.pretix.provider import PretixWorkshopProvider
+from werkblatt.integrations.pretix.types import ExternalRegistration, ExternalWorkshop
+from werkblatt.organizations.models import Organization
+from werkblatt.workshops.models import Workshop, WorkshopRegistration
 
 PUBLIC_DNS = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))]
 
@@ -73,6 +78,89 @@ def test_maps_event_series_and_subevent():
     assert len(workshops) == 1
     assert workshops[0].reference == "reihe:42"
     assert workshops[0].title == "Termin"
+
+
+def test_testmode_events_require_explicit_opt_in():
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "synthetic-preflight",
+                        "name": {"de": "Synthetischer Preflight"},
+                        "live": True,
+                        "testmode": True,
+                        "has_subevents": False,
+                        "date_from": "2026-09-01T18:00:00+02:00",
+                    }
+                ],
+                "next": None,
+            },
+        )
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://www.pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
+        )
+        provider = PretixWorkshopProvider(client, "WERK")
+        assert provider.list_workshops() == []
+        assert provider.list_workshops(include_testmode=True)[0].reference == "synthetic-preflight"
+
+
+@pytest.mark.django_db
+def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations(settings):
+    organization = Organization.objects.create(slug="zircula", name="Synthetische Organisation")
+    settings.PRETIX_API_TOKEN = "synthetic-token"
+    settings.DEFAULT_ORGANIZATION_SLUG = organization.slug
+    workshop = ExternalWorkshop(
+        reference="preflight:42",
+        title="Synthetischer Pretix-Workshop",
+        starts_at=timezone.now(),
+        ends_at=None,
+        location="Testraum",
+    )
+    first_rows = [
+        ExternalRegistration(reference="ORDER1:1", display_name="Erste Testperson"),
+        ExternalRegistration(reference="ORDER2:2", display_name="Zweite Testperson"),
+    ]
+    with (
+        patch.object(PretixWorkshopProvider, "list_workshops", return_value=[workshop]),
+        patch.object(PretixWorkshopProvider, "list_registrations", return_value=first_rows),
+        patch.object(PretixClient, "__init__", return_value=None),
+        patch.object(PretixClient, "close"),
+    ):
+        call_command("sync_pretix", "--include-test-events", "--workshop-reference", "preflight:42")
+
+    stored_workshop = Workshop.objects.get(external_reference="preflight:42")
+    assert list(
+        stored_workshop.registrations.order_by("display_name").values_list("display_name", "active")
+    ) == [("Erste Testperson", True), ("Zweite Testperson", True)]
+
+    second_rows = [
+        ExternalRegistration(reference="ORDER2:2", display_name="Zweite Testperson geändert")
+    ]
+    with (
+        patch.object(PretixWorkshopProvider, "list_workshops", return_value=[workshop]),
+        patch.object(PretixWorkshopProvider, "list_registrations", return_value=second_rows),
+        patch.object(PretixClient, "__init__", return_value=None),
+        patch.object(PretixClient, "close"),
+    ):
+        call_command("sync_pretix", "--include-test-events", "--workshop-reference", "preflight:42")
+
+    assert WorkshopRegistration.objects.get(external_reference="ORDER1:1").active is False
+    updated = WorkshopRegistration.objects.get(external_reference="ORDER2:2")
+    assert updated.active is True
+    assert updated.display_name == "Zweite Testperson geändert"
+
+
+@pytest.mark.django_db
+def test_sync_rejects_unbounded_test_event_import(settings):
+    Organization.objects.create(slug="zircula", name="Synthetische Organisation")
+    settings.PRETIX_API_TOKEN = "synthetic-token"
+
+    with pytest.raises(CommandError, match="erfordert"):
+        call_command("sync_pretix", "--include-test-events")
 
 
 def test_resolution_change_to_private_address_is_rejected_before_request():
