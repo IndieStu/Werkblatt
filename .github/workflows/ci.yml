@@ -135,6 +135,35 @@ jobs:
           werkblatt:ci
           python manage.py shell -c
           "from django.test import Client; r=Client(HTTP_HOST='werkblatt.example.invalid', HTTP_X_FORWARDED_PROTO='https').get('/static/werkblatt/css/app.css'); assert r.status_code == 200; assert b'@font-face' in b''.join(r.streaming_content)"
+      - name: Check default container startup and liveness
+        run: |
+          set -euo pipefail
+          container=werkblatt-ci-startup
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$container" \
+            --read-only \
+            --tmpfs /tmp/werkblatt:mode=1777 \
+            -e DJANGO_SECRET_KEY=ci-only-strong-secret-8ce149b85537c81e5da8756dd42bc204 \
+            -e DJANGO_DEBUG=false \
+            -e DJANGO_ALLOWED_HOSTS=werkblatt.example.invalid \
+            -e POSTGRES_DB=ci-startup-check \
+            -e POSTGRES_USER=ci-startup-check \
+            -e POSTGRES_PASSWORD=ci-startup-password \
+            -e OIDC_DISCOVERY_URL=https://auth.example.invalid/application/o/werkblatt/.well-known/openid-configuration \
+            -e OIDC_ISSUER=https://auth.example.invalid/application/o/werkblatt/ \
+            -e OIDC_CLIENT_ID=ci-werkblatt \
+            -e OIDC_CLIENT_SECRET=ci-only-oidc-secret \
+            -e OIDC_ALLOWED_GROUPS='Werkblatt Users' \
+            werkblatt:ci
+          for attempt in $(seq 1 20); do
+            if docker exec "$container" python -c \
+              "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/health/', headers={'Host':'werkblatt.example.invalid','X-Forwarded-Proto':'https'}), timeout=2)"; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$container"
+          exit 1
       - run: >-
           docker run --rm
           --read-only
