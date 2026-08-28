@@ -11,11 +11,11 @@ Diese Konfiguration wird erst für den integrierten Test angelegt. Werkblatt ben
 | Client type | Confidential |
 | Grant type | Authorization Code |
 | PKCE | S256 |
-| Redirect URI | `https://werkblatt.zircula.org/auth/oidc/callback/` |
-| Post-logout-Ziel | `https://werkblatt.zircula.org/` |
+| Redirect URI | `<PUBLIC_BASE_URL>/auth/oidc/callback/` |
+| Post-logout-Ziel | `<PUBLIC_BASE_URL>/` |
 | Subject mode | UUID-basiertes stabiles Subject |
 | Issuer mode | eigener Issuer je Application-Slug |
-| Erwartete Discovery-URL | `https://auth.zircula.org/application/o/werkblatt/.well-known/openid-configuration` |
+| Erwartete Discovery-URL | `<AUTHENTIK_BASE_URL>/application/o/werkblatt/.well-known/openid-configuration` |
 | Scopes | `openid email profile groups` |
 
 Die erwartete Discovery-URL wird bei der tatsächlichen Einrichtung in Authentik bestätigt und nicht allein aufgrund des Namens als produktiv vorausgesetzt.
@@ -33,8 +33,8 @@ Nur Werkblatt-spezifische Entitlements dürfen im Gruppenclaim ankommen. Authent
 
 1. Provider unmittelbar vor dem integrierten Test anlegen.
 2. Client-ID in die lokale geschützte `.env` eintragen.
-3. Client-Secret ausschließlich in `/srv/zircula/werkblatt/secrets/oidc_client_secret` hinterlegen; nicht in `.env`.
-4. Secret-Verzeichnis mit Modus 700 und Dateien mit Modus 600 schützen.
+3. Client-Secret ausschließlich als geschützte Secret-Datei der Deployment-Plattform hinterlegen; nicht in `.env`.
+4. Secret-Verzeichnis und Datei nach dem Least-Privilege-Prinzip schützen.
 5. Konfiguration ausschließlich mit `docker compose config --quiet` prüfen.
 6. Secret niemals in Git, Chat, Screenshots oder Logs kopieren.
 

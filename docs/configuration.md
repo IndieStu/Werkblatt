@@ -1,32 +1,32 @@
 # Konfiguration
 
-Ausgangspunkt ist `.env.example`. Produktive `.env`-Dateien und Secrets werden niemals committet. Im VPS-Compose enthält `.env` ausschließlich nicht geheime Konfiguration; Secrets liegen als einzelne Dateien unter `/srv/zircula/werkblatt/secrets` (Verzeichnis Modus 700, Dateien Modus 600) und werden über `*_FILE` eingelesen. Direkter Wert und zugehöriger `*_FILE`-Wert dürfen nie gleichzeitig gesetzt sein. `docker compose config` wird nur mit `--quiet` verwendet, damit Werte nicht in Ausgaben gelangen.
+Ausgangspunkt ist `.env.example`. Produktive `.env`-Dateien und Secrets werden niemals committet. Deployment-Plattformen sollen Secrets als geschützte Dateien bereitstellen, die über `*_FILE` eingelesen werden. Direkter Wert und zugehöriger `*_FILE`-Wert dürfen nie gleichzeitig gesetzt sein. Ausgaben aufgelöster Produktionskonfiguration dürfen keine Secret-Werte protokollieren.
 
 ## Öffentliche URL
 
-Für den Zircula-Pilot ist `https://werkblatt.zircula.org` vorgesehen. Lokal wird `http://localhost:8000` verwendet.
+`WERKBLATT_PUBLIC_BASE_URL`, `DJANGO_ALLOWED_HOSTS` und `DJANGO_CSRF_TRUSTED_ORIGINS` werden auf die öffentliche URL der jeweiligen Installation gesetzt. Lokal wird üblicherweise `http://localhost:8000` verwendet.
 
-TLS und der allgemeine HSTS-Header werden wie bei den übrigen Zircula-Diensten durch Caddy erzwungen. Die Anwendung aktiviert zusätzlich HTTPS-Redirect und einjähriges HSTS außerhalb des Debug-Modus. `includeSubDomains` und Browser-Preload bleiben entsprechend der bestehenden Infrastruktur-Governance bewusste, zentrale Entscheidungen.
+TLS wird durch den vorgeschalteten Reverse Proxy terminiert. Die Anwendung aktiviert zusätzlich HTTPS-Redirect und einjähriges HSTS außerhalb des Debug-Modus. `includeSubDomains` und Browser-Preload bleiben bewusste Entscheidungen des jeweiligen Betreibers.
 
 ## Authentik / OIDC
 
 Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Application-Slug `werkblatt` vorbereitet:
 
 - Flow: Authorization Code mit PKCE;
-- Redirect URI: `https://werkblatt.zircula.org/auth/oidc/callback/`;
+- Redirect URI: `<PUBLIC_BASE_URL>/auth/oidc/callback/`;
 - eigener Issuer je Application-Slug;
 - Subject: stabile Authentik-UUID;
 - Scopes: `openid email profile groups`;
 - Gruppen/Entitlements: `Werkblatt Admins` und `Werkblatt Users`;
 - Rollen: Admin-Gruppe -> `Organization Admin`, sonst freigegebene Gruppe -> `Workshop User`.
 
-Client-ID und Client-Secret werden erst für den integrierten Test erzeugt. Das Secret wird ausschließlich über `OIDC_CLIENT_SECRET_FILE` auf dem Host eingelesen. Werkblatt verwendet keine Authentik-Admin-API.
+Client-ID und Client-Secret werden durch den jeweiligen Betreiber erzeugt. Das Secret kann über `OIDC_CLIENT_SECRET_FILE` eingelesen werden. Werkblatt verwendet keine Authentik-Admin-API.
 
 `OIDC_ISSUER` enthält zusätzlich den exakt erwarteten Issuer aus Authentik. Werkblatt akzeptiert Identitäten ausschließlich über `(issuer, sub)`; eine E-Mail-Adresse ist kein Identitätsschlüssel.
 
 ## Pretix
 
-Der vorbereitete Ursprung ist `https://www.pretix.eu`, Organizer `WERK`. Groß-/Kleinschreibung des tatsächlichen Organizer-Slugs wird vor dem ersten Live-Test bestätigt.
+Der Standard-Ursprung ist `https://www.pretix.eu`; `PRETIX_ORGANIZER` enthält den Organizer-Slug der jeweiligen Installation.
 
 Ein dedizierter Team-API-Token soll nur lesenden Zugriff auf Organizer, Events, Subevents und für die Teilnehmerübernahme notwendige Orders/Positions erhalten. Er wird ausschließlich über `PRETIX_API_TOKEN_FILE` eingelesen und weder in Chat noch Git geschrieben.
 
@@ -42,7 +42,7 @@ Die HTTP-Abfragen laufen vor der kurzen Datenbanktransaktion. Ein langsames oder
 
 ## Private Dateien und WebDAV
 
-Logo-Originale, sichere PNG-Vorschauen und erzeugte PDFs liegen im privaten Medienverzeichnis. Auf dem VPS wird `/srv/zircula/werkblatt/media` nach `/app/var/media` eingebunden und nicht direkt vom Webserver veröffentlicht. Downloads und Vorschauen laufen über tenantgeprüfte Django-Endpunkte.
+Logo-Originale, sichere PNG-Vorschauen und erzeugte PDFs liegen im privaten Medienverzeichnis. Dieses Verzeichnis muss im Deployment persistent und privat eingebunden werden; es darf nicht direkt vom Webserver veröffentlicht werden. Downloads und Vorschauen laufen über tenantgeprüfte Django-Endpunkte.
 
 Ohne `WEBDAV_BASE_URL` verbleiben PDFs ausschließlich im privaten lokalen Volume. Für die optionale Ablage in Nextcloud/WebDAV werden zusätzlich `WEBDAV_USERNAME`, `WEBDAV_PASSWORD` und `WEBDAV_ROOT` gesetzt. Externe Aufrufe erfolgen erst nach der fachlichen Finalisierung und ohne offene Datenbanktransaktion. Fehlgeschlagene Uploads lassen sich wiederholen mit:
 
@@ -54,4 +54,4 @@ python manage.py retry_document_storage
 
 ## Produktionsmodus und Lockfile
 
-Bei `DJANGO_DEBUG=false` startet Werkblatt nicht mit leerem, `CHANGE_ME` oder dem Development-Secret. `DJANGO_SECRET_KEY_FILE`, `POSTGRES_PASSWORD_FILE`, `OIDC_CLIENT_SECRET_FILE`, `PRETIX_API_TOKEN_FILE` und `WEBDAV_PASSWORD_FILE` zeigen im VPS-Compose auf geschützte Secret-Dateien. Direkte Variablen bleiben für lokale Entwicklung und CI möglich. Die Abhängigkeiten werden mit uv 0.8.15 in `uv.lock` inklusive Artefakt-Hashes festgehalten. Entwicklung, CI und Container verwenden `uv sync --frozen`; Updates erfolgen bewusst über `uv lock --upgrade-package <paket>` mit anschließendem Test- und Vulnerability-Gate.
+Bei `DJANGO_DEBUG=false` startet Werkblatt nicht mit leerem, `CHANGE_ME` oder dem Development-Secret. `DJANGO_SECRET_KEY_FILE`, `POSTGRES_PASSWORD_FILE`, `OIDC_CLIENT_SECRET_FILE`, `PRETIX_API_TOKEN_FILE` und `WEBDAV_PASSWORD_FILE` können auf geschützte Secret-Dateien der jeweiligen Deployment-Plattform zeigen. Direkte Variablen bleiben für lokale Entwicklung und CI möglich. Die Abhängigkeiten werden mit uv 0.8.15 in `uv.lock` inklusive Artefakt-Hashes festgehalten. Entwicklung, CI und Container verwenden `uv sync --frozen`; Updates erfolgen bewusst über `uv lock --upgrade-package <paket>` mit anschließendem Test- und Vulnerability-Gate.

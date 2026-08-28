@@ -112,6 +112,7 @@ def test_testmode_events_require_explicit_opt_in():
 def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations(settings):
     organization = Organization.objects.create(slug="zircula", name="Synthetische Organisation")
     settings.PRETIX_API_TOKEN = "synthetic-token"
+    settings.PRETIX_ORGANIZER = "synthetic-organizer"
     settings.DEFAULT_ORGANIZATION_SLUG = organization.slug
     workshop = ExternalWorkshop(
         reference="preflight:42",
@@ -158,6 +159,8 @@ def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations
 def test_sync_rejects_unbounded_test_event_import(settings):
     Organization.objects.create(slug="zircula", name="Synthetische Organisation")
     settings.PRETIX_API_TOKEN = "synthetic-token"
+    settings.PRETIX_ORGANIZER = "synthetic-organizer"
+    settings.DEFAULT_ORGANIZATION_SLUG = "zircula"
 
     with pytest.raises(CommandError, match="erfordert"):
         call_command("sync_pretix", "--include-test-events")

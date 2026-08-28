@@ -26,6 +26,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if not settings.PRETIX_API_TOKEN:
             raise CommandError("PRETIX_API_TOKEN ist nicht gesetzt")
+        if not settings.PRETIX_ORGANIZER:
+            raise CommandError("PRETIX_ORGANIZER ist nicht gesetzt")
         try:
             organization = Organization.objects.get(
                 slug=settings.DEFAULT_ORGANIZATION_SLUG,
