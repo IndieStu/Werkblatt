@@ -1,6 +1,10 @@
 # Security-Review Phase 3b
 
-Basis des Reviews: Commit `c224ddf3105092fbe10ec56cc5e10a78d8fcf203` („Implement document templates and PDF workflow“) auf `IndieStu/Werkblatt`, Branch `main`. Phase 4 ist nicht Bestandteil dieses Reviews.
+Basis des Reviews: Commit `c224ddf3105092fbe10ec56cc5e10a78d8fcf203` („Implement document templates and PDF workflow“) auf `IndieStu/Werkblatt`, Branch `main`. Die daraus entstandenen Härtungen wurden bis einschließlich Commit `5afea13bab58b4aaf5917482f2b7250e2891bada` geprüft. Phase 4 ist nicht Bestandteil dieses Reviews.
+
+## Verifiziertes Ergebnis
+
+GitHub Actions [CI-Lauf 11](https://github.com/IndieStu/Werkblatt/actions/runs/33206391080) für Commit `5afea13bab58b4aaf5917482f2b7250e2891bada` ist vollständig erfolgreich. Er umfasst Python 3.12 und 3.13 mit PostgreSQL 17 einschließlich der drei echten Parallelitätstests, Produktions- und Migration-Checks, Dependency-Audit, Secret-Scan, Container-Build, zwei unabhängige reale WeasyPrint-Läufe mit Inhalts-/Metadaten-/Rastervergleich sowie den Trivy-Scan auf ungeklärte kritische Findings. Lokal bestanden 62 Tests; die drei PostgreSQL-spezifischen Parallelitätstests wurden dort erwartungsgemäß übersprungen und in CI erfolgreich ausgeführt.
 
 ## Gefundene und behobene Probleme
 
