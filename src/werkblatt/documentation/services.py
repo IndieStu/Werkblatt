@@ -205,12 +205,36 @@ def save_draft(
     report: str,
     participants: list[ParticipantInput],
     facilitators: list[FacilitatorInput],
+    template_id: UUID | None = None,
     custom_values: dict[str, object] | None = None,
 ) -> Documentation:
     documentation = _locked_documentation(documentation_id, organization_id)
     _check_version(documentation, expected_version)
     if documentation.status != Documentation.Status.DRAFT:
         raise ValidationError("Abgeschlossene Dokumentation zuerst wieder öffnen")
+    if template_id is not None:
+        try:
+            template = (
+                DocumentTemplate.objects.for_organization(organization_id)
+                .select_related("current_version")
+                .get(
+                    pk=template_id,
+                    status=DocumentTemplate.Status.ACTIVE,
+                    current_version__isnull=False,
+                )
+            )
+        except DocumentTemplate.DoesNotExist as exc:
+            raise PermissionDenied("Ungültige Dokumentvorlage") from exc
+        assignment, _ = WorkshopTemplateAssignment.objects.update_or_create(
+            organization_id=organization_id,
+            workshop=documentation.workshop,
+            defaults={
+                "template": template,
+                "template_version": template.current_version,
+                "assigned_by": user,
+            },
+        )
+        documentation.template_assignment = assignment
     _apply_participants(documentation, participants)
     _apply_facilitators(documentation, facilitators)
     if custom_values is not None:
@@ -229,6 +253,7 @@ def save_draft(
         update_fields=[
             "conducted_as_planned",
             "report",
+            "template_assignment",
             "updated_by",
             "version",
             "updated_at",
@@ -419,6 +444,7 @@ def save_and_finalize(
     report: str,
     participants: list[ParticipantInput],
     facilitators: list[FacilitatorInput],
+    template_id: UUID | None = None,
     optional_change_reason: str = "",
     custom_values: dict[str, object] | None = None,
 ) -> DocumentationRevision:
@@ -431,6 +457,7 @@ def save_and_finalize(
         report=report,
         participants=participants,
         facilitators=facilitators,
+        template_id=template_id,
         custom_values=custom_values,
     )
     return finalize_documentation(

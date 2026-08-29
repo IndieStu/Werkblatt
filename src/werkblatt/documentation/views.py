@@ -142,6 +142,7 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
     form = DocumentationForm(documentation_data, instance=documentation)
     if assignment_form is None:
         assignment_form = WorkshopTemplateForm(
+            documentation_data,
             organization_id=request.organization_context.organization_id,
             initial={
                 "template": (
@@ -151,11 +152,21 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
                 )
             },
         )
-    definitions = (
-        documentation.template_assignment.template_version.custom_fields.filter(active=True)
-        if documentation.template_assignment_id
-        else []
+    selected_template = (
+        assignment_form.cleaned_data["template"]
+        if assignment_form.is_bound and assignment_form.is_valid()
+        else None
     )
+    template_version = (
+        selected_template.current_version
+        if selected_template is not None
+        else (
+            documentation.template_assignment.template_version
+            if documentation.template_assignment_id
+            else None
+        )
+    )
+    definitions = template_version.custom_fields.filter(active=True) if template_version else []
     existing_custom_values = {
         str(value.field_stable_key): value.value
         for value in documentation.custom_field_values.all()
@@ -184,6 +195,7 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
             and participant_formset.is_valid()
             and facilitator_formset.is_valid()
             and custom_form.is_valid()
+            and assignment_form.is_valid()
         ):
             values = {
                 "documentation_id": documentation.id,
@@ -194,6 +206,7 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
                 "report": form.cleaned_data["report"],
                 "participants": _participant_inputs(participant_formset),
                 "facilitators": _facilitator_inputs(facilitator_formset),
+                "template_id": assignment_form.cleaned_data["template"].id,
                 "custom_values": custom_form.values_by_stable_key(),
             }
             try:

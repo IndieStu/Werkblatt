@@ -207,6 +207,61 @@ def test_invalid_template_assignment_keeps_validation_visible(phase3_setup):
 
 
 @pytest.mark.django_db
+def test_selected_template_is_saved_atomically_when_documentation_is_finalized(phase3_setup):
+    organization, admin, _, workshop = phase3_setup
+    data = template_data("Direkt gewählte Vorlage")
+    data["is_default"] = False
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=data,
+        assets=[],
+        outputs=output_rows(),
+        fields=[],
+    )
+    client = Client()
+    client.force_login(admin)
+    get_response = client.get(reverse("documentation-detail", args=[workshop.id]))
+    documentation = get_response.context["documentation"]
+    facilitator = documentation.facilitators.get()
+    assert documentation.template_assignment_id is None
+
+    response = client.post(
+        reverse("documentation-detail", args=[workshop.id]),
+        {
+            "action": "finalize",
+            "template": str(template.id),
+            "expected_version": documentation.version,
+            "conducted_as_planned": "on",
+            "report": "Synthetischer Abschlussbericht",
+            "participants-TOTAL_FORMS": "2",
+            "participants-INITIAL_FORMS": "0",
+            "participants-MIN_NUM_FORMS": "0",
+            "participants-MAX_NUM_FORMS": "1000",
+            "participants-0-display_name": "",
+            "participants-0-present": "on",
+            "participants-1-display_name": "",
+            "participants-1-present": "on",
+            "facilitators-TOTAL_FORMS": "3",
+            "facilitators-INITIAL_FORMS": "1",
+            "facilitators-MIN_NUM_FORMS": "0",
+            "facilitators-MAX_NUM_FORMS": "1000",
+            "facilitators-0-id": str(facilitator.id),
+            "facilitators-0-display_name": facilitator.display_name,
+            "facilitators-1-display_name": "",
+            "facilitators-2-display_name": "",
+        },
+    )
+
+    assert response.status_code == 302
+    documentation.refresh_from_db()
+    assert documentation.status == "finalized"
+    assert documentation.template_assignment.template == template
+    assert documentation.revisions.get().snapshot["template"]["name"] == template.name
+
+
+@pytest.mark.django_db
 def test_png_asset_is_versioned_and_old_hash_stays_immutable(phase3_setup):
     organization, admin, _, _ = phase3_setup
     asset = create_asset(
