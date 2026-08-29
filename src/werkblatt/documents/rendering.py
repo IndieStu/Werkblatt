@@ -98,6 +98,7 @@ def _reportlab_pdf(template_name, context):
     )
     styles.add(ParagraphStyle(name="Stat", parent=styles["BodyText"], alignment=TA_CENTER))
     story = []
+    audit_text = ""
     logos = [asset for asset in context.get("assets", []) if asset["zone"] == "header"]
     if logos:
         logo_cells = [
@@ -240,11 +241,14 @@ def _reportlab_pdf(template_name, context):
             )
         revision = context["revision"]
         finalization = snapshot["finalization"]
+        finalized_at = context.get("finalized_at")
+        finalized_display = (
+            finalized_at.strftime("%d.%m.%Y um %H:%M Uhr") if finalized_at else "unbekannt"
+        )
         audit_text = (
-            f"Revision {revision.number} · {finalization['created_at']} · "
+            f"Revision {revision.number} · abgeschlossen am {finalized_display} · "
             f"{finalization['created_by_display_name']}"
         )
-        story.extend([Spacer(1, 6 * mm), Paragraph(audit_text, styles["Italic"])])
     footer_assets = [
         asset
         for asset in context.get("assets", [])
@@ -268,7 +272,17 @@ def _reportlab_pdf(template_name, context):
                 ]
             )
         )
-    document.build(story)
+
+    def draw_audit_footer(canvas, _document):
+        if not audit_text:
+            return
+        canvas.saveState()
+        canvas.setFillColor(colors.HexColor("#667477"))
+        canvas.setFont("Helvetica", 6.5)
+        canvas.drawString(17 * mm, 9 * mm, audit_text)
+        canvas.restoreState()
+
+    document.build(story, onFirstPage=draw_audit_footer, onLaterPages=draw_audit_footer)
     return output.getvalue()
 
 
@@ -344,6 +358,9 @@ def render_revision_outputs(revision: DocumentationRevision, user):
         ),
         location=workshop_snapshot["location"],
     )
+    finalized_at = parse_datetime(snapshot["finalization"]["created_at"])
+    if finalized_at and timezone.is_aware(finalized_at):
+        finalized_at = timezone.localtime(finalized_at)
     generated = []
     for output in template["outputs"]:
         if output["kind"] == TemplateOutputDefinition.Kind.ATTENDANCE_SHEET:
@@ -375,6 +392,7 @@ def render_revision_outputs(revision: DocumentationRevision, user):
                     "assets": assets,
                     "created_at": timezone.now(),
                     "revision": revision,
+                    "finalized_at": finalized_at,
                     "font_regular_uri": Path(
                         settings.BASE_DIR / "static/werkblatt/fonts/Inter-Regular.woff2"
                     ).as_uri(),

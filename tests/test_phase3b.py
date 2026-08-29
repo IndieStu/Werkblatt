@@ -897,6 +897,8 @@ def test_historical_render_uses_frozen_asset_template_and_escaped_text(phase3_se
     assert "Später geänderter Workshop" not in captured["html"]
     assert "Admin Person" in captured["html"]
     assert "Später geänderter Admin" not in captured["html"]
+    assert "Revision 1 · abgeschlossen am" in captured["html"]
+    assert "T10:00:00+00:00" not in captured["html"]
     assert "<script>" not in captured["html"]
     assert "&lt;script&gt;" in captured["html"]
 
