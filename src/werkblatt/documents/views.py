@@ -2,10 +2,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpRequest
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.http import content_disposition_header
 
 from werkblatt.documentation.models import Documentation
 
-from .models import GeneratedDocument
+from .models import GeneratedDocument, generated_document_filename
 from .rendering import render_attendance_sheet
 
 
@@ -34,6 +35,8 @@ def document_download(request: HttpRequest, document_id):
     if not document.pdf_file or document.status == GeneratedDocument.Status.RENDER_FAILED:
         raise Http404
     response = FileResponse(document.pdf_file.open("rb"), content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="werkblatt-{document.output_kind}.pdf"'
+    response["Content-Disposition"] = content_disposition_header(
+        True, generated_document_filename(document)
+    )
     response["X-Content-Type-Options"] = "nosniff"
     return response

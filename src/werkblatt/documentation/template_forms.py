@@ -147,7 +147,10 @@ class CustomFieldDefinitionForm(forms.Form):
         label="Darstellung",
     )
     choice_options_text = forms.CharField(
-        required=False, label="Auswahloptionen", help_text="Eine Option pro Zeile"
+        required=False,
+        label="Auswahloptionen",
+        help_text="Eine Option pro Zeile",
+        widget=forms.Textarea(attrs={"rows": 4}),
     )
     include_final_report = forms.BooleanField(required=False, label="Im Abschlussdokument")
     include_attendance_sheet = forms.BooleanField(required=False, label="In Teilnahmeliste")
