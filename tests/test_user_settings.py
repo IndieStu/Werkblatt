@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -67,6 +69,59 @@ def test_workshop_user_cannot_access_organization_administration(settings_user):
     response = client.get(reverse("settings-home"))
 
     assert response.status_code == 403
+
+
+def test_public_login_uses_approved_claim_lockups_without_redundant_eyebrow():
+    response = Client().get(reverse("login"))
+
+    assert response.status_code == 200
+    assert b"werkblatt-logo-claim.svg" in response.content
+    assert b"werkblatt-logo-claim-inverted.svg" in response.content
+    assert b"Workshop-Dokumentation</p>" not in response.content
+
+
+@pytest.mark.django_db
+def test_authenticated_shell_uses_compact_primary_logo(settings_user):
+    _, user = settings_user
+    client = Client()
+    client.force_login(user)
+
+    response = client.get(reverse("user-settings"))
+
+    assert response.status_code == 200
+    assert b"werkblatt-logo.svg" in response.content
+    assert b"werkblatt-logo-inverted.svg" in response.content
+    assert b"werkblatt-logo-claim.svg" not in response.content
+    assert b">Abmelden</button>" in response.content
+
+
+@pytest.mark.django_db
+def test_logout_requires_post_and_ends_session(settings_user):
+    _, user = settings_user
+    client = Client()
+    client.force_login(user)
+
+    assert client.get(reverse("logout")).status_code == 405
+    response = client.post(reverse("logout"))
+
+    assert response.status_code == 302
+    assert response.url == reverse("login")
+    assert "_auth_user_id" not in client.session
+
+
+def test_claim_assets_are_byte_identical_to_approved_brand_system():
+    expected = {
+        "werkblatt-logo-claim.svg": (
+            "1eb71bdad5e9e8e8c3988c98ced1797dc638f90047b98192c732c202dfa2b781"
+        ),
+        "werkblatt-logo-claim-inverted.svg": (
+            "a6c1e9a11449550871f7628bf23ef87e7c661d4319335f6db42aa34fcf54ddf5"
+        ),
+    }
+
+    for filename, digest in expected.items():
+        asset = settings.BASE_DIR / "static/werkblatt/brand" / filename
+        assert hashlib.sha256(asset.read_bytes()).hexdigest() == digest
 
 
 def test_dark_mode_uses_corporate_tokens_and_system_color_scheme():

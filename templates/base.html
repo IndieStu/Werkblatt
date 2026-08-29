@@ -16,11 +16,18 @@
 <body>
   <header class="app-header">
     <a class="brand" href="/" aria-label="Werkblatt Startseite">
-      <img class="brand-logo brand-logo-light" src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="180">
-      <img class="brand-logo brand-logo-dark" src="{% static 'werkblatt/brand/werkblatt-logo-inverted.svg' %}" alt="Werkblatt" width="180">
+      {% if user.is_authenticated %}
+        <img class="brand-logo brand-logo-light" src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="180">
+        <img class="brand-logo brand-logo-dark" src="{% static 'werkblatt/brand/werkblatt-logo-inverted.svg' %}" alt="Werkblatt" width="180">
+      {% else %}
+        <img class="brand-logo public-brand-claim brand-logo-light" src="{% static 'werkblatt/brand/werkblatt-logo-claim.svg' %}" alt="Werkblatt – Workshops einfach dokumentieren." width="260">
+        <img class="brand-logo public-brand-claim brand-logo-dark" src="{% static 'werkblatt/brand/werkblatt-logo-claim-inverted.svg' %}" alt="Werkblatt – Workshops einfach dokumentieren." width="260">
+        <img class="brand-logo public-brand-compact brand-logo-light" src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="160">
+        <img class="brand-logo public-brand-compact brand-logo-dark" src="{% static 'werkblatt/brand/werkblatt-logo-inverted.svg' %}" alt="Werkblatt" width="160">
+      {% endif %}
     </a>
     {% if current_organization %}<span class="organization">{{ current_organization.name }}</span>{% endif %}
-    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a><a href="{% url 'user-settings' %}">Einstellungen</a>{% if can_access_administration %}<a href="{% url 'settings-home' %}">{% if is_org_admin %}Verwaltung{% else %}Redaktion{% endif %}</a>{% endif %}</nav>{% endif %}
+    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a><a href="{% url 'user-settings' %}">Einstellungen</a>{% if can_access_administration %}<a href="{% url 'settings-home' %}">{% if is_org_admin %}Verwaltung{% else %}Redaktion{% endif %}</a>{% endif %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-action" type="submit">Abmelden</button></form></nav>{% endif %}
   </header>
   <main class="page-shell">{% block content %}{% endblock %}</main>
   <footer class="app-footer">
