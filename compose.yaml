@@ -35,7 +35,7 @@ services:
     volumes:
       - werkblatt_media:/app/var/media
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready/', timeout=2)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/ready/', headers={'X-Forwarded-Proto':'https'}), timeout=2)"]
       interval: 30s
       timeout: 5s
       retries: 3
