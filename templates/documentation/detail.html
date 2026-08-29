@@ -38,7 +38,7 @@
 {% else %}
   <section class="content-card">
     <h2>Dokumentvorlage</h2>
-    <form method="post" class="inline-form">{% csrf_token %}{{ assignment_form.template }}<button class="button secondary" name="action" value="assign_template">Vorlage zuordnen</button></form>
+    <form method="post" class="inline-form">{% csrf_token %}{{ assignment_form.template }}<button class="button secondary" type="submit" name="action" value="assign_template">Vorlage zuordnen</button>{{ assignment_form.template.errors }}</form>
     {% if documentation.template_assignment %}<p class="form-hint">{{ documentation.template_assignment.template.name }} · Stand {{ documentation.template_assignment.template_version.number }}</p>{% endif %}
     {% if attendance_available %}<form method="post" action="{% url 'generate-attendance' documentation.id %}">{% csrf_token %}<button class="button secondary" type="submit">Teilnahmeliste erzeugen</button></form>{% endif %}
   </section>

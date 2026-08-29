@@ -69,6 +69,7 @@ def _facilitator_inputs(formset) -> list[FacilitatorInput]:
 def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpResponse:
     workshop = _workshop_for_request(request, workshop_id)
     documentation = get_or_create_documentation(workshop=workshop, user=request.user)
+    assignment_form = None
 
     if request.method == "POST" and request.POST.get("action") == "assign_template":
         if documentation.status != Documentation.Status.DRAFT:
@@ -96,9 +97,10 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
                 update_fields=["template_assignment", "updated_by", "version", "updated_at"]
             )
             messages.success(request, "Dokumentvorlage zugeordnet.")
+            return redirect("documentation-detail", workshop_id=workshop.id)
         else:
             messages.error(request, "Dokumentvorlage konnte nicht zugeordnet werden.")
-        return redirect("documentation-detail", workshop_id=workshop.id)
+            # Keep the bound form and its concrete validation error visible.
 
     if request.method == "POST" and request.POST.get("action") == "reopen":
         try:
@@ -132,17 +134,23 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
             },
         )
 
-    form = DocumentationForm(request.POST or None, instance=documentation)
-    assignment_form = WorkshopTemplateForm(
-        organization_id=request.organization_context.organization_id,
-        initial={
-            "template": (
-                documentation.template_assignment.template_id
-                if documentation.template_assignment_id
-                else None
-            )
-        },
-    )
+    is_documentation_post = request.method == "POST" and request.POST.get("action") in {
+        "save",
+        "finalize",
+    }
+    documentation_data = request.POST if is_documentation_post else None
+    form = DocumentationForm(documentation_data, instance=documentation)
+    if assignment_form is None:
+        assignment_form = WorkshopTemplateForm(
+            organization_id=request.organization_context.organization_id,
+            initial={
+                "template": (
+                    documentation.template_assignment.template_id
+                    if documentation.template_assignment_id
+                    else None
+                )
+            },
+        )
     definitions = (
         documentation.template_assignment.template_version.custom_fields.filter(active=True)
         if documentation.template_assignment_id
@@ -153,24 +161,24 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
         for value in documentation.custom_field_values.all()
     }
     custom_form = DocumentationCustomFieldsForm(
-        request.POST or None,
+        documentation_data,
         definitions=definitions,
         values=existing_custom_values,
     )
     participant_formset = ParticipantFormSet(
-        request.POST or None,
+        documentation_data,
         instance=documentation,
         prefix="participants",
         queryset=documentation.participants.all(),
     )
     facilitator_formset = FacilitatorFormSet(
-        request.POST or None,
+        documentation_data,
         instance=documentation,
         prefix="facilitators",
         queryset=documentation.facilitators.all(),
     )
 
-    if request.method == "POST" and request.POST.get("action") in {"save", "finalize"}:
+    if is_documentation_post:
         if (
             form.is_valid()
             and participant_formset.is_valid()

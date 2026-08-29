@@ -91,7 +91,11 @@ def template_create(request: HttpRequest) -> HttpResponse:
         ],
     }
     forms = _forms(request, initial=initial)
-    if request.method == "POST" and all(form.is_valid() for form in forms):
+    if (
+        request.method == "POST"
+        and request.POST.get("action") == "save_template"
+        and all(form.is_valid() for form in forms)
+    ):
         try:
             template = save_template(
                 organization=request.organization,
@@ -124,7 +128,11 @@ def template_edit(request: HttpRequest, template_id) -> HttpResponse:
         if item["asset_version_id"] and item["asset"].current_version_id != item["asset_version_id"]
     ]
     forms = _forms(request, initial=initial)
-    if request.method == "POST" and all(form.is_valid() for form in forms):
+    if (
+        request.method == "POST"
+        and request.POST.get("action") == "save_template"
+        and all(form.is_valid() for form in forms)
+    ):
         try:
             save_template(
                 organization=request.organization,

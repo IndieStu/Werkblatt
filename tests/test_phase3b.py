@@ -128,6 +128,84 @@ def gender_fields():
     ]
 
 
+def template_editor_post(*, action=None):
+    data = {
+        **template_data("Enter-sichere Vorlage"),
+        "assets-TOTAL_FORMS": "2",
+        "assets-INITIAL_FORMS": "0",
+        "assets-MIN_NUM_FORMS": "0",
+        "assets-MAX_NUM_FORMS": "1000",
+        "outputs-TOTAL_FORMS": "3",
+        "outputs-INITIAL_FORMS": "2",
+        "outputs-MIN_NUM_FORMS": "0",
+        "outputs-MAX_NUM_FORMS": "1000",
+        "fields-TOTAL_FORMS": "2",
+        "fields-INITIAL_FORMS": "0",
+        "fields-MIN_NUM_FORMS": "0",
+        "fields-MAX_NUM_FORMS": "1000",
+    }
+    for index, output in enumerate(output_rows()):
+        for key, value in output.items():
+            data[f"outputs-{index}-{key}"] = value
+    if action:
+        data["action"] = action
+    return data
+
+
+@pytest.mark.django_db
+def test_template_editor_requires_explicit_save_action(phase3_setup):
+    _, admin, _, _ = phase3_setup
+    client = Client()
+    client.force_login(admin)
+
+    response = client.post(reverse("template-create"), template_editor_post())
+
+    assert response.status_code == 200
+    assert "Enter-sichere Vorlage" in response.content.decode()
+    assert DocumentTemplate.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_template_has_readable_label_and_can_be_assigned(phase3_setup):
+    organization, admin, _, workshop = phase3_setup
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data("Lesbarer Vorlagenname"),
+        assets=[],
+        outputs=output_rows(),
+        fields=[],
+    )
+    assert str(template) == "Lesbarer Vorlagenname"
+
+    client = Client()
+    client.force_login(admin)
+    response = client.post(
+        reverse("documentation-detail", args=[workshop.id]),
+        {"action": "assign_template", "template": str(template.id)},
+    )
+
+    assert response.status_code == 302
+    assignment = WorkshopTemplateAssignment.objects.get(workshop=workshop)
+    assert assignment.template == template
+
+
+@pytest.mark.django_db
+def test_invalid_template_assignment_keeps_validation_visible(phase3_setup):
+    _, admin, _, workshop = phase3_setup
+    client = Client()
+    client.force_login(admin)
+
+    response = client.post(
+        reverse("documentation-detail", args=[workshop.id]),
+        {"action": "assign_template", "template": ""},
+    )
+
+    assert response.status_code == 200
+    assert "template" in response.context["assignment_form"].errors
+
+
 @pytest.mark.django_db
 def test_png_asset_is_versioned_and_old_hash_stays_immutable(phase3_setup):
     organization, admin, _, _ = phase3_setup

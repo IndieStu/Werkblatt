@@ -15,8 +15,11 @@ TLS wird durch den vorgeschalteten Reverse Proxy terminiert. Die Anwendung aktiv
 ## Projekt- und Hostingangaben
 
 `WERKBLATT_SOFTWARE_AUTHOR_LABEL` und `WERKBLATT_SOFTWARE_AUTHOR_URL` bezeichnen
-den Ursprung des Open-Source-Projekts; standardmäßig ist dies Timo Hecken. Diese
-Angabe ist von der konkreten Betreiberorganisation unabhängig.
+den Ursprung des Open-Source-Projekts; standardmäßig ist dies Timo Hecken.
+`WERKBLATT_SOFTWARE_COLLABORATION_LABEL` und
+`WERKBLATT_SOFTWARE_COLLABORATION_URL` nennen Zircula e.V. dauerhaft als engen
+Kooperationspartner. Diese Angaben sind von der konkreten Betreiberorganisation
+unabhängig.
 `WERKBLATT_HOSTING_PROVIDER_LABEL` ist eine optionale deploymentspezifische
 Footerangabe, beispielsweise „In collaboration with and hosted by Example
 Organization“. Sie behauptet keine Urheberschaft und bleibt bei klassischen

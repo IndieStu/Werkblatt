@@ -23,7 +23,7 @@
   <main class="page-shell">{% block content %}{% endblock %}</main>
   <footer class="app-footer">
     <span>Werkblatt</span>
-    {% if software_author_label %}<span>Open Source software by <a href="{{ software_author_url }}">{{ software_author_label }}</a></span>{% endif %}
+    {% if software_author_label %}<span>Open Source software by <a href="{{ software_author_url }}">{{ software_author_label }}</a>{% if software_collaboration_label %} · In cooperation with <a href="{{ software_collaboration_url }}">{{ software_collaboration_label }}</a>{% endif %}</span>{% endif %}
     {% if hosting_provider_label %}<span>{{ hosting_provider_label }}</span>{% endif %}
   </footer>
 </body>

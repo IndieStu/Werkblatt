@@ -9,5 +9,5 @@
   <section class="content-card"><h2>Logos</h2>{{ forms.1.management_form }}{% for form in forms.1 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
   <section class="content-card"><h2>Ausgaben</h2><p class="form-hint">Klarnamen werden pro Ausgabe festgelegt.</p>{{ forms.2.management_form }}{% for form in forms.2 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
   <section class="content-card"><h2>Zusatzfelder</h2><p class="form-hint">Auch aggregierte Geschlechtsangaben sind normale vorlagenbezogene Zusatzfelder.</p>{{ forms.3.management_form }}{% for form in forms.3 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
-  <button class="button" type="submit">{% if template %}Als neuen Vorlagenstand speichern{% else %}Vorlage erstellen{% endif %}</button>
+  <button class="button" type="submit" name="action" value="save_template">{% if template %}Als neuen Vorlagenstand speichern{% else %}Vorlage erstellen{% endif %}</button>
 </form>{% endblock %}
