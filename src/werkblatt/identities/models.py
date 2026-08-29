@@ -5,9 +5,16 @@ from django.db import models
 
 
 class User(AbstractUser):
+    class Theme(models.TextChoices):
+        LIGHT = "light", "Hell"
+        DARK = "dark", "Dunkel"
+        SYSTEM = "system", "Systemeinstellung"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=150, unique=True)
     display_name = models.CharField(max_length=200, blank=True)
+    preferred_language = models.CharField(max_length=16, default="de")
+    theme = models.CharField(max_length=16, choices=Theme, default=Theme.SYSTEM)
 
     def get_full_name(self) -> str:
         return self.display_name or super().get_full_name() or self.username

@@ -9,9 +9,70 @@
   --color-border: #d7e1e2;
   --color-dark-surface: #102a2d;
   --color-icon-background: #00383d;
+  --color-page: #f7fafa;
+  --color-panel: #ffffff;
+  --color-field: #ffffff;
+  --color-success-surface: #e7f5ef;
+  --color-success-border: #8bc7a9;
+  --color-warning-surface: #fff7df;
+  --color-warning-border: #d9b85f;
+  --color-error-surface: #fff0f0;
+  --color-error-border: #dd9999;
+  --color-error-text: #9b2424;
+  --color-on-primary: #ffffff;
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --radius-small: 0.5rem;
   --radius-medium: 0.9rem;
   --shadow-card: 0 0.5rem 2rem rgb(16 42 45 / 8%);
+  color-scheme: light;
 }
 
+:root[data-theme="dark"] {
+  --brand-petrol-dark: #a7dce0;
+  --brand-petrol: #63c7cb;
+  --brand-turquoise: #63c7cb;
+  --brand-turquoise-light: #164b50;
+  --color-ink: #f1f7f7;
+  --color-muted: #b6c8ca;
+  --color-surface: #0b2023;
+  --color-page: #0b2023;
+  --color-panel: #102a2d;
+  --color-field: #0d2326;
+  --color-border: #36565a;
+  --color-success-surface: #12382d;
+  --color-success-border: #4f9b79;
+  --color-warning-surface: #3a3218;
+  --color-warning-border: #a88a35;
+  --color-error-surface: #3d2022;
+  --color-error-border: #b86d71;
+  --color-error-text: #ffb6ba;
+  --color-on-primary: #00383d;
+  --shadow-card: 0 0.5rem 2rem rgb(0 0 0 / 24%);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --brand-petrol-dark: #a7dce0;
+    --brand-petrol: #63c7cb;
+    --brand-turquoise: #63c7cb;
+    --brand-turquoise-light: #164b50;
+    --color-ink: #f1f7f7;
+    --color-muted: #b6c8ca;
+    --color-surface: #0b2023;
+    --color-page: #0b2023;
+    --color-panel: #102a2d;
+    --color-field: #0d2326;
+    --color-border: #36565a;
+    --color-success-surface: #12382d;
+    --color-success-border: #4f9b79;
+    --color-warning-surface: #3a3218;
+    --color-warning-border: #a88a35;
+    --color-error-surface: #3d2022;
+    --color-error-border: #b86d71;
+    --color-error-text: #ffb6ba;
+    --color-on-primary: #00383d;
+    --shadow-card: 0 0.5rem 2rem rgb(0 0 0 / 24%);
+    color-scheme: dark;
+  }
+}

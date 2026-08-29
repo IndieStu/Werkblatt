@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dokumentvorlagen - Werkblatt{% endblock %}
-{% block content %}<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Einstellungen</a> / Dokumentvorlagen</nav>
+{% block content %}<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Verwaltung</a> / Dokumentvorlagen</nav>
 <div class="section-heading"><div><h1>Dokumentvorlagen</h1><p class="lead">Wiederverwendbare Projekt-, Logo- und Ausgabeanforderungen.</p></div><a class="button" href="{% url 'template-create' %}">Vorlage erstellen</a></div>
 {% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
 <div class="workshop-list">{% for template in templates %}<article class="workshop-card"><p class="eyebrow">{{ template.get_status_display }}{% if template.is_default %} · Standard{% endif %}</p><h2>{{ template.name }}</h2><p>Vorlagenstand {{ template.current_version.number }}</p><div class="inline-actions"><a href="{% url 'template-edit' template.id %}">Bearbeiten</a><form method="post" action="{% url 'template-duplicate' template.id %}">{% csrf_token %}<button class="link-button">Duplizieren</button></form></div></article>{% empty %}<div class="empty-state"><h2>Noch keine Dokumentvorlagen</h2></div>{% endfor %}</div>{% endblock %}

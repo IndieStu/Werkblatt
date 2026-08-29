@@ -1,10 +1,11 @@
 {% load static %}
 <!doctype html>
-<html lang="de">
+<html lang="{{ user.preferred_language|default:'de' }}" data-theme="{{ user_theme|default:'system' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#00383D">
+  <meta name="color-scheme" content="light dark">
   <title>{% block title %}Werkblatt{% endblock %}</title>
   <link rel="icon" href="{% static 'werkblatt/favicon/favicon.svg' %}" type="image/svg+xml">
   <link rel="icon" href="{% static 'werkblatt/favicon/favicon-32x32.png' %}" sizes="32x32">
@@ -15,10 +16,11 @@
 <body>
   <header class="app-header">
     <a class="brand" href="/" aria-label="Werkblatt Startseite">
-      <img src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="180">
+      <img class="brand-logo brand-logo-light" src="{% static 'werkblatt/brand/werkblatt-logo.svg' %}" alt="Werkblatt" width="180">
+      <img class="brand-logo brand-logo-dark" src="{% static 'werkblatt/brand/werkblatt-logo-inverted.svg' %}" alt="Werkblatt" width="180">
     </a>
     {% if current_organization %}<span class="organization">{{ current_organization.name }}</span>{% endif %}
-    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a>{% if is_org_admin %}<a href="{% url 'settings-home' %}">Einstellungen</a>{% endif %}</nav>{% endif %}
+    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a><a href="{% url 'user-settings' %}">Einstellungen</a>{% if is_org_admin %}<a href="{% url 'settings-home' %}">Verwaltung</a>{% endif %}</nav>{% endif %}
   </header>
   <main class="page-shell">{% block content %}{% endblock %}</main>
   <footer class="app-footer">

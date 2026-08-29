@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Organisationsprofil - Werkblatt{% endblock %}
 {% block content %}
-<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Einstellungen</a> / Organisationsprofil</nav>
+<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Verwaltung</a> / Organisationsprofil</nav>
 <h1>Organisationsprofil</h1><p class="lead">Nur Angaben, die eine Dokumentvorlage verwendet, erscheinen in Ausgaben.</p>
 {% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
 <form method="post" class="content-card form-stack">{% csrf_token %}{{ form.as_div }}<button class="button" type="submit">Speichern</button></form>

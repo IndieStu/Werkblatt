@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Einstellungen - Werkblatt{% endblock %}
+{% block title %}Verwaltung – Werkblatt{% endblock %}
 {% block content %}
-<p class="eyebrow">Organisation</p><h1>Einstellungen</h1>
+<p class="eyebrow">Organisation</p><h1>Verwaltung</h1>
+<p class="lead">Diese Funktionen gelten organisationsweit und stehen ausschließlich Organization Admins zur Verfügung.</p>
 <div class="settings-grid">
   <a class="content-card card-link" href="{% url 'organization-profile' %}"><h2>Organisationsprofil</h2><p>Name und optionale Kontaktdaten verwalten.</p></a>
   <a class="content-card card-link" href="{% url 'asset-list' %}"><h2>Logos & Assets</h2><p>Logos hochladen, versionieren und kategorisieren.</p></a>

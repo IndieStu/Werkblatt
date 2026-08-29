@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Einstellungen – Werkblatt{% endblock %}
+{% block content %}
+<p class="eyebrow">Persönlich</p>
+<h1>Einstellungen</h1>
+<p class="lead">Diese Einstellungen gelten nur für dein Benutzerkonto.</p>
+<section class="content-card settings-form">
+  <form method="post" class="form-stack">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="form-actions"><button class="button" type="submit">Einstellungen speichern</button></div>
+  </form>
+</section>
+<section class="content-card">
+  <h2>Hilfe &amp; Projekt</h2>
+  <ul class="link-list">
+    <li><a href="{{ user_documentation_url }}" target="_blank" rel="noopener noreferrer">Nutzungsanleitung</a></li>
+    <li><a href="{{ software_repository_url }}" target="_blank" rel="noopener noreferrer">Quellcode auf GitHub</a></li>
+    <li><a href="{{ issue_tracker_url }}" target="_blank" rel="noopener noreferrer">Problem melden</a></li>
+  </ul>
+</section>
+{% endblock %}

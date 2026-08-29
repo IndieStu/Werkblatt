@@ -25,6 +25,12 @@ Footerangabe, beispielsweise „In collaboration with and hosted by Example
 Organization“. Sie behauptet keine Urheberschaft und bleibt bei klassischen
 Self-Hosting-Installationen standardmäßig leer.
 
+Die optional überschreibbaren Angaben `WERKBLATT_SOFTWARE_REPOSITORY_URL`,
+`WERKBLATT_USER_DOCUMENTATION_URL` und `WERKBLATT_ISSUE_TRACKER_URL` versorgen
+den Bereich „Hilfe & Projekt“ in den persönlichen Einstellungen. Standardmäßig
+verweisen sie auf das öffentliche Werkblatt-Repository, seine Nutzungsanleitung
+und den Issue-Tracker.
+
 ## Authentik / OIDC
 
 Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Application-Slug `werkblatt` vorbereitet:

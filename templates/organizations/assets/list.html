@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Logos & Assets - Werkblatt{% endblock %}
 {% block content %}
-<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Einstellungen</a> / Logos & Assets</nav>
+<nav class="breadcrumb"><a href="{% url 'settings-home' %}">Verwaltung</a> / Logos & Assets</nav>
 <div class="section-heading"><div><h1>Logos & Assets</h1><p class="lead">Versionierte Logos deiner Organisation.</p></div><a class="button" href="{% url 'asset-create' %}">Logo hochladen</a></div>
 {% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
 <div class="asset-grid">{% for asset in assets %}<article class="content-card asset-card">
