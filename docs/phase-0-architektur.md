@@ -338,14 +338,25 @@ V1-Compose enthält `web` und `db`; optional übernimmt ein vorhandener Reverse 
 
 ## 14. Hosted-Multi-Tenant-Modell
 
-Zunächst dieselbe Anwendung und dasselbe Schema. Shared-Database/Shared-Schema ist für kleine Organisationen betrieblich am einfachsten, wenn die oben beschriebene Isolation konsequent umgesetzt und getestet wird.
+Der spätere Hosted-Betrieb verwendet eine gemeinsame Werkblatt-/Django-Installation mit einer gemeinsamen PostgreSQL-Datenbank für mehrere strikt isolierte Organisationen. Eine eigene Docker- oder Datenbankinstanz je gehosteter Organisation ist nicht das Ziel. Separate Installationen bleiben zugleich ein unterstützter Betriebsweg für klassisches Self-Hosting und Organisationen mit besonderen Isolationsanforderungen.
+
+`DEFAULT_ORGANIZATION_SLUG` ist ausschließlich ein temporärer Single-Tenant-Mechanismus für Pilotinstallationen mit genau einer konfigurierten Organisation. Die Einstellung ist weder Tenant-Routing noch langfristige Hosted-Architektur und darf vor Aufnahme einer zweiten Organisation nicht dafür weiterverwendet werden.
+
+Vor Aufnahme einer zweiten Organisation ist ein eigener Multi-Tenant-Ausbauschritt verpflichtend:
+
+- Die aktive Organisation wird ausschließlich aus den aktiven Memberships der authentifizierten Person bestimmt.
+- Bei genau einer Membership wird die Organisation automatisch gewählt.
+- Bei mehreren Memberships stellt Werkblatt eine Organisationsauswahl und einen sicheren serverseitigen Session-Kontext bereit.
+- Jeder Tenantwechsel wird serverseitig gegen die aktiven Memberships validiert; eine vom Client gelieferte Organisations-ID ist nie allein autoritativ.
+- Sämtliche Cross-Tenant-Securitytests werden auf Auswahl, Session-Kontext und Tenantwechsel erweitert.
+- Templates, Assets, Workshops, Dokumentationen, Downloads und Integrationskonfiguration bleiben strikt tenantgebunden.
 
 - Jede fachliche Tabelle ist tenantgebunden.
 - Tenantkonfiguration, Caches, Secrets, Assets und Storage-Pfade sind getrennt.
 - Platform-Administration verwaltet Organisationen/Status, besitzt aber keine automatische Datenleseberechtigung.
 - Organisationsdeaktivierung sperrt Zugriff und Synchronisation, löscht aber nicht automatisch Daten.
 - Per-Tenant-Export und Löschkonzept werden als spätere Application Services vorbereitet.
-- Vor Aufnahme der ersten Partnerorganisation ist ein eigener Tenant-Isolation-/IDOR-Review ein Release-Gate. Optional wird PostgreSQL RLS dann als zweite Schutzschicht evaluiert.
+- Vor Aufnahme einer zweiten Organisation sind der Multi-Tenant-Ausbauschritt sowie ein eigener Tenant-Isolation-/IDOR-Review Release-Gates. Optional wird PostgreSQL RLS dann als zweite Schutzschicht evaluiert.
 - `software_author/project_origin` und `hosting_provider` sind getrennte Deployment-Metadaten. Eine Hosting-Angabe erscheint nur bei entsprechender Konfiguration.
 
 ## 15. Migrationen und Versionsstrategie
@@ -385,7 +396,7 @@ CI-Gates: Format/Lint, Unit/Integration, Migration-Check, Produktionsbuild, Cont
 
 ### Jetzt strukturell vorbereiten, nicht als leere UI bauen
 
-- mehrere Organisationen, weitere OIDC-Provider, lokale Identitäten;
+- mehrere Organisationen innerhalb derselben Hosted-Instanz einschließlich membershipbasierter Auswahl, sicherem Session-Kontext und validiertem Tenantwechsel; weitere OIDC-Provider und lokale Identitäten;
 - manuelle Workshops und weitere Workshop-Provider;
 - interner und Download-only Storage;
 - organisationsbezogenes Branding, Projekt-/Logo-Presets;

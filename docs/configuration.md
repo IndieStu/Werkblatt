@@ -2,6 +2,10 @@
 
 Ausgangspunkt ist `.env.example`. Produktive `.env`-Dateien und Secrets werden niemals committet. Deployment-Plattformen sollen Secrets als geschützte Dateien bereitstellen, die über `*_FILE` eingelesen werden. Direkter Wert und zugehöriger `*_FILE`-Wert dürfen nie gleichzeitig gesetzt sein. Ausgaben aufgelöster Produktionskonfiguration dürfen keine Secret-Werte protokollieren.
 
+## Organisationskontext im Pilotbetrieb
+
+`DEFAULT_ORGANIZATION_SLUG` wählt derzeit ausschließlich für eine Single-Tenant-Pilotinstallation mit genau einer Organisation den Organisationskontext. Diese Einstellung ist keine Multi-Tenant-Routingstrategie. Vor Aufnahme einer zweiten Organisation muss die aktive Organisation membershipbasiert bestimmt und bei mehreren Memberships über eine serverseitig validierte Auswahl mit sicherem Session-Kontext gewechselt werden. Der geplante Hosted-Betrieb teilt eine Django-/PostgreSQL-Instanz zwischen strikt isolierten Organisationen; eine Instanz pro Organisation wird nicht vorausgesetzt. Separate Installationen bleiben für Self-Hosting und besondere Isolationsanforderungen möglich.
+
 ## Öffentliche URL
 
 `WERKBLATT_PUBLIC_BASE_URL`, `DJANGO_ALLOWED_HOSTS` und `DJANGO_CSRF_TRUSTED_ORIGINS` werden auf die öffentliche URL der jeweiligen Installation gesetzt. Lokal wird üblicherweise `http://localhost:8000` verwendet.
