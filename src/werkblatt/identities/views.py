@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from .forms import UserSettingsForm
 from .oidc import normalized_claims, oauth_client
@@ -28,6 +29,7 @@ def oidc_callback(request: HttpRequest) -> HttpResponse:
     return redirect("workshop-list")
 
 
+@require_POST
 def sign_out(request: HttpRequest) -> HttpResponse:
     logout(request)
     return redirect("login")
