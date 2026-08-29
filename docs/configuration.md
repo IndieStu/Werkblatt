@@ -12,6 +12,16 @@ Ausgangspunkt ist `.env.example`. Produktive `.env`-Dateien und Secrets werden n
 
 TLS wird durch den vorgeschalteten Reverse Proxy terminiert. Die Anwendung aktiviert zusätzlich HTTPS-Redirect und einjähriges HSTS außerhalb des Debug-Modus. `includeSubDomains` und Browser-Preload bleiben bewusste Entscheidungen des jeweiligen Betreibers.
 
+## Projekt- und Hostingangaben
+
+`WERKBLATT_SOFTWARE_AUTHOR_LABEL` und `WERKBLATT_SOFTWARE_AUTHOR_URL` bezeichnen
+den Ursprung des Open-Source-Projekts; standardmäßig ist dies Timo Hecken. Diese
+Angabe ist von der konkreten Betreiberorganisation unabhängig.
+`WERKBLATT_HOSTING_PROVIDER_LABEL` ist eine optionale deploymentspezifische
+Footerangabe, beispielsweise „In collaboration with and hosted by Example
+Organization“. Sie behauptet keine Urheberschaft und bleibt bei klassischen
+Self-Hosting-Installationen standardmäßig leer.
+
 ## Authentik / OIDC
 
 Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Application-Slug `werkblatt` vorbereitet:

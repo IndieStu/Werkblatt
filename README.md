@@ -4,6 +4,9 @@
 
 Werkblatt ist als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeldung und Workshopquelle sind über OIDC beziehungsweise Pretix integrierbar; die internen Fachmodelle bleiben davon unabhängig.
 
+Das unabhängige Open-Source-Projekt wurde von Timo Hecken initiiert und wird von
+ihm gepflegt. Zircula e.V. ist Erstanwender und enger Entwicklungspartner.
+
 Aktueller Stand: Phase 3b - Dokumentvorlagen und PDF-Ausgaben. Noch kein produktiver Release.
 
 ## Entwicklung
