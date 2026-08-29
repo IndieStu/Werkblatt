@@ -156,7 +156,7 @@ if not DEBUG:
             "Produktionskonfiguration fehlt: " + ", ".join(missing_production_settings)
         )
 
-PRETIX_BASE_URL = env("PRETIX_BASE_URL", "https://www.pretix.eu")
+PRETIX_BASE_URL = env("PRETIX_BASE_URL", "https://pretix.eu")
 PRETIX_API_TOKEN = secret("PRETIX_API_TOKEN")
 PRETIX_ORGANIZER = env("PRETIX_ORGANIZER")
 

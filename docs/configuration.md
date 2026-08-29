@@ -30,7 +30,7 @@ Client-ID und Client-Secret werden durch den jeweiligen Betreiber erzeugt. Das S
 
 ## Pretix
 
-Der Standard-Ursprung ist `https://www.pretix.eu`; `PRETIX_ORGANIZER` enthält den Organizer-Slug der jeweiligen Installation.
+Der kanonische Standard-Ursprung ist `https://pretix.eu`; `PRETIX_ORGANIZER` enthält den Organizer-Slug der jeweiligen Installation. Die umleitende Variante `https://www.pretix.eu` wird bewusst nicht verwendet, da Werkblatt Redirects ablehnt und den API-Token nicht an ein Redirectziel weiterreicht.
 
 Ein dedizierter Team-API-Token soll nur lesenden Zugriff auf Organizer, Events, Subevents und für die Teilnehmerübernahme notwendige Orders/Positions erhalten. Er wird ausschließlich über `PRETIX_API_TOKEN_FILE` eingelesen und weder in Chat noch Git geschrieben.
 

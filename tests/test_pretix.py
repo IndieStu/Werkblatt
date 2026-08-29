@@ -72,7 +72,7 @@ def test_maps_event_series_and_subevent():
 
     with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
         client = PretixClient(
-            "https://www.pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
+            "https://pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
         )
         workshops = PretixWorkshopProvider(client, "example-organizer").list_workshops()
     assert len(workshops) == 1
@@ -101,7 +101,7 @@ def test_testmode_events_require_explicit_opt_in():
 
     with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
         client = PretixClient(
-            "https://www.pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
+            "https://pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
         )
         provider = PretixWorkshopProvider(client, "example-organizer")
         assert provider.list_workshops() == []
