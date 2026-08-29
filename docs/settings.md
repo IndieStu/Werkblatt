@@ -19,8 +19,11 @@ und Markenfarben ab. Die PDF-Ausgaben sind davon unabhängig.
 
 ## Organisationsverwaltung
 
-`/administration/` ist Organization Admins vorbehalten und umfasst derzeit das
-Organisationsprofil, Logos und Assets sowie Dokumentvorlagen. Später gehören
-auch Organisationsbranding, Integrationen und weitere organisationsweite
-Konfiguration hierher. Diese Erweiterungen werden nicht vorab als leere
-Architekturschichten implementiert.
+`/administration/` ist der gemeinsame Einstieg für rollenabhängige fachliche
+Verwaltung. Editor sehen dort die redaktionellen Bereiche Dokumentvorlagen und
+dokumentbezogene Logos und Assets. Organization Admins sehen zusätzlich das
+Organisationsprofil; später gehören dazu auch Organisationsbranding,
+Integrationen und Memberships. Ein Editor darf ein vorhandenes Organisationslogo
+in einer Dokumentvorlage verwenden, aber nicht verändern, ersetzen oder als
+Organisationsbranding verwalten. Diese Erweiterungen werden nicht vorab als
+leere Architekturschichten implementiert.

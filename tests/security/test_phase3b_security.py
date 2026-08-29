@@ -99,7 +99,7 @@ def test_unauthenticated_and_superuser_without_membership_get_no_internal_data(t
 
 def test_workshop_user_cannot_use_admin_services(tenants):
     a, _, _, user_a, _, _ = tenants
-    with pytest.raises(ValidationError):
+    with pytest.raises(PermissionDenied):
         create_asset(
             organization=a,
             user=user_a,

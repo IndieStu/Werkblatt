@@ -9,8 +9,10 @@ Die Anmeldung erfolgt über den vom Betreiber eingerichteten OIDC-Dienst. Nach
 der Anmeldung zeigt „Workshops“ alle Workshops der eigenen Organisation.
 Organisationsübergreifende Inhalte sind nicht zugänglich.
 
-„Einstellungen“ enthält ausschließlich persönliche Präferenzen. Organization
-Admins sehen zusätzlich „Verwaltung“ für organisationsweite Konfiguration.
+„Einstellungen“ enthält ausschließlich persönliche Präferenzen. Editor sehen
+zusätzlich „Redaktion“ für Dokumentvorlagen und dokumentbezogene Assets.
+Organization Admins sehen „Verwaltung“ einschließlich organisationsweiter
+Konfiguration.
 
 ## Persönliche Einstellungen
 
@@ -35,14 +37,17 @@ entsteht ein unveränderlicher Snapshot. Eine abgeschlossene Dokumentation kann
 erneut geöffnet, korrigiert und als neue Revision abgeschlossen werden; ältere
 Revisionen bleiben erhalten.
 
-## Organisationsverwaltung
+## Redaktion und Organisationsverwaltung
 
-Der Bereich „Verwaltung“ ist Organization Admins vorbehalten. Er umfasst
-derzeit:
+Editor können in „Redaktion“ Dokumentvorlagen sowie Förder-, Projekt-,
+Auftraggeber- und sonstige Dokumentassets verwalten. Vorhandene
+Organisationslogos dürfen sie in Vorlagen auswählen, jedoch nicht verändern oder
+versionieren.
 
-- Organisationsprofil
-- Logos und Assets
-- Dokumentvorlagen
+Organization Admins besitzen dieselben redaktionellen Rechte und sehen unter
+„Verwaltung“ zusätzlich das Organisationsprofil. Organisationsbranding,
+Integrationen sowie Memberships und Rollen bleiben ebenfalls ausschließlich
+Organization Admins vorbehalten.
 
 Persönliche Einstellungen verändern keine dieser organisationsweiten Angaben.
 

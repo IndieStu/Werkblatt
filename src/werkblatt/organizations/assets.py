@@ -11,7 +11,7 @@ from django.core.files.base import ContentFile
 from django.db import models, transaction
 from PIL import Image, UnidentifiedImageError
 
-from werkblatt.identities.models import Membership
+from werkblatt.identities.policies import Capability, require_capability
 
 from .models import BrandAsset, BrandAssetVersion
 
@@ -194,21 +194,25 @@ def validate_asset_upload(upload) -> tuple[str, bytes, int, int, bytes]:
     raise ValidationError("Werkblatt unterstützt in V1 ausschließlich SVG und PNG.")
 
 
-def _require_asset_admin(organization, user) -> None:
-    if (
-        not user.is_authenticated
-        or not user.memberships.filter(
-            organization=organization,
-            role=Membership.Role.ORGANIZATION_ADMIN,
-            status=Membership.Status.ACTIVE,
-        ).exists()
-    ):
-        raise ValidationError("Nur Organization Admins dürfen Logos verwalten.")
+def _require_asset_management(organization, user, *, role) -> None:
+    require_capability(
+        user,
+        organization.id,
+        Capability.MANAGE_DOCUMENT_ASSETS,
+        "Keine Berechtigung zur Verwaltung von Dokumentassets.",
+    )
+    if role == BrandAsset.Role.ORGANIZATION:
+        require_capability(
+            user,
+            organization.id,
+            Capability.MANAGE_ORGANIZATION_BRANDING,
+            "Nur Organization Admins dürfen Organisationsassets verwalten.",
+        )
 
 
 @transaction.atomic
 def create_asset(*, organization, user, display_name, default_role, upload) -> BrandAsset:
-    _require_asset_admin(organization, user)
+    _require_asset_management(organization, user, role=default_role)
     asset = BrandAsset.objects.create(
         organization=organization,
         display_name=display_name.strip(),
@@ -223,7 +227,7 @@ def create_asset(*, organization, user, display_name, default_role, upload) -> B
 
 @transaction.atomic
 def add_asset_version(*, asset, organization, user, upload) -> BrandAssetVersion:
-    _require_asset_admin(organization, user)
+    _require_asset_management(organization, user, role=asset.default_role)
     if asset.organization_id != organization.id:
         raise ValidationError("Logo gehört nicht zu dieser Organisation.")
     caller_asset = asset

@@ -260,15 +260,19 @@ Verständliche Fehler unterscheiden mindestens: nicht unterstütztes Format, Dat
 
 ## 11. Berechtigungsmodell
 
-### Organization Admin
+### Editor und Organization Admin
 
 - Asset-Bibliothek ansehen
-- Assets hochladen, benennen, kategorisieren, versionieren und aktiv/inaktiv setzen
+- dokumentbezogene Assets hochladen, benennen, kategorisieren, versionieren und aktiv/inaktiv setzen
 - Dokumentvorlagen erstellen, bearbeiten, aktivieren und deaktivieren
 - Standardvorlage festlegen
 - Logo-Reihenfolge, Ausgaben und Zusatzfelder konfigurieren
 
-### Workshop User und Organization Admin
+Ein vorhandenes Organisationslogo darf ein Editor in einer Dokumentvorlage
+auswählen. Organisationsassets verändern, ersetzen, versionieren oder als
+Organisationsbranding verwalten darf ausschließlich der Organization Admin.
+
+### Workshop User, Editor und Organization Admin
 
 - aktive Vorlagen der eigenen Organisation ansehen und einem Workshop zuordnen
 - bei Entwürfen einen bewussten Wechsel auf einen anderen aktiven Vorlagenstand vornehmen
@@ -277,11 +281,15 @@ Verständliche Fehler unterscheiden mindestens: nicht unterstütztes Format, Dat
 - Dokumentationen entsprechend den bestehenden Phase-2-Regeln bearbeiten, finalisieren und wieder öffnen
 - erzeugte Dokumente der eigenen Organisation ansehen
 
-Eine spätere feinere Rolle ist für V1 nicht notwendig. Jede Aktion beginnt mit dem serverseitigen Organisationskontext; IDs im Request bestimmen niemals den Tenant.
+Die drei Rollen und ihre fachlichen Capabilities sind zentral fest definiert;
+es gibt keine frei konfigurierbare RBAC-Engine. Jede Aktion beginnt mit dem
+serverseitigen Organisationskontext; IDs im Request bestimmen niemals den Tenant.
 
 ## 12. UX: Asset-Bibliothek
 
-Navigation: `Einstellungen -> Logos & Assets`, nur für Organization Admin sichtbar.
+Navigation: `Redaktion/Verwaltung -> Logos & Assets`, für Editor und Organization
+Admin sichtbar. Organisationsassets sind für Editor nutzbar, aber nicht
+verwaltbar.
 
 ### Übersicht
 
@@ -464,7 +472,7 @@ V1 benötigt mindestens Tests für:
 - fehlgeschlagene sichere Rendition ohne Anlage einer aktiven Asset-Version
 - `nosniff`, sichere Content-Disposition und kein direkter Original-SVG-Aufruf
 - Cross-Tenant Preview, Download, Auswahl und Versionierung
-- Organization Admin versus Workshop User bei Schreiboperationen
+- Organization Admin, Editor und Workshop User gemäß Capability-Matrix bei Schreiboperationen
 - historische Asset-Version trotz Deaktivierung verfügbar
 - neue Version überschreibt weder Bytes noch Hash der alten Version
 - Snapshot referenziert exakt die beim Abschluss gewählte Version

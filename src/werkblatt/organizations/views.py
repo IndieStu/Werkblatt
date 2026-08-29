@@ -5,7 +5,12 @@ from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from werkblatt.identities.models import Membership
+from werkblatt.identities.policies import (
+    Capability,
+    capabilities_for,
+    has_capability,
+    require_capability,
+)
 
 from .assets import add_asset_version, create_asset
 from .forms import (
@@ -17,24 +22,43 @@ from .forms import (
 from .models import BrandAsset, BrandAssetVersion
 
 
-def _require_admin(request: HttpRequest) -> None:
-    if not request.user.memberships.filter(
-        organization_id=request.organization_context.organization_id,
-        role=Membership.Role.ORGANIZATION_ADMIN,
-        status=Membership.Status.ACTIVE,
-    ).exists():
-        raise PermissionDenied("Nur Organization Admins dürfen diese Einstellungen ändern.")
+def _organization_id(request: HttpRequest):
+    return request.organization_context.organization_id
+
+
+def _require(request: HttpRequest, capability: Capability, message: str) -> None:
+    require_capability(request.user, _organization_id(request), capability, message)
+
+
+def _can_manage_organization_branding(request: HttpRequest) -> bool:
+    return has_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_ORGANIZATION_BRANDING,
+    )
 
 
 @login_required
 def settings_home(request: HttpRequest) -> HttpResponse:
-    _require_admin(request)
-    return render(request, "organizations/settings_home.html")
+    capabilities = capabilities_for(request.user, _organization_id(request))
+    if not capabilities.intersection(
+        {
+            Capability.MANAGE_DOCUMENT_TEMPLATES,
+            Capability.MANAGE_DOCUMENT_ASSETS,
+            Capability.MANAGE_ORGANIZATION_PROFILE,
+        }
+    ):
+        raise PermissionDenied("Keine Berechtigung für diesen Verwaltungsbereich.")
+    return render(request, "organizations/settings_home.html", {"capabilities": capabilities})
 
 
 @login_required
 def organization_profile(request: HttpRequest) -> HttpResponse:
-    _require_admin(request)
+    _require(
+        request,
+        Capability.MANAGE_ORGANIZATION_PROFILE,
+        "Nur Organization Admins dürfen das Organisationsprofil ändern.",
+    )
     organization = request.organization
     form = OrganizationProfileForm(request.POST or None, instance=organization)
     if request.method == "POST" and form.is_valid():
@@ -46,17 +70,37 @@ def organization_profile(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def asset_list(request: HttpRequest) -> HttpResponse:
-    _require_admin(request)
+    _require(
+        request,
+        Capability.MANAGE_DOCUMENT_ASSETS,
+        "Keine Berechtigung zur Verwaltung von Dokumentassets.",
+    )
     assets = BrandAsset.objects.for_organization(
         request.organization_context.organization_id
     ).select_related("current_version")
-    return render(request, "organizations/assets/list.html", {"assets": assets})
+    return render(
+        request,
+        "organizations/assets/list.html",
+        {
+            "assets": assets,
+            "can_manage_organization_branding": _can_manage_organization_branding(request),
+        },
+    )
 
 
 @login_required
 def asset_create(request: HttpRequest) -> HttpResponse:
-    _require_admin(request)
-    form = BrandAssetUploadForm(request.POST or None, request.FILES or None)
+    _require(
+        request,
+        Capability.MANAGE_DOCUMENT_ASSETS,
+        "Keine Berechtigung zum Hochladen von Dokumentassets.",
+    )
+    allow_organization_branding = _can_manage_organization_branding(request)
+    form = BrandAssetUploadForm(
+        request.POST or None,
+        request.FILES or None,
+        allow_organization_branding=allow_organization_branding,
+    )
     if request.method == "POST" and form.is_valid():
         try:
             create_asset(
@@ -81,12 +125,23 @@ def asset_create(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def asset_edit(request: HttpRequest, asset_id) -> HttpResponse:
-    _require_admin(request)
+    _require(
+        request,
+        Capability.MANAGE_DOCUMENT_ASSETS,
+        "Keine Berechtigung zur Verwaltung von Dokumentassets.",
+    )
     asset = get_object_or_404(
         BrandAsset.objects.for_organization(request.organization_context.organization_id),
         pk=asset_id,
     )
-    form = BrandAssetEditForm(request.POST or None, instance=asset)
+    allow_organization_branding = _can_manage_organization_branding(request)
+    if asset.default_role == BrandAsset.Role.ORGANIZATION and not allow_organization_branding:
+        raise PermissionDenied("Nur Organization Admins dürfen Organisationsassets verwalten.")
+    form = BrandAssetEditForm(
+        request.POST or None,
+        instance=asset,
+        allow_organization_branding=allow_organization_branding,
+    )
     version_form = BrandAssetVersionForm(request.POST or None, request.FILES or None)
     if request.method == "POST":
         if request.POST.get("action") == "metadata" and form.is_valid():

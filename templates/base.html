@@ -20,7 +20,7 @@
       <img class="brand-logo brand-logo-dark" src="{% static 'werkblatt/brand/werkblatt-logo-inverted.svg' %}" alt="Werkblatt" width="180">
     </a>
     {% if current_organization %}<span class="organization">{{ current_organization.name }}</span>{% endif %}
-    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a><a href="{% url 'user-settings' %}">Einstellungen</a>{% if is_org_admin %}<a href="{% url 'settings-home' %}">Verwaltung</a>{% endif %}</nav>{% endif %}
+    {% if user.is_authenticated %}<nav class="app-nav"><a href="/">Workshops</a><a href="{% url 'user-settings' %}">Einstellungen</a>{% if can_access_administration %}<a href="{% url 'settings-home' %}">{% if is_org_admin %}Verwaltung{% else %}Redaktion{% endif %}</a>{% endif %}</nav>{% endif %}
   </header>
   <main class="page-shell">{% block content %}{% endblock %}</main>
   <footer class="app-footer">

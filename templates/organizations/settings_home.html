@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Verwaltung – Werkblatt{% endblock %}
+{% block title %}{% if is_org_admin %}Verwaltung{% else %}Redaktion{% endif %} – Werkblatt{% endblock %}
 {% block content %}
-<p class="eyebrow">Organisation</p><h1>Verwaltung</h1>
-<p class="lead">Diese Funktionen gelten organisationsweit und stehen ausschließlich Organization Admins zur Verfügung.</p>
+<p class="eyebrow">Organisation</p><h1>{% if is_org_admin %}Verwaltung{% else %}Redaktion{% endif %}</h1>
+<p class="lead">{% if is_org_admin %}Organisationsweite Administration und redaktionelle Konfiguration.{% else %}Dokumentvorlagen und dokumentbezogene Assets verwalten.{% endif %}</p>
 <div class="settings-grid">
-  <a class="content-card card-link" href="{% url 'organization-profile' %}"><h2>Organisationsprofil</h2><p>Name und optionale Kontaktdaten verwalten.</p></a>
-  <a class="content-card card-link" href="{% url 'asset-list' %}"><h2>Logos & Assets</h2><p>Logos hochladen, versionieren und kategorisieren.</p></a>
-  <a class="content-card card-link" href="{% url 'template-list' %}"><h2>Dokumentvorlagen</h2><p>Ausgaben, Logos und Zusatzfelder konfigurieren.</p></a>
+  {% if can_manage_organization %}<a class="content-card card-link" href="{% url 'organization-profile' %}"><h2>Organisationsprofil</h2><p>Name und optionale Kontaktdaten verwalten.</p></a>{% endif %}
+  {% if can_manage_assets %}<a class="content-card card-link" href="{% url 'asset-list' %}"><h2>Logos & Assets</h2><p>Dokumentbezogene Logos hochladen, versionieren und kategorisieren.</p></a>{% endif %}
+  {% if can_manage_templates %}<a class="content-card card-link" href="{% url 'template-list' %}"><h2>Dokumentvorlagen</h2><p>Ausgaben, Logos und Zusatzfelder konfigurieren.</p></a>{% endif %}
 </div>
 {% endblock %}

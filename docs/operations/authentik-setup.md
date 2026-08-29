@@ -25,6 +25,7 @@ Die erwartete Discovery-URL wird bei der tatsächlichen Einrichtung in Authentik
 Vorgesehene anwendungsspezifische Entitlements beziehungsweise Claims:
 
 - `Werkblatt Admins` -> `Organization Admin`
+- `Werkblatt Editors` -> `Editor`
 - `Werkblatt Users` -> `Workshop User`
 
 Nur Werkblatt-spezifische Entitlements dürfen im Gruppenclaim ankommen. Authentik-interne Admin-Gruppen oder Nextcloud-Entitlements gewähren keinen Werkblatt-Zugriff. Fehlt eine erlaubte Gruppe, verweigert Werkblatt die Provisionierung.
@@ -41,6 +42,7 @@ Nur Werkblatt-spezifische Entitlements dürfen im Gruppenclaim ankommen. Authent
 ## Abnahmetest
 
 - erfolgreicher Login eines `Workshop User`;
+- erfolgreicher Login eines `Editor`;
 - erfolgreicher Login eines `Organization Admin`;
 - Ablehnung eines Benutzers ohne Werkblatt-Entitlement;
 - stabile Wiedererkennung über `(issuer, sub)` trotz geändertem Anzeigenamen/E-Mail;

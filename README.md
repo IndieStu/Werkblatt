@@ -21,7 +21,7 @@ uv run python manage.py bootstrap_organization --name "Example Organization"
 uv run python manage.py runserver
 ```
 
-Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md`](docs/phase-0-architektur.md). Konfiguration und Secrets werden in [`docs/configuration.md`](docs/configuration.md) beschrieben.
+Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md`](docs/phase-0-architektur.md). Konfiguration und Secrets werden in [`docs/configuration.md`](docs/configuration.md) beschrieben. Die feste fachliche Rollen- und Berechtigungsmatrix steht unter [`docs/roles.md`](docs/roles.md).
 
 ## Status der Funktionen
 

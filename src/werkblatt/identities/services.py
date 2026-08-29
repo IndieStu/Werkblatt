@@ -46,11 +46,12 @@ def provision_oidc_user(claims: OidcClaims) -> User:
     organization = Organization.objects.get(
         slug=settings.DEFAULT_ORGANIZATION_SLUG, status=Organization.Status.ACTIVE
     )
-    role = (
-        Membership.Role.ORGANIZATION_ADMIN
-        if not claims.groups.isdisjoint(settings.OIDC_ADMIN_GROUPS)
-        else Membership.Role.WORKSHOP_USER
-    )
+    if not claims.groups.isdisjoint(settings.OIDC_ADMIN_GROUPS):
+        role = Membership.Role.ORGANIZATION_ADMIN
+    elif not claims.groups.isdisjoint(settings.OIDC_EDITOR_GROUPS):
+        role = Membership.Role.EDITOR
+    else:
+        role = Membership.Role.WORKSHOP_USER
     Membership.objects.update_or_create(
         organization=organization,
         user=user,

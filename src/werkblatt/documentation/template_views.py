@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from werkblatt.identities.models import Membership
+from werkblatt.identities.policies import Capability, require_capability
 
 from .models import DocumentTemplate, TemplateOutputDefinition
 from .template_forms import (
@@ -16,13 +16,13 @@ from .template_forms import (
 from .templates_service import duplicate_template, save_template, template_initial
 
 
-def _require_admin(request):
-    if not request.user.memberships.filter(
-        organization_id=request.organization_context.organization_id,
-        role=Membership.Role.ORGANIZATION_ADMIN,
-        status=Membership.Status.ACTIVE,
-    ).exists():
-        raise PermissionDenied("Nur Organization Admins dürfen Dokumentvorlagen verwalten.")
+def _require_template_management(request):
+    require_capability(
+        request.user,
+        request.organization_context.organization_id,
+        Capability.MANAGE_DOCUMENT_TEMPLATES,
+        "Keine Berechtigung zur Verwaltung von Dokumentvorlagen.",
+    )
 
 
 def _forms(request, *, initial=None):
@@ -51,7 +51,7 @@ def _forms(request, *, initial=None):
 
 @login_required
 def template_list(request: HttpRequest) -> HttpResponse:
-    _require_admin(request)
+    _require_template_management(request)
     templates = DocumentTemplate.objects.for_organization(
         request.organization_context.organization_id
     ).select_related("current_version")
@@ -60,7 +60,7 @@ def template_list(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def template_create(request: HttpRequest) -> HttpResponse:
-    _require_admin(request)
+    _require_template_management(request)
     initial = {
         "template": {
             "status": DocumentTemplate.Status.ACTIVE,
@@ -116,7 +116,7 @@ def template_create(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def template_edit(request: HttpRequest, template_id) -> HttpResponse:
-    _require_admin(request)
+    _require_template_management(request)
     template = get_object_or_404(
         DocumentTemplate.objects.for_organization(request.organization_context.organization_id),
         pk=template_id,
@@ -157,7 +157,7 @@ def template_edit(request: HttpRequest, template_id) -> HttpResponse:
 
 @login_required
 def template_duplicate(request: HttpRequest, template_id) -> HttpResponse:
-    _require_admin(request)
+    _require_template_management(request)
     if request.method != "POST":
         raise PermissionDenied
     template = get_object_or_404(

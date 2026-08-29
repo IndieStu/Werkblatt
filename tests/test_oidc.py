@@ -68,6 +68,7 @@ def test_group_changes_update_only_configured_organization_role(settings):
     settings.OIDC_CLIENT_ID = "werkblatt"
     settings.OIDC_ALLOWED_GROUPS = {"Werkblatt Users", "Werkblatt Admins"}
     settings.OIDC_ADMIN_GROUPS = {"Werkblatt Admins"}
+    settings.OIDC_EDITOR_GROUPS = {"Werkblatt Editors"}
     organization = Organization.objects.create(slug="example", name="Example Organization")
     other = Organization.objects.create(slug="other", name="Andere")
     admin_claims = normalized_claims(
@@ -100,3 +101,44 @@ def test_group_changes_update_only_configured_organization_role(settings):
     assert user.memberships.get(organization=organization).role == Membership.Role.WORKSHOP_USER
     assert user.memberships.get(organization=other).role == Membership.Role.WORKSHOP_USER
     assert get_user_model().objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_editor_group_maps_to_editor_and_admin_has_priority(settings):
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
+    settings.OIDC_ISSUER = "https://issuer.invalid"
+    settings.OIDC_CLIENT_ID = "werkblatt"
+    settings.OIDC_ALLOWED_GROUPS = {
+        "Werkblatt Users",
+        "Werkblatt Editors",
+        "Werkblatt Admins",
+    }
+    settings.OIDC_ADMIN_GROUPS = {"Werkblatt Admins"}
+    settings.OIDC_EDITOR_GROUPS = {"Werkblatt Editors"}
+    organization = Organization.objects.create(slug="example", name="Example Organization")
+
+    editor = provision_oidc_user(
+        normalized_claims(
+            {
+                "iss": settings.OIDC_ISSUER,
+                "sub": "editor-subject",
+                "aud": settings.OIDC_CLIENT_ID,
+                "groups": ["Werkblatt Editors"],
+            }
+        )
+    )
+    assert editor.memberships.get(organization=organization).role == Membership.Role.EDITOR
+
+    admin = provision_oidc_user(
+        normalized_claims(
+            {
+                "iss": settings.OIDC_ISSUER,
+                "sub": "admin-subject",
+                "aud": settings.OIDC_CLIENT_ID,
+                "groups": ["Werkblatt Editors", "Werkblatt Admins"],
+            }
+        )
+    )
+    assert (
+        admin.memberships.get(organization=organization).role == Membership.Role.ORGANIZATION_ADMIN
+    )

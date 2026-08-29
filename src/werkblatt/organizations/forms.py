@@ -23,6 +23,15 @@ class BrandAssetUploadForm(forms.Form):
     default_role = forms.ChoiceField(choices=BrandAsset.Role, label="Kategorie")
     file = forms.FileField(label="SVG- oder PNG-Datei")
 
+    def __init__(self, *args, allow_organization_branding=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not allow_organization_branding:
+            self.fields["default_role"].choices = [
+                choice
+                for choice in BrandAsset.Role.choices
+                if choice[0] != BrandAsset.Role.ORGANIZATION
+            ]
+
 
 class BrandAssetEditForm(forms.ModelForm):
     class Meta:
@@ -33,6 +42,15 @@ class BrandAssetEditForm(forms.ModelForm):
             "default_role": "Kategorie",
             "status": "Status",
         }
+
+    def __init__(self, *args, allow_organization_branding=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not allow_organization_branding:
+            self.fields["default_role"].choices = [
+                choice
+                for choice in BrandAsset.Role.choices
+                if choice[0] != BrandAsset.Role.ORGANIZATION
+            ]
 
 
 class BrandAssetVersionForm(forms.Form):

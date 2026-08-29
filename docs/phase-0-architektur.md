@@ -440,7 +440,10 @@ Falls maximale Verbreitung wichtiger ist als Copyleft, wäre Apache-2.0 die perm
 3. URLs: Es werden nur endgültig bekannte URLs eingetragen. Unbekannte Projekt- und Repository-URLs bleiben ausdrücklich Platzhalter.
 4. Authentik: Issuer/Discovery-URL, Client-ID, Redirect-URIs und relevante Claims werden zum Start von Phase 1 bereitgestellt; das Client-Secret ausschließlich als Environment Secret.
 5. Pretix: Base-URL, Organizer, repräsentative Event-/Subevent-Testdaten und Token werden zum Start von Phase 1 bereitgestellt; der Token ausschließlich als Environment Secret.
-6. Rollen: Der Pilot verwendet ausschließlich `Organization Admin` und `Workshop User`.
+6. Rollen (ursprüngliche Phase-0-Entscheidung): Der Pilot verwendete zunächst
+   ausschließlich `Organization Admin` und `Workshop User`. Diese Entscheidung
+   wurde später durch die feste dritte Rolle `Editor` fortgeschrieben; die
+   aktuelle verbindliche Matrix steht in `docs/roles.md`.
 
 ### Vor Phase 2 beantwortet / entschieden
 

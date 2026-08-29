@@ -146,6 +146,7 @@ OIDC_CLIENT_ID = env("OIDC_CLIENT_ID")
 OIDC_CLIENT_SECRET = secret("OIDC_CLIENT_SECRET")
 OIDC_ALLOWED_GROUPS = {v.strip() for v in env("OIDC_ALLOWED_GROUPS").split(",") if v.strip()}
 OIDC_ADMIN_GROUPS = {v.strip() for v in env("OIDC_ADMIN_GROUPS").split(",") if v.strip()}
+OIDC_EDITOR_GROUPS = {v.strip() for v in env("OIDC_EDITOR_GROUPS").split(",") if v.strip()}
 
 if not DEBUG:
     required_production_settings = {

@@ -25,7 +25,7 @@ GitHub Actions [CI-Lauf 11](https://github.com/IndieStu/Werkblatt/actions/runs/3
 
 | Bereich | Automatisierte Absicherung |
 | --- | --- |
-| Tenant/Rollen | unauthenticated, Workshop User, Organization Admin, Superuser ohne Membership; fremde Asset-, Version-, Template-, Workshop-, Preview-, Download- und Form-IDs |
+| Tenant/Rollen | unauthenticated, Workshop User, Editor, Organization Admin, Superuser ohne Membership; fremde Asset-, Version-, Template-, Workshop-, Preview-, Download- und Form-IDs; Nutzung aber keine Verwaltung von Organisationsassets durch Editor |
 | Upload | PNG-Signatur/MIME-Abweichung, Korruption, Größen/Pixel, angehängte Bytes, Traversal-Dateinamen; SVG Script/Event/foreignObject/DTD/XXE/HTTP/file/data/CSS/Animation/Case/Komplexität |
 | Historie | Snapshot-/Hash-Unveränderlichkeit, Template-/Asset-Version 1 nach späterer Version 2, spätere Workshop-/Erstelleränderung, kanonischer Hash |
 | PDF | Django-Escaping adversarialer Berichtswerte, freigegebener URL-Fetcher, tenantgebundenes Rendering/Download, produktiver WeasyPrint-Container mit zwei PDF-Arten, Text-/Seiten-/Rasterprüfung |

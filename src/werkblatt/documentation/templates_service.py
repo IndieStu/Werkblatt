@@ -3,7 +3,7 @@ import uuid
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models, transaction
 
-from werkblatt.identities.models import Membership
+from werkblatt.identities.policies import Capability, require_capability
 from werkblatt.organizations.models import BrandAssetVersion
 
 from .models import (
@@ -15,16 +15,13 @@ from .models import (
 )
 
 
-def _require_template_admin(organization, user) -> None:
-    if (
-        not user.is_authenticated
-        or not user.memberships.filter(
-            organization=organization,
-            role=Membership.Role.ORGANIZATION_ADMIN,
-            status=Membership.Status.ACTIVE,
-        ).exists()
-    ):
-        raise PermissionDenied("Nur Organization Admins dürfen Dokumentvorlagen verwalten.")
+def _require_template_management(organization, user) -> None:
+    require_capability(
+        user,
+        organization.id,
+        Capability.MANAGE_DOCUMENT_TEMPLATES,
+        "Keine Berechtigung zur Verwaltung von Dokumentvorlagen.",
+    )
 
 
 def template_initial(template):
@@ -96,7 +93,7 @@ def template_initial(template):
 
 @transaction.atomic
 def save_template(*, organization, user, template, template_data, assets, outputs, fields):
-    _require_template_admin(organization, user)
+    _require_template_management(organization, user)
     if template is None:
         template = DocumentTemplate.objects.create(
             organization=organization,
@@ -237,7 +234,7 @@ def save_template(*, organization, user, template, template_data, assets, output
 
 @transaction.atomic
 def duplicate_template(*, template, organization, user):
-    _require_template_admin(organization, user)
+    _require_template_management(organization, user)
     if template.organization_id != organization.id:
         raise PermissionDenied
     data = template_initial(template)

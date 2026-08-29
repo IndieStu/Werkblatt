@@ -40,8 +40,10 @@ Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Applicat
 - eigener Issuer je Application-Slug;
 - Subject: stabile Authentik-UUID;
 - Scopes: `openid email profile groups`;
-- Gruppen/Entitlements: `Werkblatt Admins` und `Werkblatt Users`;
-- Rollen: Admin-Gruppe -> `Organization Admin`, sonst freigegebene Gruppe -> `Workshop User`.
+- Gruppen/Entitlements: `Werkblatt Admins`, `Werkblatt Editors` und `Werkblatt Users`;
+- Rollen: Admin-Gruppe -> `Organization Admin`, Editor-Gruppe -> `Editor`, sonst
+  freigegebene Gruppe -> `Workshop User`. Bei mehreren Gruppen hat Admin vor
+  Editor Vorrang.
 
 Client-ID und Client-Secret werden durch den jeweiligen Betreiber erzeugt. Das Secret kann über `OIDC_CLIENT_SECRET_FILE` eingelesen werden. Werkblatt verwendet keine Authentik-Admin-API.
 

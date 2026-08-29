@@ -44,6 +44,7 @@ class Identity(models.Model):
 class Membership(models.Model):
     class Role(models.TextChoices):
         ORGANIZATION_ADMIN = "organization_admin", "Organization Admin"
+        EDITOR = "editor", "Editor"
         WORKSHOP_USER = "workshop_user", "Workshop User"
 
     class Status(models.TextChoices):
