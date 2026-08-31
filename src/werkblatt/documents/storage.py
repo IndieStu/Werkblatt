@@ -6,7 +6,7 @@ from urllib.parse import quote, urlparse
 import httpx
 from django.conf import settings
 
-from .models import GeneratedDocument
+from .models import GeneratedDocument, generated_document_filename
 
 
 class WebDavConfigurationError(ValueError):
@@ -69,9 +69,7 @@ def store_via_webdav(document: GeneratedDocument) -> GeneratedDocument:
     if claimed != 1:
         return document
     try:
-        filename = (
-            f"{document.workshop.starts_at:%Y-%m-%d}_{document.output_kind}_{document.id}.pdf"
-        )
+        filename = generated_document_filename(document, unique=True)
         key = PurePosixPath(
             _validated_root(),
             str(document.organization_id),

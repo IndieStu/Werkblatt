@@ -19,13 +19,17 @@ def rendered_hash(path: Path) -> str:
 
 first, second = map(Path, sys.argv[1:3])
 expected_text = {
-    "final-report.pdf": ["Synthetischer", "Sicherer", "Testbericht"],
+    "final-report.pdf": ["Synthetischer", "Sicherer", "Testbericht", "Revision", "Gefördert"],
     "attendance-sheet.pdf": ["Synthetischer", "Synthetische", "Person"],
 }
 for filename, markers in expected_text.items():
     first_pdf = first / filename
     second_pdf = second / filename
     reader = PdfReader(first_pdf)
+    if filename == "final-report.pdf":
+        assert len(reader.pages) == 1, (
+            "Der kompakte synthetische Abschlussbericht muss einseitig sein"
+        )
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert reader.metadata is not None
     # Embedded fonts may make PDF text extractors insert spaces inside words.

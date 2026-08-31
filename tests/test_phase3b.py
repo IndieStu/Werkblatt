@@ -32,7 +32,7 @@ from werkblatt.documentation.templates_service import (
     save_template,
     template_initial,
 )
-from werkblatt.documents.models import GeneratedDocument
+from werkblatt.documents.models import GeneratedDocument, generated_document_filename
 from werkblatt.documents.rendering import render_attendance_sheet, render_revision_outputs
 from werkblatt.documents.storage import store_via_webdav
 from werkblatt.identities.models import Membership
@@ -204,6 +204,15 @@ def test_invalid_template_assignment_keeps_validation_visible(phase3_setup):
 
     assert response.status_code == 200
     assert "template" in response.context["assignment_form"].errors
+
+
+def test_custom_field_choices_use_a_multiline_widget():
+    from werkblatt.documentation.template_forms import CustomFieldDefinitionForm
+
+    field = CustomFieldDefinitionForm().fields["choice_options_text"]
+
+    assert field.widget.__class__.__name__ == "Textarea"
+    assert field.widget.attrs["rows"] == 4
 
 
 @pytest.mark.django_db
@@ -634,6 +643,15 @@ def test_revision_output_rendering_is_idempotent_and_download_is_tenant_scoped(
     assert first[0].status == GeneratedDocument.Status.RENDERED
     assert GeneratedDocument.objects.count() == 1
 
+    client = Client()
+    client.force_login(admin)
+    response = client.get(reverse("document-download", args=[first[0].id]))
+    assert response.status_code == 200
+    assert (
+        response.headers["Content-Disposition"]
+        == 'attachment; filename="Workshop_FinalReport_Klimawerkstatt.pdf"'
+    )
+
     other = Organization.objects.create(slug="download-other", name="Andere")
     other_user = get_user_model().objects.create_user(username="download-other")
     Membership.objects.create(
@@ -740,6 +758,11 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     stored = store_via_webdav(generated)
     assert stored.status == GeneratedDocument.Status.STORED
     assert stored.storage_key.endswith(".pdf")
+    expected_storage_name = (
+        "Workshop_AttendanceSheet_Klimawerkstatt_"
+        f"{workshop.starts_at:%Y-%m-%d}_{str(generated.id)[:8]}.pdf"
+    )
+    assert expected_storage_name in stored.storage_key
     stored.status = GeneratedDocument.Status.RENDERED
     stored.save(update_fields=["status"])
 
@@ -760,6 +783,24 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     retried = store_via_webdav(failed)
     assert retried.status == GeneratedDocument.Status.STORED
     assert retried.last_error_class == ""
+
+
+def test_generated_document_filename_sanitizes_workshop_title(phase3_setup):
+    organization, admin, _, workshop = phase3_setup
+    workshop.title = "Klima & Zukunft: Bremen/West"
+    workshop.save(update_fields=["title"])
+    document = GeneratedDocument(
+        organization=organization,
+        workshop=workshop,
+        output_kind="final_report",
+        created_by=admin,
+    )
+
+    assert (
+        generated_document_filename(document)
+        == "Workshop_FinalReport_Klima_Zukunft_Bremen_West.pdf"
+    )
+    assert "/" not in generated_document_filename(document)
 
 
 @pytest.mark.django_db
@@ -856,6 +897,8 @@ def test_historical_render_uses_frozen_asset_template_and_escaped_text(phase3_se
     assert "Später geänderter Workshop" not in captured["html"]
     assert "Admin Person" in captured["html"]
     assert "Später geänderter Admin" not in captured["html"]
+    assert "Revision 1 · abgeschlossen am" in captured["html"]
+    assert "T10:00:00+00:00" not in captured["html"]
     assert "<script>" not in captured["html"]
     assert "&lt;script&gt;" in captured["html"]
 
