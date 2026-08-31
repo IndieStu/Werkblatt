@@ -271,6 +271,30 @@ def test_selected_template_is_saved_atomically_when_documentation_is_finalized(p
 
 
 @pytest.mark.django_db
+def test_documentation_uses_dynamic_participant_and_facilitator_rows(phase3_setup):
+    _, admin, _, workshop = phase3_setup
+    client = Client()
+    client.force_login(admin)
+
+    response = client.get(reverse("documentation-detail", args=[workshop.id]))
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert response.context["participant_formset"].total_form_count() == 0
+    assert response.context["facilitator_formset"].total_form_count() == 1
+    assert 'id="id_participants-TOTAL_FORMS"' in content
+    assert 'id="id_facilitators-TOTAL_FORMS"' in content
+    assert 'data-formset="participants"' in content
+    assert 'data-formset="facilitators"' in content
+    assert "__prefix__" in content
+    assert 'type="button" data-add-row>+ Teilnehmer:in</button>' in content
+    assert 'type="button" data-add-row>+ Durchführende Person</button>' in content
+    assert "werkblatt/js/formsets.js" in content
+    assert 'aria-label="Teilnehmer:in entfernen"' in content
+    assert 'aria-label="Durchführende Person entfernen"' in content
+
+
+@pytest.mark.django_db
 def test_png_asset_is_versioned_and_old_hash_stays_immutable(phase3_setup):
     organization, admin, _, _ = phase3_setup
     asset = create_asset(
