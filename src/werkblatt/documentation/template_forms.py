@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.forms import formset_factory
 
 from werkblatt.organizations.models import BrandAsset
@@ -16,11 +17,16 @@ class WorkshopTemplateForm(forms.Form):
         queryset=DocumentTemplate.objects.none(), label="Dokumentvorlage"
     )
 
-    def __init__(self, *args, organization_id=None, **kwargs):
+    def __init__(self, *args, organization_id=None, assigned_template_id=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["template"].queryset = DocumentTemplate.objects.for_organization(
-            organization_id
-        ).filter(status=DocumentTemplate.Status.ACTIVE, current_version__isnull=False)
+        allowed = Q(status=DocumentTemplate.Status.ACTIVE)
+        if assigned_template_id:
+            allowed |= Q(pk=assigned_template_id)
+        self.fields["template"].queryset = (
+            DocumentTemplate.objects.for_organization(organization_id)
+            .filter(allowed, current_version__isnull=False)
+            .distinct()
+        )
 
 
 class DocumentationCustomFieldsForm(forms.Form):

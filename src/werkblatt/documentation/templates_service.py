@@ -24,6 +24,25 @@ def _require_template_management(organization, user) -> None:
     )
 
 
+@transaction.atomic
+def archive_template(*, template, organization, user, confirmation_name):
+    _require_template_management(organization, user)
+    try:
+        template = DocumentTemplate.objects.select_for_update().get(
+            pk=template.pk,
+            organization=organization,
+        )
+    except DocumentTemplate.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    if confirmation_name.strip() != template.name:
+        raise ValidationError("Der eingegebene Vorlagenname stimmt nicht überein.")
+    template.status = DocumentTemplate.Status.INACTIVE
+    template.is_default = False
+    template.updated_by = user
+    template.save(update_fields=["status", "is_default", "updated_by", "updated_at"])
+    return template
+
+
 def template_initial(template):
     version = template.current_version
     return {

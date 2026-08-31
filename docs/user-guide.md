@@ -14,6 +14,10 @@ zusätzlich „Redaktion“ für Dokumentvorlagen und dokumentbezogene Assets.
 Organization Admins sehen „Verwaltung“ einschließlich organisationsweiter
 Konfiguration.
 
+„Statistik“ steht allen drei fachlichen Rollen zur Verfügung und zeigt
+ausschließlich aggregierte Werte der eigenen Organisation. Teilnehmer:innennamen
+werden weder dort noch im Statistik-CSV ausgegeben.
+
 ## Persönliche Einstellungen
 
 Unter „Einstellungen“ kann das Erscheinungsbild gewählt werden:
@@ -37,12 +41,32 @@ entsteht ein unveränderlicher Snapshot. Eine abgeschlossene Dokumentation kann
 erneut geöffnet, korrigiert und als neue Revision abgeschlossen werden; ältere
 Revisionen bleiben erhalten.
 
+## Statistik
+
+Die Statistik kann nach Workshopdatum eingegrenzt werden. Pro Dokumentation
+wird ausschließlich die neueste abgeschlossene Revision berücksichtigt, damit
+Korrekturen und frühere Revisionen nicht doppelt gezählt werden. Wird eine
+abgeschlossene Dokumentation erneut zur Korrektur geöffnet, bleiben ihre zuletzt
+abgeschlossenen Werte sichtbar und werden als „Korrektur ausstehend“ markiert.
+
+Neben Workshops, Anmeldungen, Teilnahmen, No-Shows und spontanen Teilnahmen
+werden vorlagenspezifische Zahlenfelder mit der Darstellung „Aggregierte
+Statistik“ summiert. Die Anwesenheitsquote bezieht sich nur auf angemeldete
+Personen; spontane Teilnahmen werden separat ausgewiesen. Die gefilterte
+Auswertung kann ohne Klarnamen als CSV exportiert werden.
+
 ## Redaktion und Organisationsverwaltung
 
 Editor können in „Redaktion“ Dokumentvorlagen sowie Förder-, Projekt-,
 Auftraggeber- und sonstige Dokumentassets verwalten. Vorhandene
 Organisationslogos dürfen sie in Vorlagen auswählen, jedoch nicht verändern oder
 versionieren.
+
+Dokumentvorlagen können nach Eingabe ihres exakten Namens entfernt werden.
+Werkblatt archiviert sie dabei sicher: Sie verschwinden aus neuen
+Workshopzuordnungen, während frühere Vorlagenstände, Revisionen und Dokumente
+erhalten bleiben. Archivierte Vorlagen werden getrennt angezeigt und können
+über einen neuen Vorlagenstand reaktiviert werden.
 
 Organization Admins besitzen dieselben redaktionellen Rechte und sehen unter
 „Verwaltung“ zusätzlich das Organisationsprofil. Organisationsbranding,

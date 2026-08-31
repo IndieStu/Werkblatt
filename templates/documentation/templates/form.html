@@ -10,4 +10,16 @@
   <section class="content-card"><h2>Ausgaben</h2><p class="form-hint">Klarnamen werden pro Ausgabe festgelegt.</p>{{ forms.2.management_form }}{% for form in forms.2 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
   <section class="content-card"><h2>Zusatzfelder</h2><p class="form-hint">Auch aggregierte Geschlechtsangaben sind normale vorlagenbezogene Zusatzfelder.</p>{{ forms.3.management_form }}{% for form in forms.3 %}<div class="template-row">{{ form.as_div }}</div>{% endfor %}</section>
   <button class="button" type="submit" name="action" value="save_template">{% if template %}Als neuen Vorlagenstand speichern{% else %}Vorlage erstellen{% endif %}</button>
-</form>{% endblock %}
+</form>
+{% if template and template.status == "active" %}
+<section class="content-card danger-zone">
+  <h2>Vorlage entfernen</h2>
+  <p>Die Vorlage wird archiviert und aus neuen Auswahlen entfernt. Frühere Dokumente und Vorlagenstände bleiben erhalten.</p>
+  <form method="post" action="{% url 'template-archive' template.id %}" class="confirmation-form">
+    {% csrf_token %}
+    <div class="field"><label for="confirmation-name">Zum Bestätigen „{{ template.name }}“ eingeben</label><input id="confirmation-name" name="confirmation_name" required autocomplete="off"></div>
+    <button class="button danger" type="submit">Vorlage entfernen</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,3 +1,4 @@
+import csv
 from uuid import UUID
 
 from django.contrib import messages
@@ -10,7 +11,12 @@ from werkblatt.documents.rendering import render_revision_outputs
 from werkblatt.documents.storage import store_via_webdav
 from werkblatt.workshops.models import Workshop
 
-from .forms import DocumentationForm, FacilitatorFormSet, ParticipantFormSet
+from .forms import (
+    DocumentationForm,
+    FacilitatorFormSet,
+    ParticipantFormSet,
+    StatisticsFilterForm,
+)
 from .models import Documentation, ParticipantEntry, WorkshopTemplateAssignment
 from .services import (
     ConcurrentDocumentationUpdate,
@@ -22,7 +28,103 @@ from .services import (
     save_draft,
     statistics_for,
 )
+from .statistics import StatisticsPeriod, current_year_period, organization_statistics
 from .template_forms import DocumentationCustomFieldsForm, WorkshopTemplateForm
+
+
+def _statistics_filter(request: HttpRequest):
+    default_period = current_year_period()
+    if not request.GET:
+        form = StatisticsFilterForm(
+            initial={"date_from": default_period.date_from, "date_to": default_period.date_to}
+        )
+        return form, default_period
+    form = StatisticsFilterForm(
+        request.GET,
+    )
+    if form.is_valid():
+        return form, StatisticsPeriod(form.cleaned_data["date_from"], form.cleaned_data["date_to"])
+    return form, None
+
+
+def _csv_cell(value) -> str:
+    text = "" if value is None else str(value)
+    if text.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return f"'{text}"
+    return text
+
+
+@login_required
+def statistics_dashboard(request: HttpRequest) -> HttpResponse:
+    form, period = _statistics_filter(request)
+    statistics = (
+        organization_statistics(
+            organization_id=request.organization_context.organization_id,
+            period=period,
+        )
+        if period
+        else None
+    )
+    return render(
+        request,
+        "documentation/statistics.html",
+        {"filter_form": form, "statistics": statistics},
+    )
+
+
+@login_required
+def statistics_csv(request: HttpRequest) -> HttpResponse:
+    form, period = _statistics_filter(request)
+    if period is None:
+        return render(
+            request,
+            "documentation/statistics.html",
+            {"filter_form": form, "statistics": None},
+            status=400,
+        )
+    statistics = organization_statistics(
+        organization_id=request.organization_context.organization_id,
+        period=period,
+    )
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = (
+        f'attachment; filename="Werkblatt_Statistik_{period.date_from}_{period.date_to}.csv"'
+    )
+    response.write("\ufeff")
+    writer = csv.writer(response, delimiter=";")
+
+    def write_row(values):
+        writer.writerow([_csv_cell(value) for value in values])
+
+    write_row(["Bereich", "Projekt", "Kennzahl", "Wert"])
+    for label, key in [
+        ("Workshops im Zeitraum", "workshops"),
+        ("Mit Abschluss", "finalized_workshops"),
+        ("Ohne Abschluss", "without_finalization"),
+        ("Korrektur ausstehend", "correction_pending"),
+        ("Angemeldet", "registered"),
+        ("Anwesend (angemeldet)", "present_registered"),
+        ("Spontan", "walk_ins"),
+        ("Teilgenommen gesamt", "present_total"),
+        ("No-Shows", "no_shows"),
+        ("Anwesenheitsquote (%)", "attendance_rate"),
+    ]:
+        value = statistics[key] if statistics[key] is not None else ""
+        write_row(["Gesamt", "", label, value])
+    for item in statistics["custom_statistics"]:
+        write_row(["Gesamt", "", item["label"], item["value"]])
+    for group in statistics["groups"]:
+        group_label = f"{group['project_title']} · {group['template_name']}"
+        for label, key in [
+            ("Workshops", "workshops"),
+            ("Angemeldet", "registered"),
+            ("Teilgenommen gesamt", "present_total"),
+            ("Spontan", "walk_ins"),
+        ]:
+            write_row(["Projekt", group_label, label, group[key]])
+        for item in group["custom_statistics"]:
+            write_row(["Projekt", group_label, item["label"], item["value"]])
+    return response
 
 
 def _workshop_for_request(request: HttpRequest, workshop_id: UUID) -> Workshop:
@@ -78,6 +180,11 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
         assignment_form = WorkshopTemplateForm(
             request.POST,
             organization_id=request.organization_context.organization_id,
+            assigned_template_id=(
+                documentation.template_assignment.template_id
+                if documentation.template_assignment_id
+                else None
+            ),
         )
         if assignment_form.is_valid():
             template = assignment_form.cleaned_data["template"]
@@ -144,6 +251,11 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
         assignment_form = WorkshopTemplateForm(
             documentation_data,
             organization_id=request.organization_context.organization_id,
+            assigned_template_id=(
+                documentation.template_assignment.template_id
+                if documentation.template_assignment_id
+                else None
+            ),
             initial={
                 "template": (
                     documentation.template_assignment.template_id

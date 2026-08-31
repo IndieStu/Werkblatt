@@ -13,7 +13,7 @@ from .template_forms import (
     OutputDefinitionFormSet,
     TemplateForm,
 )
-from .templates_service import duplicate_template, save_template, template_initial
+from .templates_service import archive_template, duplicate_template, save_template, template_initial
 
 
 def _require_template_management(request):
@@ -55,7 +55,14 @@ def template_list(request: HttpRequest) -> HttpResponse:
     templates = DocumentTemplate.objects.for_organization(
         request.organization_context.organization_id
     ).select_related("current_version")
-    return render(request, "documentation/templates/list.html", {"templates": templates})
+    return render(
+        request,
+        "documentation/templates/list.html",
+        {
+            "templates": templates.filter(status=DocumentTemplate.Status.ACTIVE),
+            "archived_templates": templates.filter(status=DocumentTemplate.Status.INACTIVE),
+        },
+    )
 
 
 @login_required
@@ -169,3 +176,26 @@ def template_duplicate(request: HttpRequest, template_id) -> HttpResponse:
     )
     messages.success(request, "Vorlage unabhängig dupliziert.")
     return redirect("template-edit", template_id=duplicated.id)
+
+
+@login_required
+def template_archive(request: HttpRequest, template_id) -> HttpResponse:
+    _require_template_management(request)
+    if request.method != "POST":
+        raise PermissionDenied
+    template = get_object_or_404(
+        DocumentTemplate.objects.for_organization(request.organization_context.organization_id),
+        pk=template_id,
+    )
+    try:
+        archive_template(
+            template=template,
+            organization=request.organization,
+            user=request.user,
+            confirmation_name=request.POST.get("confirmation_name", ""),
+        )
+    except ValidationError as exc:
+        messages.error(request, "; ".join(exc.messages))
+        return redirect("template-edit", template_id=template.id)
+    messages.success(request, "Dokumentvorlage entfernt und sicher archiviert.")
+    return redirect("template-list")

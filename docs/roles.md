@@ -9,8 +9,9 @@ Organisation.
 |---|---:|---:|---:|
 | Workshops sehen und dokumentieren | ja | ja | ja |
 | Dokumentationen finalisieren und Vorlagen verwenden | ja | ja | ja |
+| Organisationsstatistik und aggregierten CSV-Export sehen | ja | ja | ja |
 | Dokumentvorlagen, Custom Fields und Ausgaben verwalten | nein | ja | ja |
-| Dokumentvorlagen duplizieren | nein | ja | ja |
+| Dokumentvorlagen duplizieren und sicher archivieren | nein | ja | ja |
 | Dokumentbezogene Assets hochladen und verwalten | nein | ja | ja |
 | Vorhandene Organisationsassets in Vorlagen verwenden | ja | ja | ja |
 | Organisationsassets und Organisationsbranding verwalten | nein | nein | ja |

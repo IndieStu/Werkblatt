@@ -88,7 +88,7 @@ def test_public_login_uses_approved_responsive_brand_background():
     assert response.status_code == 200
     assert b'<body class="public-login">' in response.content
     assert hashlib.sha256(asset.read_bytes()).hexdigest() == (
-        "1929f0bb2c6dda42d7c5795606ffdcfcf62849f88223733bb1c1a8b7e238e92e"
+        "fcfdd692d4ab6bc27f937d12ae91cbd71915a387889d4a1c9373e50b451022eb"
     )
     assert 'url("../brand/werkblatt-login-background.svg")' in app_css
     assert ':root[data-theme="dark"] .public-login .page-shell::before' in app_css
