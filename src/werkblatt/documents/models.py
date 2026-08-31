@@ -1,7 +1,29 @@
+import re
+import unicodedata
 import uuid
 
 from django.conf import settings
 from django.db import models
+
+OUTPUT_FILENAME_LABELS = {
+    "final_report": "FinalReport",
+    "attendance_sheet": "AttendanceSheet",
+    "anonymized_report": "AnonymizedReport",
+}
+
+
+def generated_document_filename(instance, *, unique=False):
+    output_label = OUTPUT_FILENAME_LABELS.get(
+        instance.output_kind,
+        "".join(part.capitalize() for part in instance.output_kind.split("_")),
+    )
+    normalized_title = unicodedata.normalize("NFKC", instance.workshop.title)
+    workshop_label = re.sub(r"[^\w]+", "_", normalized_title, flags=re.UNICODE)
+    workshop_label = workshop_label[:120].strip("_") or "Workshop"
+    parts = ["Workshop", output_label or "Document", workshop_label]
+    if unique:
+        parts.extend([instance.workshop.starts_at.strftime("%Y-%m-%d"), str(instance.id)[:8]])
+    return "_".join(parts) + ".pdf"
 
 
 def generated_document_path(instance, _filename):

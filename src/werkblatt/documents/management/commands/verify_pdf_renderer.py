@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 
@@ -17,6 +18,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         output_dir = Path(options["output_dir"]).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
+        synthetic_logo_uri = Path(
+            settings.BASE_DIR / "static/werkblatt/brand/werkblatt-logo.svg"
+        ).as_uri()
         workshop = SimpleNamespace(
             title="Synthetischer Sicherheitsworkshop",
             starts_at=datetime(2026, 8, 28, 10, 0, tzinfo=UTC),
@@ -46,7 +50,7 @@ class Command(BaseCommand):
             "template": {
                 "project_title": "Synthetisches Projekt",
                 "subtitle": "Renderer-Gate",
-                "funding_text": "",
+                "funding_text": "Gefördert durch ein synthetisches Testprogramm",
                 "custom_fields": [],
             },
             "finalization": {
@@ -60,8 +64,16 @@ class Command(BaseCommand):
                 "snapshot": snapshot,
                 "workshop": workshop,
                 "output": output,
-                "assets": [],
+                "assets": [
+                    {
+                        "zone": "funding_footer",
+                        "uri": synthetic_logo_uri,
+                        "asset_name": "Synthetisches Förderlogo",
+                        "show_funded_by_label": True,
+                    }
+                ],
                 "revision": SimpleNamespace(number=1),
+                "finalized_at": datetime(2026, 8, 28, 12, 0, tzinfo=UTC),
             },
         )
         attendance_html = render_to_string(
@@ -79,11 +91,11 @@ class Command(BaseCommand):
                 "assets": [],
             },
         )
-        for filename, html in [
-            ("final-report.pdf", final_html),
-            ("attendance-sheet.pdf", attendance_html),
+        for filename, html, allowed_uris in [
+            ("final-report.pdf", final_html, {synthetic_logo_uri}),
+            ("attendance-sheet.pdf", attendance_html, set()),
         ]:
-            pdf = render_html_with_weasyprint(html, set())
+            pdf = render_html_with_weasyprint(html, allowed_uris)
             if not pdf.startswith(b"%PDF-") or len(pdf) < 1_000:
                 raise RuntimeError(f"Ungültige WeasyPrint-Ausgabe: {filename}")
             (output_dir / filename).write_bytes(pdf)
