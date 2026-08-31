@@ -35,6 +35,12 @@ h1 { margin: 0.25rem 0 0.75rem; font-size: clamp(2rem, 5vw, 3.4rem); }
 .workshop-card time, .workshop-card p { color: var(--color-muted); }
 .card-link { display: inline-flex; margin-top: 0.5rem; font-weight: 600; }
 .login-card { max-width: 34rem; margin: 4vh auto; text-align: center; }
+.public-login { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+.public-login .page-shell { position: relative; isolation: isolate; display: grid; place-items: center; width: 100%; max-width: none; margin: 0; padding: clamp(2rem, 6vw, 5rem) 1rem; overflow: hidden; }
+.public-login .page-shell::before { position: absolute; z-index: -1; inset: 0; content: ""; background: url("../brand/werkblatt-login-background.svg") center / cover no-repeat; pointer-events: none; }
+.public-login .login-card { position: relative; margin: 0 auto; background: color-mix(in srgb, var(--color-panel) 94%, transparent); backdrop-filter: blur(2px); }
+:root[data-theme="dark"] .public-login .page-shell::before { opacity: 0.78; filter: brightness(0.58) saturate(1.25); }
+@media (prefers-color-scheme: dark) { :root[data-theme="system"] .public-login .page-shell::before { opacity: 0.78; filter: brightness(0.58) saturate(1.25); } }
 .button { display: inline-flex; justify-content: center; margin-top: 1rem; padding: 0.8rem 1.1rem; color: var(--color-on-primary); background: var(--brand-petrol-dark); border-radius: var(--radius-small); font-weight: 600; text-decoration: none; }
 .button:hover { background: var(--brand-petrol); }
 .button:focus-visible, a:focus-visible { outline: 3px solid var(--brand-turquoise); outline-offset: 3px; }
@@ -94,4 +100,5 @@ button.button { border: 0; cursor: pointer; font: inherit; }
 @media (max-width: 22rem) and (prefers-color-scheme: dark) { :root[data-theme="system"] .public-brand-compact.brand-logo-light { display: none !important; } :root[data-theme="system"] .public-brand-compact.brand-logo-dark { display: block !important; } }
 @media (max-width: 48rem) { .document-header { flex-direction: column; gap: 0.5rem; } .statistics { grid-template-columns: repeat(2, 1fr); } .participant-row, .facilitator-row { align-items: stretch; flex-direction: column; gap: 0.5rem; } .check-field, .delete-field { min-height: 2rem; } .origin-label { position: static; order: -1; } .summary-list div { grid-template-columns: 1fr; gap: 0.25rem; } .form-actions .button { width: 100%; } }
 @media (max-width: 48rem) { .settings-grid, .asset-grid, .two-column, .template-row { grid-template-columns: 1fr; } .section-heading { flex-direction: column; } .app-nav { margin-left: 0; } }
+@media (max-width: 48rem) { .public-login .page-shell::before { background-position: 42% center; background-size: auto 100%; opacity: 0.62; } :root[data-theme="dark"] .public-login .page-shell::before { opacity: 0.62; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }

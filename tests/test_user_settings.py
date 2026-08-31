@@ -80,6 +80,21 @@ def test_public_login_uses_approved_claim_lockups_without_redundant_eyebrow():
     assert b"Workshop-Dokumentation</p>" not in response.content
 
 
+def test_public_login_uses_approved_responsive_brand_background():
+    response = Client().get(reverse("login"))
+    asset = settings.BASE_DIR / "static/werkblatt/brand/werkblatt-login-background.svg"
+    app_css = (settings.BASE_DIR / "static/werkblatt/css/app.css").read_text()
+
+    assert response.status_code == 200
+    assert b'<body class="public-login">' in response.content
+    assert hashlib.sha256(asset.read_bytes()).hexdigest() == (
+        "1929f0bb2c6dda42d7c5795606ffdcfcf62849f88223733bb1c1a8b7e238e92e"
+    )
+    assert 'url("../brand/werkblatt-login-background.svg")' in app_css
+    assert ':root[data-theme="dark"] .public-login .page-shell::before' in app_css
+    assert "background-position: 42% center" in app_css
+
+
 @pytest.mark.django_db
 def test_authenticated_shell_uses_compact_primary_logo(settings_user):
     _, user = settings_user

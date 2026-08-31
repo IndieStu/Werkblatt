@@ -13,7 +13,7 @@
   <link rel="manifest" href="{% static 'werkblatt/manifest.webmanifest' %}">
   <link rel="stylesheet" href="{% static 'werkblatt/css/app.css' %}">
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <header class="app-header">
     <a class="brand" href="/" aria-label="Werkblatt Startseite">
       {% if user.is_authenticated %}
