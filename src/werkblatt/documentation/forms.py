@@ -52,7 +52,7 @@ ParticipantFormSet = inlineformset_factory(
     Documentation,
     ParticipantEntry,
     form=ParticipantForm,
-    extra=2,
+    extra=0,
     can_delete=True,
 )
 
@@ -60,6 +60,6 @@ FacilitatorFormSet = inlineformset_factory(
     Documentation,
     Facilitator,
     form=FacilitatorForm,
-    extra=2,
+    extra=0,
     can_delete=True,
 )

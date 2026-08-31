@@ -64,6 +64,10 @@ h1 { margin: 0.25rem 0 0.75rem; font-size: clamp(2rem, 5vw, 3.4rem); }
 .check-field, .delete-field { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2.75rem; }
 .prominent { margin-bottom: 1.5rem; font-weight: 600; }
 .delete-field { color: var(--color-muted); font-size: 0.85rem; }
+.row-add { margin-top: 1rem; }
+.row-remove { width: 2.75rem; height: 2.75rem; flex: 0 0 2.75rem; color: var(--color-muted); background: var(--color-field); border: 1px solid var(--color-border); border-radius: var(--radius-small); cursor: pointer; font: inherit; font-size: 1.4rem; line-height: 1; }
+.row-remove:hover { color: var(--color-ink); border-color: var(--brand-petrol); }
+.row-remove:focus-visible { outline: 3px solid var(--brand-turquoise); outline-offset: 3px; }
 .origin-label { position: absolute; top: 0.25rem; right: 0; color: var(--color-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .form-hint { margin-bottom: 0; color: var(--color-muted); font-size: 0.85rem; }
 .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }

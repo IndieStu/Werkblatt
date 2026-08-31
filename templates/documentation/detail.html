@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ workshop.title }} - Werkblatt{% endblock %}
 {% block content %}
 <nav class="breadcrumb"><a href="{% url 'workshop-list' %}">Workshops</a> / Dokumentation</nav>
@@ -49,33 +50,58 @@
     {% if attendance_available %}<button class="button secondary" type="submit" formaction="{% url 'generate-attendance' documentation.id %}" formnovalidate>Teilnahmeliste erzeugen</button>{% endif %}
   </section>
 
-    <section class="content-card">
+    <section class="content-card" data-formset="participants">
       <h2>Teilnehmer:innen</h2>
       {{ participant_formset.management_form }}
+      <div data-formset-rows>
       {% for participant_form in participant_formset %}
         <div class="participant-row {% if participant_form.instance.origin == registered_origin %}registered{% endif %}">
           {{ participant_form.id }}
           <div class="field grow">{{ participant_form.display_name.label_tag }}{{ participant_form.display_name }}{{ participant_form.display_name.errors }}</div>
           <label class="check-field">{{ participant_form.present }} <span>Anwesend</span></label>
-          {% if participant_form.instance.pk and participant_form.instance.origin != registered_origin %}<label class="delete-field">{{ participant_form.DELETE }} Entfernen</label>{% endif %}
+          {% if participant_form.instance.origin != registered_origin %}<span hidden>{{ participant_form.DELETE }}</span><button class="row-remove" type="button" data-remove-row aria-label="Teilnehmer:in entfernen">−</button>{% endif %}
           {% if participant_form.instance.origin == registered_origin %}<span class="origin-label">Pretix</span>{% else %}<span class="origin-label">Spontan</span>{% endif %}
         </div>
       {% endfor %}
-      <p class="form-hint">Freie Zeilen können für spontan erschienene Personen verwendet werden.</p>
+      </div>
+      <template data-empty-form>
+        <div class="participant-row">
+          {{ participant_formset.empty_form.id }}
+          <div class="field grow">{{ participant_formset.empty_form.display_name.label_tag }}{{ participant_formset.empty_form.display_name }}</div>
+          <label class="check-field">{{ participant_formset.empty_form.present }} <span>Anwesend</span></label>
+          <span hidden>{{ participant_formset.empty_form.DELETE }}</span>
+          <button class="row-remove" type="button" data-remove-row aria-label="Teilnehmer:in entfernen">−</button>
+          <span class="origin-label">Spontan</span>
+        </div>
+      </template>
+      <button class="button secondary row-add" type="button" data-add-row>+ Teilnehmer:in</button>
+      <p class="form-hint">Spontan erschienene Personen können bei Bedarf ergänzt werden.</p>
     </section>
 
     {% if custom_form.fields %}<section class="content-card form-stack"><h2>Zusatzangaben</h2>{{ custom_form.as_div }}</section>{% endif %}
 
-    <section class="content-card">
+    <section class="content-card" data-formset="facilitators">
       <h2>Durchführende</h2>
       {{ facilitator_formset.management_form }}
+      <div data-formset-rows>
       {% for facilitator_form in facilitator_formset %}
         <div class="facilitator-row">
           {{ facilitator_form.id }}
           <div class="field grow">{{ facilitator_form.display_name.label_tag }}{{ facilitator_form.display_name }}{{ facilitator_form.display_name.errors }}</div>
-          {% if facilitator_form.instance.pk %}<label class="delete-field">{{ facilitator_form.DELETE }} Entfernen</label>{% endif %}
+          <span hidden>{{ facilitator_form.DELETE }}</span>
+          <button class="row-remove" type="button" data-remove-row aria-label="Durchführende Person entfernen">−</button>
         </div>
       {% endfor %}
+      </div>
+      <template data-empty-form>
+        <div class="facilitator-row">
+          {{ facilitator_formset.empty_form.id }}
+          <div class="field grow">{{ facilitator_formset.empty_form.display_name.label_tag }}{{ facilitator_formset.empty_form.display_name }}</div>
+          <span hidden>{{ facilitator_formset.empty_form.DELETE }}</span>
+          <button class="row-remove" type="button" data-remove-row aria-label="Durchführende Person entfernen">−</button>
+        </div>
+      </template>
+      <button class="button secondary row-add" type="button" data-add-row>+ Durchführende Person</button>
     </section>
 
     <section class="content-card">
@@ -98,3 +124,4 @@
   </section>
 {% endif %}
 {% endblock %}
+{% block extra_scripts %}<script src="{% static 'werkblatt/js/formsets.js' %}" defer></script>{% endblock %}
