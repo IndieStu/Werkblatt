@@ -407,7 +407,9 @@ CI-Gates: Format/Lint, Unit/Integration, Migration-Check, Produktionsbuild, Cont
 
 - Einladungen, Passwortreset und komplette lokale Accountverwaltung;
 - Hosted-Plattformverwaltung und Partner-Onboarding;
-- Statistik-Dashboard, CSV/Excel-/Organisations-Export;
+- Excel- und weitergehende organisationsübergreifende Statistikexporte; das
+  tenantgebundene V1-Statistik-Dashboard mit aggregiertem CSV-Export wurde vor
+  dem Hosted-Multi-Tenant-Ausbau priorisiert;
 - mehrere PDF-Templates, separate Anwesenheitslisten, Signaturen;
 - weitere Event-/Storage-Provider;
 - Retention-/Löschoberfläche nach fachlicher Fristentscheidung.

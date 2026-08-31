@@ -48,6 +48,19 @@ class FacilitatorForm(forms.ModelForm):
         labels = {"display_name": "Name"}
 
 
+class StatisticsFilterForm(forms.Form):
+    date_from = forms.DateField(label="Von", widget=forms.DateInput(attrs={"type": "date"}))
+    date_to = forms.DateField(label="Bis", widget=forms.DateInput(attrs={"type": "date"}))
+
+    def clean(self):
+        cleaned = super().clean()
+        date_from = cleaned.get("date_from")
+        date_to = cleaned.get("date_to")
+        if date_from and date_to and date_from > date_to:
+            raise forms.ValidationError("Das Startdatum darf nicht nach dem Enddatum liegen.")
+        return cleaned
+
+
 ParticipantFormSet = inlineformset_factory(
     Documentation,
     ParticipantEntry,

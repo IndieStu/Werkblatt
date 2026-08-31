@@ -27,7 +27,9 @@ from werkblatt.documentation.services import (
     get_or_create_documentation,
     snapshot_sha256,
 )
+from werkblatt.documentation.template_forms import WorkshopTemplateForm
 from werkblatt.documentation.templates_service import (
+    archive_template,
     duplicate_template,
     save_template,
     template_initial,
@@ -542,6 +544,109 @@ def test_duplicate_template_is_independent_complete_copy(phase3_setup):
     )
     original.refresh_from_db()
     assert original.current_version.project_title == "Sample Program"
+
+
+@pytest.mark.django_db
+def test_template_archive_requires_exact_name_and_preserves_history(phase3_setup):
+    organization, admin, _, _ = phase3_setup
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data("Sicher zu entfernende Vorlage"),
+        assets=[],
+        outputs=output_rows(),
+        fields=[],
+    )
+    template.is_default = True
+    template.save(update_fields=["is_default"])
+    version_ids = list(template.versions.values_list("id", flat=True))
+
+    with pytest.raises(ValidationError, match="stimmt nicht überein"):
+        archive_template(
+            template=template,
+            organization=organization,
+            user=admin,
+            confirmation_name="Falscher Name",
+        )
+    template.refresh_from_db()
+    assert template.status == DocumentTemplate.Status.ACTIVE
+
+    archive_template(
+        template=template,
+        organization=organization,
+        user=admin,
+        confirmation_name=template.name,
+    )
+    template.refresh_from_db()
+    assert template.status == DocumentTemplate.Status.INACTIVE
+    assert template.is_default is False
+    assert list(template.versions.values_list("id", flat=True)) == version_ids
+    assert (
+        template
+        not in WorkshopTemplateForm(organization_id=organization.id).fields["template"].queryset
+    )
+    assert (
+        template
+        in WorkshopTemplateForm(
+            organization_id=organization.id,
+            assigned_template_id=template.id,
+        )
+        .fields["template"]
+        .queryset
+    )
+
+
+@pytest.mark.django_db
+def test_template_archive_view_is_post_only_and_tenant_scoped(phase3_setup):
+    organization, admin, _, _ = phase3_setup
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data("Archivansicht"),
+        assets=[],
+        outputs=output_rows(),
+        fields=[],
+    )
+    client = Client()
+    client.force_login(admin)
+
+    other = Organization.objects.create(slug="archive-other", name="Andere Organisation")
+    Membership.objects.create(
+        organization=other,
+        user=admin,
+        role=Membership.Role.ORGANIZATION_ADMIN,
+    )
+    foreign_template = save_template(
+        organization=other,
+        user=admin,
+        template=None,
+        template_data=template_data("Fremde Archivvorlage"),
+        assets=[],
+        outputs=output_rows(),
+        fields=[],
+    )
+
+    assert client.get(reverse("template-archive", args=[template.id])).status_code == 403
+    assert (
+        client.post(
+            reverse("template-archive", args=[foreign_template.id]),
+            {"confirmation_name": foreign_template.name},
+        ).status_code
+        == 404
+    )
+    response = client.post(
+        reverse("template-archive", args=[template.id]),
+        {"confirmation_name": template.name},
+    )
+
+    assert response.status_code == 302
+    template.refresh_from_db()
+    assert template.status == DocumentTemplate.Status.INACTIVE
+    listing = client.get(reverse("template-list")).content.decode()
+    assert "Archivierte Vorlagen" in listing
+    assert "Archivansicht" in listing
 
 
 @pytest.mark.django_db

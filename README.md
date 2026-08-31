@@ -7,7 +7,7 @@ Werkblatt ist als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeld
 Das unabhängige Open-Source-Projekt wurde von Timo Hecken initiiert und wird von
 ihm gepflegt. Zircula e.V. ist Erstanwender und enger Entwicklungspartner.
 
-Aktueller Stand: Phase 3b - Dokumentvorlagen und PDF-Ausgaben. Noch kein produktiver Release.
+Aktueller Stand: technischer Pilot nach Phase 4a. Noch kein öffentlicher produktiver Release.
 
 ## Entwicklung
 
@@ -25,9 +25,9 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
 
 ## Status der Funktionen
 
-- vorhanden: tenantgebundene Organisationen, User-/Identity-Modell, Rollen, OIDC-Vorbereitung, Pretix-Adapter, Workshopliste, Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek, wiederverwendbare Dokumentvorlagen, Custom Fields, Abschluss-PDFs, druckbare Teilnahmelisten und optionaler WebDAV-Storage;
-- noch nicht vorhanden: lokale Accounts, manuelle Workshop-UI und produktiver Rollout.
+- vorhanden: tenantgebundene Organisationen, User-/Identity-Modell, Rollen, OIDC, Pretix-Adapter, Workshopliste, Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek, wiederverwendbare und sicher archivierbare Dokumentvorlagen, Custom Fields, Abschluss-PDFs, druckbare Teilnahmelisten, optionaler WebDAV-Storage sowie organisationsbezogene aggregierte Statistik mit CSV-Export;
+- noch nicht vorhanden: lokale Accounts, manuelle Workshop-UI, Hosted-Multi-Tenant-Auswahl und öffentlicher Release.
 
 ## Lizenz
 
-AGPL-3.0-or-later wird als bevorzugte Richtung geprüft. Die endgültige Software- und Markenlizenzentscheidung ist noch nicht getroffen; daher liegt noch keine `LICENSE`-Datei bei.
+AGPL-3.0-or-later und EUPL-1.2-or-later werden geprüft. Die endgültige Software- und Markenlizenzentscheidung ist noch nicht getroffen; daher liegt noch keine `LICENSE`-Datei bei. Diese Entscheidung einschließlich Abhängigkeits- und Rechteprüfung ist ein hartes Gate vor dem ersten öffentlichen Release.

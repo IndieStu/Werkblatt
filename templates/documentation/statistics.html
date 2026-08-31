@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Statistik - Werkblatt{% endblock %}
+{% block content %}
+<header class="document-header">
+  <div><p class="eyebrow">Organisation</p><h1>Statistik</h1><p class="lead">Aggregierte Workshopdaten ohne Teilnehmer:innennamen.</p></div>
+</header>
+
+<section class="content-card">
+  <form method="get" class="statistics-filter">
+    <div class="field">{{ filter_form.date_from.label_tag }}{{ filter_form.date_from }}{{ filter_form.date_from.errors }}</div>
+    <div class="field">{{ filter_form.date_to.label_tag }}{{ filter_form.date_to }}{{ filter_form.date_to.errors }}</div>
+    <button class="button" type="submit">Zeitraum anwenden</button>
+    {% if statistics %}<a class="button secondary" href="{% url 'statistics-csv' %}?date_from={{ statistics.period.date_from|date:'Y-m-d' }}&amp;date_to={{ statistics.period.date_to|date:'Y-m-d' }}">CSV exportieren</a>{% endif %}
+  </form>
+  {% if filter_form.non_field_errors %}<div class="message message-error">{{ filter_form.non_field_errors }}</div>{% endif %}
+</section>
+
+{% if statistics %}
+<section class="statistics statistics-overview" aria-label="Organisationsstatistik">
+  <div><strong>{{ statistics.workshops }}</strong><span>Workshops</span></div>
+  <div><strong>{{ statistics.finalized_workshops }}</strong><span>Mit Abschluss</span></div>
+  <div><strong>{{ statistics.registered }}</strong><span>Angemeldet</span></div>
+  <div><strong>{{ statistics.present_total }}</strong><span>Teilgenommen</span></div>
+  <div><strong>{{ statistics.no_shows }}</strong><span>No-Shows</span></div>
+  <div><strong>{{ statistics.walk_ins }}</strong><span>Spontan</span></div>
+  <div><strong>{% if statistics.attendance_rate is not None %}{{ statistics.attendance_rate }} %{% else %}–{% endif %}</strong><span>Anwesenheitsquote der Angemeldeten</span></div>
+  <div><strong>{{ statistics.correction_pending }}</strong><span>Korrektur ausstehend</span></div>
+</section>
+
+{% if statistics.without_finalization %}<div class="message message-warning">{{ statistics.without_finalization }} Workshop{{ statistics.without_finalization|pluralize:"s" }} im Zeitraum besitzt noch keinen Abschluss und fließt noch nicht in Teilnahme- oder Zusatzstatistiken ein.</div>{% endif %}
+{% if statistics.correction_pending %}<div class="message message-warning">Bei {{ statistics.correction_pending }} Dokumentation{{ statistics.correction_pending|pluralize:"en" }} ist eine Korrektur geöffnet. Bis zum erneuten Abschluss gilt weiterhin die letzte abgeschlossene Revision.</div>{% endif %}
+
+{% if statistics.custom_statistics %}<section class="content-card"><h2>Vorlagenspezifische Kennzahlen</h2><dl class="summary-list">{% for item in statistics.custom_statistics %}<div><dt>{{ item.label }}</dt><dd>{{ item.value }}</dd></div>{% endfor %}</dl></section>{% endif %}
+
+<section class="content-card">
+  <h2>Nach Projekt und Vorlage</h2>
+  {% if statistics.groups %}<div class="table-scroll"><table><thead><tr><th>Projekt</th><th>Vorlage</th><th>Workshops</th><th>Angemeldet</th><th>Teilgenommen</th><th>Spontan</th><th>Zusatzangaben</th></tr></thead><tbody>{% for group in statistics.groups %}<tr><td>{{ group.project_title }}</td><td>{{ group.template_name }}</td><td>{{ group.workshops }}</td><td>{{ group.registered }}</td><td>{{ group.present_total }}</td><td>{{ group.walk_ins }}</td><td>{% for item in group.custom_statistics %}{{ item.label }}: {{ item.value }}{% if not forloop.last %}<br>{% endif %}{% empty %}–{% endfor %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Im gewählten Zeitraum liegen noch keine abgeschlossenen Dokumentationen vor.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}
