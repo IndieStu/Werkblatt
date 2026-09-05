@@ -25,7 +25,7 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
 
 ## Status der Funktionen
 
-- vorhanden: tenantgebundene Organisationen, User-/Identity-Modell, Rollen, OIDC, Pretix-Adapter, Workshopliste, Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek, wiederverwendbare und sicher archivierbare Dokumentvorlagen, Custom Fields, Abschluss-PDFs, druckbare Teilnahmelisten, optionaler WebDAV-Storage sowie organisationsbezogene aggregierte Statistik mit CSV-Export;
+- vorhanden: tenantgebundene Organisationen, User-/Identity-Modell, Rollen, OIDC, Pretix-Adapter mit sicherem Importstichtag und Veranstaltungsregeln, filterbare Workshopliste, Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek, wiederverwendbare und sicher archivierbare Dokumentvorlagen, Custom Fields, Abschluss-PDFs, druckbare Teilnahmelisten, optionaler WebDAV-Storage sowie organisationsbezogene aggregierte Statistik mit CSV-Export;
 - noch nicht vorhanden: lokale Accounts, manuelle Workshop-UI, Hosted-Multi-Tenant-Auswahl und öffentlicher Release.
 
 ## Lizenz

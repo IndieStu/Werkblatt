@@ -13,7 +13,9 @@ höchstens die neueste abgeschlossene, unveränderliche Revision ausgewertet.
 wieder geöffnet, bleibt die letzte abgeschlossene Revision die statistische
 Grundlage; die Ansicht weist diesen Zustand zusätzlich als „Korrektur
 ausstehend“ aus. Workshops ohne abgeschlossene Revision fließen nur in die
-Zahlen „Workshops“ und „Ohne Abschluss“ ein.
+Zahlen „Workshops“ und „Ohne Abschluss“ ein. Workshops mit der begründeten
+Entscheidung „Keine Dokumentation erforderlich“ werden separat gezählt und
+nicht als fehlender Abschluss behandelt.
 
 ## Kennzahlen
 

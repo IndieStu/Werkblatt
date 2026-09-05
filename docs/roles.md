@@ -10,6 +10,8 @@ Organisation.
 | Workshops sehen und dokumentieren | ja | ja | ja |
 | Dokumentationen finalisieren und Vorlagen verwenden | ja | ja | ja |
 | Organisationsstatistik und aggregierten CSV-Export sehen | ja | ja | ja |
+| Workshops reversibel aus- und einblenden | nein | ja | ja |
+| Dokumentationspflicht und Pretix-Veranstaltungsregeln ändern | nein | nein | ja |
 | Dokumentvorlagen, Custom Fields und Ausgaben verwalten | nein | ja | ja |
 | Dokumentvorlagen duplizieren und sicher archivieren | nein | ja | ja |
 | Dokumentbezogene Assets hochladen und verwalten | nein | ja | ja |

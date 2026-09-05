@@ -53,6 +53,13 @@ Client-ID und Client-Secret werden durch den jeweiligen Betreiber erzeugt. Das S
 
 Der kanonische Standard-Ursprung ist `https://pretix.eu`; `PRETIX_ORGANIZER` enthält den Organizer-Slug der jeweiligen Installation. Die umleitende Variante `https://www.pretix.eu` wird bewusst nicht verwendet, da Werkblatt Redirects ablehnt und den API-Token nicht an ein Redirectziel weiterreicht.
 
+`PRETIX_IMPORT_NOT_BEFORE` legt als ISO-Datum (`YYYY-MM-DD`) den frühesten
+Termin eines regulären Imports fest. Ein regulärer Sync ohne gültigen Stichtag
+wird abgewiesen. Ein expliziter Einzelimport über `--workshop-reference` darf
+bewusst auch einen älteren Termin übernehmen. Die konkrete Stichtagsentscheidung
+gehört zur jeweiligen Installation und wird nicht in der allgemeinen Software
+hart codiert.
+
 Ein dedizierter Team-API-Token soll nur lesenden Zugriff auf Organizer, Events, Subevents und für die Teilnehmerübernahme notwendige Orders/Positions erhalten. Er wird ausschließlich über `PRETIX_API_TOKEN_FILE` eingelesen und weder in Chat noch Git geschrieben.
 
 Phase 1 verwendet synthetische API-Fixtures. Reale Event-IDs sind erst für den integrierten Provider-Test erforderlich.

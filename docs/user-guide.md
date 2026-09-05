@@ -41,6 +41,25 @@ entsteht ein unveränderlicher Snapshot. Eine abgeschlossene Dokumentation kann
 erneut geöffnet, korrigiert und als neue Revision abgeschlossen werden; ältere
 Revisionen bleiben erhalten.
 
+Die Workshopliste kann nach Titel oder Ort, Zeitraum, Sichtbarkeit und
+Bearbeitungsstand gefiltert werden. Längere Listen werden auf mehrere Seiten
+verteilt. Editor und Organization Admin können Workshops aus der täglichen
+Ansicht ausblenden und über den Filter „Ausgeblendet“ wieder einblenden. Das
+Ausblenden löscht weder Workshop noch Dokumentation und hebt eine bestehende
+Dokumentationspflicht nicht auf.
+
+Nur Organization Admins dürfen für einen einzelnen Workshop „Keine
+Dokumentation erforderlich“ festlegen. Dafür ist eine Begründung Pflicht; Person
+und Zeitpunkt werden gespeichert. Solange die Entscheidung gilt, kann keine
+Dokumentation für diesen Workshop geöffnet werden.
+
+Unter „Verwaltung → Pretix-Veranstaltungsregeln“ steuern Organization Admins
+Import und Dokumentationspflicht anhand des stabilen Pretix-Event-Slugs. Bei
+einer Veranstaltungsreihe gilt eine Regel automatisch für alle vorhandenen und
+zukünftigen Termine. Eine Einzelentscheidung am Workshop übersteuert die
+Reihenregel. Neue Veranstaltungen bleiben ohne Regel standardmäßig
+dokumentationspflichtig.
+
 ## Statistik
 
 Die Statistik kann nach Workshopdatum eingegrenzt werden. Pro Dokumentation

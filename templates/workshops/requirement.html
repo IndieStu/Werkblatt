@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Dokumentationspflicht – Werkblatt{% endblock %}
+{% block content %}<nav class="breadcrumb"><a href="{% url 'workshop-list' %}">Workshops</a> / Dokumentationspflicht</nav><h1>{{ workshop.title }}</h1><p class="lead">Eine Ausnahme gilt nur für diesen Termin und übersteuert eine Reihenregel.</p><form method="post" class="content-card">{% csrf_token %}{{ form.as_div }}<button class="button" type="submit">Speichern</button></form>{% endblock %}

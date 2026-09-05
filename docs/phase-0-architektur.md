@@ -229,6 +229,13 @@ Die Rückgabetypen sind neutrale DTOs. Ein Import-/Sync-Service ordnet sie dem i
 
 Manuell angelegte Workshops sind eine native Werkblatt-Quelle und kein künstlicher externer Provider. Die spätere Erfassungs-UI legt direkt dasselbe interne `Workshop`-Modell mit `source_type = native` (alternativ nach endgültiger Benennung `manual`) und ohne externe Referenz an. `WorkshopProvider` bleibt die Integrationsgrenze für Pretix und mögliche weitere externe Quellen. Ab dem internen Workshopmodell sind Dokumentationslogik, Berechtigungen, Teilnehmerverwaltung und PDF-Prozess für native und importierte Workshops identisch.
 
+Reguläre Provider-Importe benötigen einen installationsbezogenen Stichtag.
+Provider-spezifische Veranstaltungs- oder Serienregeln können Termine vom Import
+ausnehmen oder begründet von der Dokumentationspflicht befreien. Neue
+Veranstaltungen sind standardmäßig dokumentationspflichtig. Ausnahmen sind
+tenantgebunden, auditierbar, reversibel und ausschließlich Organization Admins
+vorbehalten; bloßes Ausblenden bleibt davon fachlich getrennt.
+
 ## 9. Storage-Provider
 
 ```python
