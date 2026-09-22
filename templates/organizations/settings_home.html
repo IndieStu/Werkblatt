@@ -7,5 +7,6 @@
   {% if can_manage_organization %}<a class="content-card card-link" href="{% url 'organization-profile' %}"><h2>Organisationsprofil</h2><p>Name und optionale Kontaktdaten verwalten.</p></a>{% endif %}
   {% if can_manage_assets %}<a class="content-card card-link" href="{% url 'asset-list' %}"><h2>Logos & Assets</h2><p>Dokumentbezogene Logos hochladen, versionieren und kategorisieren.</p></a>{% endif %}
   {% if can_manage_templates %}<a class="content-card card-link" href="{% url 'template-list' %}"><h2>Dokumentvorlagen</h2><p>Ausgaben, Logos und Zusatzfelder konfigurieren.</p></a>{% endif %}
+  {% if can_manage_integrations %}<a class="content-card card-link" href="{% url 'pretix-rule-list' %}"><h2>Pretix-Veranstaltungsregeln</h2><p>Import und Dokumentationspflicht für Veranstaltungen und Reihen festlegen.</p></a>{% endif %}
 </div>
 {% endblock %}

@@ -25,6 +25,7 @@
   <div><strong>{{ statistics.walk_ins }}</strong><span>Spontan</span></div>
   <div><strong>{% if statistics.attendance_rate is not None %}{{ statistics.attendance_rate }} %{% else %}–{% endif %}</strong><span>Anwesenheitsquote der Angemeldeten</span></div>
   <div><strong>{{ statistics.correction_pending }}</strong><span>Korrektur ausstehend</span></div>
+  <div><strong>{{ statistics.not_required_workshops }}</strong><span>Keine Dokumentation erforderlich</span></div>
 </section>
 
 {% if statistics.without_finalization %}<div class="message message-warning">{{ statistics.without_finalization }} Workshop{{ statistics.without_finalization|pluralize:"s" }} im Zeitraum besitzt noch keinen Abschluss und fließt noch nicht in Teilnahme- oder Zusatzstatistiken ein.</div>{% endif %}

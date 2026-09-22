@@ -1,8 +1,10 @@
 import socket
+from datetime import date
 from unittest.mock import patch
 
 import httpx
 import pytest
+from django.contrib.auth import get_user_model
 from django.core.management import CommandError, call_command
 from django.utils import timezone
 
@@ -16,7 +18,7 @@ from werkblatt.integrations.pretix.client import (
 from werkblatt.integrations.pretix.provider import PretixWorkshopProvider
 from werkblatt.integrations.pretix.types import ExternalRegistration, ExternalWorkshop
 from werkblatt.organizations.models import Organization
-from werkblatt.workshops.models import Workshop, WorkshopRegistration
+from werkblatt.workshops.models import PretixEventRule, Workshop, WorkshopRegistration
 
 PUBLIC_DNS = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))]
 
@@ -77,7 +79,86 @@ def test_maps_event_series_and_subevent():
         workshops = PretixWorkshopProvider(client, "example-organizer").list_workshops()
     assert len(workshops) == 1
     assert workshops[0].reference == "reihe:42"
+    assert workshops[0].event_slug == "reihe"
     assert workshops[0].title == "Termin"
+
+
+def test_series_can_be_excluded_before_subevents_are_requested():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/events/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "slug": "offene-werkstatt",
+                            "live": True,
+                            "testmode": False,
+                            "has_subevents": True,
+                        }
+                    ],
+                    "next": None,
+                },
+            )
+        pytest.fail("Ausgeschlossene Subevents dürfen nicht abgerufen werden")
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
+        )
+        workshops = PretixWorkshopProvider(client, "example-organizer").list_workshops(
+            excluded_event_slugs=frozenset({"offene-werkstatt"})
+        )
+    assert workshops == []
+
+
+def test_subevent_import_cutoff_is_sent_to_pretix_and_enforced_locally():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/events/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "slug": "reihe",
+                            "live": True,
+                            "testmode": False,
+                            "has_subevents": True,
+                        }
+                    ],
+                    "next": None,
+                },
+            )
+        assert request.url.params["date_from_after"] == "2026-08-25"
+        return httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "id": 1,
+                        "active": True,
+                        "is_public": True,
+                        "date_from": "2026-08-24T10:00:00+02:00",
+                    },
+                    {
+                        "id": 2,
+                        "active": True,
+                        "is_public": True,
+                        "date_from": "2026-08-25T10:00:00+02:00",
+                    },
+                ],
+                "next": None,
+            },
+        )
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
+        )
+        workshops = PretixWorkshopProvider(client, "example-organizer").list_workshops(
+            not_before=date(2026, 8, 25)
+        )
+    assert [workshop.reference for workshop in workshops] == ["reihe:2"]
 
 
 def test_testmode_events_require_explicit_opt_in():
@@ -164,6 +245,74 @@ def test_sync_rejects_unbounded_test_event_import(settings):
 
     with pytest.raises(CommandError, match="erfordert"):
         call_command("sync_pretix", "--include-test-events")
+
+
+@pytest.mark.django_db
+def test_regular_sync_requires_valid_import_cutoff(settings):
+    Organization.objects.create(slug="example", name="Example Organization")
+    settings.PRETIX_API_TOKEN = "synthetic-token"
+    settings.PRETIX_ORGANIZER = "synthetic-organizer"
+    settings.DEFAULT_ORGANIZATION_SLUG = "example"
+    settings.PRETIX_IMPORT_NOT_BEFORE = ""
+
+    with pytest.raises(CommandError, match="PRETIX_IMPORT_NOT_BEFORE"):
+        call_command("sync_pretix")
+
+
+@pytest.mark.django_db
+def test_series_rule_applies_to_all_dates_but_individual_override_survives_sync(settings):
+    organization = Organization.objects.create(slug="example", name="Example Organization")
+    user = get_user_model().objects.create_user(username="admin")
+    settings.PRETIX_API_TOKEN = "synthetic-token"
+    settings.PRETIX_ORGANIZER = "synthetic-organizer"
+    settings.DEFAULT_ORGANIZATION_SLUG = organization.slug
+    settings.PRETIX_IMPORT_NOT_BEFORE = "2026-08-25"
+    PretixEventRule.objects.create(
+        organization=organization,
+        event_slug="offene-werkstatt",
+        display_name="Offene Werkstatt",
+        documentation_requirement=Workshop.DocumentationRequirement.NOT_REQUIRED,
+        reason="Offenes Angebot",
+        decided_by=user,
+    )
+    workshops = [
+        ExternalWorkshop(
+            reference=f"offene-werkstatt:{number}",
+            event_slug="offene-werkstatt",
+            title=f"Termin {number}",
+            starts_at=timezone.now(),
+            ends_at=None,
+            location="Werkstatt",
+        )
+        for number in (1, 2)
+    ]
+    with (
+        patch.object(PretixWorkshopProvider, "list_workshops", return_value=workshops),
+        patch.object(PretixWorkshopProvider, "list_registrations", return_value=[]),
+        patch.object(PretixClient, "__init__", return_value=None),
+        patch.object(PretixClient, "close"),
+    ):
+        call_command("sync_pretix")
+
+    first, second = Workshop.objects.order_by("external_reference")
+    assert first.documentation_requirement == Workshop.DocumentationRequirement.NOT_REQUIRED
+    assert second.documentation_requirement == Workshop.DocumentationRequirement.NOT_REQUIRED
+    first.documentation_requirement = Workshop.DocumentationRequirement.REQUIRED
+    first.requirement_source = Workshop.RequirementSource.INDIVIDUAL
+    first.save(update_fields=["documentation_requirement", "requirement_source"])
+
+    with (
+        patch.object(PretixWorkshopProvider, "list_workshops", return_value=workshops),
+        patch.object(PretixWorkshopProvider, "list_registrations", return_value=[]),
+        patch.object(PretixClient, "__init__", return_value=None),
+        patch.object(PretixClient, "close"),
+    ):
+        call_command("sync_pretix")
+
+    first.refresh_from_db()
+    second.refresh_from_db()
+    assert first.documentation_requirement == Workshop.DocumentationRequirement.REQUIRED
+    assert second.documentation_requirement == Workshop.DocumentationRequirement.NOT_REQUIRED
 
 
 def test_resolution_change_to_private_address_is_rejected_before_request():

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from urllib.parse import quote
 
@@ -30,7 +30,13 @@ class PretixWorkshopProvider:
         self.client = client
         self.organizer = quote(organizer, safe="")
 
-    def list_workshops(self, *, include_testmode: bool = False) -> list[ExternalWorkshop]:
+    def list_workshops(
+        self,
+        *,
+        include_testmode: bool = False,
+        not_before: date | None = None,
+        excluded_event_slugs: frozenset[str] = frozenset(),
+    ) -> list[ExternalWorkshop]:
         workshops: list[ExternalWorkshop] = []
         event_path = f"/api/v1/organizers/{self.organizer}/events/"
         for event in self.client.pages(event_path):
@@ -38,24 +44,29 @@ class PretixWorkshopProvider:
                 event.get("testmode") is True and not include_testmode
             ):
                 continue
-            event_slug = quote(str(event.get("slug", "")), safe="")
-            if not event_slug:
+            event_slug = str(event.get("slug", "")).strip()
+            if not event_slug or event_slug in excluded_event_slugs:
                 continue
+            escaped_event_slug = quote(event_slug, safe="")
             if event.get("has_subevents") is True:
                 subevent_path = (
-                    f"/api/v1/organizers/{self.organizer}/events/{event_slug}/subevents/"
+                    f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/subevents/"
                 )
-                for item in self.client.pages(subevent_path):
+                params = {"date_from_after": not_before.isoformat()} if not_before else None
+                for item in self.client.pages(subevent_path, params):
                     workshop = self._map_workshop(event_slug, event, item)
                     if (
                         workshop is not None
                         and item.get("active") is True
                         and item.get("is_public", True) is True
+                        and (not_before is None or workshop.starts_at.date() >= not_before)
                     ):
                         workshops.append(workshop)
             else:
                 workshop = self._map_workshop(event_slug, event, event)
-                if workshop is not None:
+                if workshop is not None and (
+                    not_before is None or workshop.starts_at.date() >= not_before
+                ):
                     workshops.append(workshop)
         return sorted(workshops, key=lambda item: item.starts_at)
 
@@ -104,6 +115,7 @@ class PretixWorkshopProvider:
         reference = f"{event_slug}:{subevent_id}" if subevent_id is not None else event_slug
         return ExternalWorkshop(
             reference=reference,
+            event_slug=event_slug,
             title=translated(item.get("name") or event.get("name") or event_slug),
             starts_at=starts_at,
             ends_at=parse_time(item.get("date_to")),

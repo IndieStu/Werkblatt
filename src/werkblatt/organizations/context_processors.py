@@ -9,6 +9,7 @@ def organization(request):
     can_manage_templates = Capability.MANAGE_DOCUMENT_TEMPLATES in capabilities
     can_manage_assets = Capability.MANAGE_DOCUMENT_ASSETS in capabilities
     can_manage_organization = Capability.MANAGE_ORGANIZATION_PROFILE in capabilities
+    can_manage_integrations = Capability.MANAGE_INTEGRATIONS in capabilities
     return {
         "current_organization": getattr(request, "organization", None),
         "software_author_url": settings.SOFTWARE_AUTHOR_URL,
@@ -23,8 +24,12 @@ def organization(request):
         "can_manage_templates": can_manage_templates,
         "can_manage_assets": can_manage_assets,
         "can_manage_organization": can_manage_organization,
+        "can_manage_integrations": can_manage_integrations,
         "can_access_administration": bool(
-            can_manage_templates or can_manage_assets or can_manage_organization
+            can_manage_templates
+            or can_manage_assets
+            or can_manage_organization
+            or can_manage_integrations
         ),
         "user_theme": request.user.theme if request.user.is_authenticated else "system",
     }

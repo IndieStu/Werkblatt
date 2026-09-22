@@ -104,6 +104,7 @@ def test_fixed_capability_matrix(roles):
         Capability.DOCUMENT_WORKSHOPS,
         Capability.MANAGE_DOCUMENT_TEMPLATES,
         Capability.MANAGE_DOCUMENT_ASSETS,
+        Capability.MANAGE_WORKSHOP_VISIBILITY,
     }
     assert capabilities_for(users[Membership.Role.ORGANIZATION_ADMIN], organization.id) == set(
         Capability

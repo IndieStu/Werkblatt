@@ -13,6 +13,7 @@ class Capability(StrEnum):
     MANAGE_ORGANIZATION_BRANDING = "manage_organization_branding"
     MANAGE_INTEGRATIONS = "manage_integrations"
     MANAGE_MEMBERSHIPS = "manage_memberships"
+    MANAGE_WORKSHOP_VISIBILITY = "manage_workshop_visibility"
 
 
 ROLE_CAPABILITIES = {
@@ -22,6 +23,7 @@ ROLE_CAPABILITIES = {
             Capability.DOCUMENT_WORKSHOPS,
             Capability.MANAGE_DOCUMENT_TEMPLATES,
             Capability.MANAGE_DOCUMENT_ASSETS,
+            Capability.MANAGE_WORKSHOP_VISIBILITY,
         }
     ),
     Membership.Role.ORGANIZATION_ADMIN: frozenset(Capability),

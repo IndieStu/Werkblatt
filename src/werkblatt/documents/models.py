@@ -68,7 +68,7 @@ class GeneratedDocument(models.Model):
     output_kind = models.CharField(max_length=32)
     output_name = models.CharField(max_length=200)
     input_sha256 = models.CharField(max_length=64)
-    renderer_version = models.CharField(max_length=32, default="weasyprint-69/v1")
+    renderer_version = models.CharField(max_length=32, default="weasyprint-70/v1")
     status = models.CharField(max_length=24, choices=Status, default=Status.PENDING)
     pdf_file = models.FileField(upload_to=generated_document_path, max_length=500, blank=True)
     pdf_sha256 = models.CharField(max_length=64, blank=True)

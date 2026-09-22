@@ -179,3 +179,19 @@ def test_statistics_reject_invalid_period(statistics_setup):
 
     assert client.get(reverse("statistics-dashboard") + query).status_code == 200
     assert client.get(reverse("statistics-csv") + query).status_code == 400
+
+
+@pytest.mark.django_db
+def test_not_required_workshops_are_not_reported_as_missing_finalization(statistics_setup):
+    organization, _ = statistics_setup
+    workshop = Workshop.objects.get(organization=organization, title="Noch nicht abgeschlossen")
+    workshop.documentation_requirement = Workshop.DocumentationRequirement.NOT_REQUIRED
+    workshop.save(update_fields=["documentation_requirement"])
+
+    result = organization_statistics(
+        organization_id=organization.id,
+        period=StatisticsPeriod(aware(2026, 1, 1).date(), aware(2026, 12, 31).date()),
+    )
+
+    assert result["without_finalization"] == 0
+    assert result["not_required_workshops"] == 1

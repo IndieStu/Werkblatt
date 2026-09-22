@@ -46,6 +46,7 @@ def settings_home(request: HttpRequest) -> HttpResponse:
             Capability.MANAGE_DOCUMENT_TEMPLATES,
             Capability.MANAGE_DOCUMENT_ASSETS,
             Capability.MANAGE_ORGANIZATION_PROFILE,
+            Capability.MANAGE_INTEGRATIONS,
         }
     ):
         raise PermissionDenied("Keine Berechtigung für diesen Verwaltungsbereich.")

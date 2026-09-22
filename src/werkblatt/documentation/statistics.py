@@ -40,6 +40,9 @@ def _latest_revisions(organization_id, period: StatisticsPeriod):
         DocumentationRevision.objects.filter(
             organization_id=organization_id,
             documentation__workshop__starts_at__range=(start, end),
+            documentation__workshop__documentation_requirement=(
+                Workshop.DocumentationRequirement.REQUIRED
+            ),
             id=Subquery(latest_revision_id),
         )
         .select_related("documentation", "documentation__workshop")
@@ -68,6 +71,10 @@ def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dic
         starts_at__range=(start, end)
     )
     workshop_count = workshops.count()
+    required_workshop_count = workshops.filter(
+        documentation_requirement=Workshop.DocumentationRequirement.REQUIRED
+    ).count()
+    not_required_workshop_count = workshop_count - required_workshop_count
     latest_revisions = _latest_revisions(organization_id, period)
     totals = defaultdict(int)
     custom_totals = defaultdict(Decimal)
@@ -135,7 +142,8 @@ def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dic
         "period": period,
         "workshops": workshop_count,
         "finalized_workshops": len(latest_revisions),
-        "without_finalization": workshop_count - len(latest_revisions),
+        "without_finalization": required_workshop_count - len(latest_revisions),
+        "not_required_workshops": not_required_workshop_count,
         "correction_pending": correction_pending,
         "registered": registered,
         "present_registered": totals["present_registered"],

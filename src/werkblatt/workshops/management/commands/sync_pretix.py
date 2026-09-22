@@ -1,10 +1,12 @@
+from datetime import date
+
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from werkblatt.integrations.pretix import PretixClient, PretixWorkshopProvider
 from werkblatt.organizations.models import Organization
-from werkblatt.workshops.models import Workshop, WorkshopRegistration
+from werkblatt.workshops.models import PretixEventRule, Workshop, WorkshopRegistration
 
 
 class Command(BaseCommand):
@@ -40,12 +42,32 @@ class Command(BaseCommand):
         include_test_events = options.get("include_test_events", False)
         if include_test_events and not requested_references:
             raise CommandError("--include-test-events erfordert --workshop-reference")
+        not_before = None
+        if not requested_references:
+            try:
+                not_before = date.fromisoformat(settings.PRETIX_IMPORT_NOT_BEFORE)
+            except (TypeError, ValueError) as exc:
+                raise CommandError(
+                    "PRETIX_IMPORT_NOT_BEFORE muss für einen regulären Sync "
+                    "als YYYY-MM-DD gesetzt sein"
+                ) from exc
 
+        rules = {
+            rule.event_slug: rule
+            for rule in PretixEventRule.objects.filter(organization=organization)
+        }
+        excluded_event_slugs = frozenset(
+            rule.event_slug for rule in rules.values() if not rule.import_enabled
+        )
         client = PretixClient(settings.PRETIX_BASE_URL, settings.PRETIX_API_TOKEN)
         try:
             # Externe HTTP-Arbeit findet bewusst außerhalb einer DB-Transaktion statt.
             provider = PretixWorkshopProvider(client, settings.PRETIX_ORGANIZER)
-            imported = provider.list_workshops(include_testmode=include_test_events)
+            imported = provider.list_workshops(
+                include_testmode=include_test_events,
+                not_before=not_before,
+                excluded_event_slugs=excluded_event_slugs,
+            )
             if requested_references:
                 imported = [item for item in imported if item.reference in requested_references]
                 missing = requested_references - {item.reference for item in imported}
@@ -53,6 +75,16 @@ class Command(BaseCommand):
                     raise CommandError(
                         "Pretix-Workshopreferenz nicht gefunden: " + ", ".join(sorted(missing))
                     )
+            event_slugs = {
+                item.reference: item.event_slug or item.reference.partition(":")[0]
+                for item in imported
+            }
+            imported = [
+                item
+                for item in imported
+                if rules.get(event_slugs[item.reference]) is None
+                or rules[event_slugs[item.reference]].import_enabled
+            ]
             registrations_by_reference = {}
             for item in imported:
                 event_slug, separator, subevent = item.reference.rpartition(":")
@@ -66,17 +98,45 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             for item in imported:
-                workshop, _ = Workshop.objects.update_or_create(
+                event_slug = event_slugs[item.reference]
+                rule = rules.get(event_slug)
+                requirement = (
+                    rule.documentation_requirement
+                    if rule
+                    else Workshop.DocumentationRequirement.REQUIRED
+                )
+                workshop, created = Workshop.objects.update_or_create(
                     organization=organization,
                     source_type=Workshop.SourceType.PRETIX,
                     external_reference=item.reference,
                     defaults={
                         "title": item.title,
+                        "parent_external_reference": event_slug,
                         "starts_at": item.starts_at,
                         "ends_at": item.ends_at,
                         "location": item.location,
                     },
                 )
+                if created or workshop.requirement_source != Workshop.RequirementSource.INDIVIDUAL:
+                    workshop.documentation_requirement = requirement
+                    workshop.requirement_source = (
+                        Workshop.RequirementSource.EVENT_RULE
+                        if rule
+                        else Workshop.RequirementSource.DEFAULT
+                    )
+                    workshop.requirement_reason = rule.reason if rule else ""
+                    workshop.requirement_decided_by = rule.decided_by if rule else None
+                    workshop.requirement_decided_at = rule.updated_at if rule else None
+                    workshop.save(
+                        update_fields=[
+                            "documentation_requirement",
+                            "requirement_source",
+                            "requirement_reason",
+                            "requirement_decided_by",
+                            "requirement_decided_at",
+                            "updated_at",
+                        ]
+                    )
                 WorkshopRegistration.objects.filter(
                     organization=organization,
                     workshop=workshop,

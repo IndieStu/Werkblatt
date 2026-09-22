@@ -9,6 +9,7 @@ class ExternalWorkshop:
     starts_at: datetime
     ends_at: datetime | None
     location: str
+    event_slug: str = ""
 
 
 @dataclass(frozen=True)

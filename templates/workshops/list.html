@@ -3,20 +3,24 @@
 {% block content %}
 <p class="eyebrow">Workshop-Dokumentation</p>
 <h1>Workshops</h1>
-<p class="lead">Wähle einen Workshop aus, den du dokumentieren möchtest.</p>
+<p class="lead">Finde Workshops nach Zeitraum und Bearbeitungsstand.</p>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<section class="content-card"><form method="get" class="statistics-filter">{{ filter_form.as_div }}<button class="button" type="submit">Filtern</button><a class="button secondary" href="{% url 'workshop-list' %}">Zurücksetzen</a></form></section>
 <div class="workshop-list">
-  {% for workshop in workshops %}
+  {% for workshop in page %}
     <article class="workshop-card">
+      <p class="eyebrow">{{ workshop.get_source_type_display }} · {{ workshop.get_visibility_display }}</p>
       <time datetime="{{ workshop.starts_at|date:'c' }}">{{ workshop.starts_at|date:"d.m.Y, H:i" }}</time>
       <h2>{{ workshop.title }}</h2>
       {% if workshop.location %}<p>{{ workshop.location }}</p>{% endif %}
-      <a class="card-link" href="{% url 'documentation-detail' workshop.id %}">Dokumentation öffnen</a>
+      {% if workshop.documentation_requirement == "not_required" %}<p class="status-badge">Keine Dokumentation erforderlich</p>{% if workshop.requirement_reason %}<p class="form-hint">{{ workshop.requirement_reason }}</p>{% endif %}{% elif workshop.documentation %}<p class="status-badge">{{ workshop.documentation.get_status_display }}</p>{% else %}<p class="status-badge">Nicht dokumentiert</p>{% endif %}
+      <div class="inline-actions">
+        {% if workshop.documentation_requirement == "required" %}<a class="card-link" href="{% url 'documentation-detail' workshop.id %}">Dokumentation öffnen</a>{% endif %}
+        {% if can_manage_requirements %}<a href="{% url 'workshop-requirement' workshop.id %}">Dokumentationspflicht</a>{% endif %}
+        {% if can_manage_visibility %}<form method="post" action="{% url 'workshop-visibility' workshop.id %}">{% csrf_token %}<input type="hidden" name="visibility" value="{% if workshop.visibility == 'active' %}hidden{% else %}active{% endif %}"><button class="link-button" type="submit">{% if workshop.visibility == 'active' %}Ausblenden{% else %}Einblenden{% endif %}</button></form>{% endif %}
+      </div>
     </article>
-  {% empty %}
-    <div class="empty-state">
-      <h2>Keine Workshops gefunden</h2>
-      <p>Im ausgewählten Zeitraum liegen derzeit keine Workshops vor.</p>
-    </div>
-  {% endfor %}
+  {% empty %}<div class="empty-state"><h2>Keine Workshops gefunden</h2><p>Für diese Filter liegen keine Workshops vor.</p></div>{% endfor %}
 </div>
+{% if page.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Seitennavigation">{% if page.has_previous %}<a href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.previous_page_number }}">Zurück</a>{% endif %}<span>Seite {{ page.number }} von {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.next_page_number }}">Weiter</a>{% endif %}</nav>{% endif %}
 {% endblock %}
