@@ -35,7 +35,11 @@ from werkblatt.documentation.templates_service import (
     template_initial,
 )
 from werkblatt.documents.models import GeneratedDocument, generated_document_filename
-from werkblatt.documents.rendering import render_attendance_sheet, render_revision_outputs
+from werkblatt.documents.rendering import (
+    render_attendance_sheet,
+    render_html_with_weasyprint,
+    render_revision_outputs,
+)
 from werkblatt.documents.storage import store_via_webdav
 from werkblatt.identities.models import Membership
 from werkblatt.organizations.assets import add_asset_version, create_asset, validate_asset_upload
@@ -763,7 +767,7 @@ def test_revision_output_rendering_is_idempotent_and_download_is_tenant_scoped(
 
     fake_weasyprint = types.ModuleType("weasyprint")
     fake_weasyprint.HTML = FakeHTML
-    fake_weasyprint.default_url_fetcher = lambda *_args, **_kwargs: {}
+    fake_weasyprint.URLFetcher = type("URLFetcher", (), {})
     monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
     first = render_revision_outputs(revision, admin)
     second = render_revision_outputs(revision, admin)
@@ -793,6 +797,31 @@ def test_revision_output_rendering_is_idempotent_and_download_is_tenant_scoped(
     with override_settings(DEFAULT_ORGANIZATION_SLUG="download-other"):
         response = client.get(reverse("document-download", args=[first[0].id]))
     assert response.status_code == 404
+
+
+def test_weasyprint_fetcher_allows_only_snapshot_assets(monkeypatch):
+    allowed_uri = "file:///approved/logo.svg"
+
+    class FakeURLFetcher:
+        def fetch(self, url, headers=None):
+            return url, headers
+
+    class FakeHTML:
+        def __init__(self, *, url_fetcher, **_kwargs):
+            assert url_fetcher.fetch(allowed_uri) == (allowed_uri, None)
+            with pytest.raises(ValueError, match="nicht freigegeben"):
+                url_fetcher.fetch("file:///etc/passwd")
+
+        def write_pdf(self):
+            return b"%PDF-1.4\n%%EOF"
+
+    fake_weasyprint = types.ModuleType("weasyprint")
+    fake_weasyprint.HTML = FakeHTML
+    fake_weasyprint.URLFetcher = FakeURLFetcher
+    monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
+    monkeypatch.setattr("werkblatt.documents.rendering.find_library", lambda _name: "available")
+
+    assert render_html_with_weasyprint("<html></html>", {allowed_uri}).startswith(b"%PDF")
 
 
 @pytest.mark.django_db
@@ -825,7 +854,7 @@ def test_attendance_sheet_creates_readable_pdf_with_local_fallback(phase3_setup)
     assert len(reader.pages) >= 1
     assert "Klimawerkstatt" in text
     assert "Bremerhaven" in text
-    assert generated.renderer_version in {"weasyprint-69/v1", "reportlab-fallback/v1"}
+    assert generated.renderer_version in {"weasyprint-70/v1", "reportlab-fallback/v1"}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -1012,7 +1041,7 @@ def test_historical_render_uses_frozen_asset_template_and_escaped_text(phase3_se
 
     fake_weasyprint = types.ModuleType("weasyprint")
     fake_weasyprint.HTML = FakeHTML
-    fake_weasyprint.default_url_fetcher = lambda *_args, **_kwargs: {}
+    fake_weasyprint.URLFetcher = type("URLFetcher", (), {})
     monkeypatch.setitem(sys.modules, "weasyprint", fake_weasyprint)
     monkeypatch.setattr("werkblatt.documents.rendering.find_library", lambda _name: "available")
     render_revision_outputs(revision, admin)

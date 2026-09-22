@@ -33,14 +33,15 @@ def _require_document_access(organization_id, user):
 def render_html_with_weasyprint(html: str, allowed_uris: set[str]) -> bytes:
     if not find_library("pango-1.0") and not find_library("pango-1.0-0"):
         raise OSError("Pango-Laufzeit nicht verfügbar")
-    from weasyprint import HTML, default_url_fetcher
+    from weasyprint import HTML, URLFetcher
 
-    def restricted_fetcher(url, *args, **kwargs):
-        if url not in allowed_uris:
-            raise ValueError("PDF-Ressource ist nicht freigegeben")
-        return default_url_fetcher(url, *args, **kwargs)
+    class RestrictedURLFetcher(URLFetcher):
+        def fetch(self, url, headers=None):
+            if url not in allowed_uris:
+                raise ValueError("PDF-Ressource ist nicht freigegeben")
+            return super().fetch(url, headers)
 
-    return HTML(string=html, url_fetcher=restricted_fetcher).write_pdf()
+    return HTML(string=html, url_fetcher=RestrictedURLFetcher()).write_pdf()
 
 
 def _get_or_create_generated_document(**kwargs):
@@ -319,7 +320,7 @@ def _render(document, template_name, context):
             }
 
             pdf = render_html_with_weasyprint(html, allowed_uris)
-            renderer_version = "weasyprint-69/v1"
+            renderer_version = "weasyprint-70/v1"
         except (ImportError, OSError):
             pdf = _reportlab_pdf(template_name, context)
             renderer_version = "reportlab-fallback/v1"
