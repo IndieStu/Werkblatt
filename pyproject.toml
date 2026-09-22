@@ -18,7 +18,7 @@ dependencies = [
   "psycopg[binary]>=3.2,<4",
   "requests>=2.32,<3",
   "reportlab>=4.4,<5",
-  "weasyprint>=69,<70",
+  "weasyprint>=70,<71",
   "whitenoise[brotli]>=6.12,<7",
 ]
 
