@@ -921,6 +921,8 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
         f"{workshop.starts_at:%Y-%m-%d}_{str(generated.id)[:8]}.pdf"
     )
     assert expected_storage_name in stored.storage_key
+    assert stored.storage_key == f"Werkblatt/{workshop.starts_at.year}/{expected_storage_name}"
+    assert str(organization.id) not in stored.storage_key
     stored.status = GeneratedDocument.Status.RENDERED
     stored.save(update_fields=["status"])
 
@@ -941,6 +943,69 @@ def test_webdav_storage_runs_outside_atomic_block_and_is_retryable(
     retried = store_via_webdav(failed)
     assert retried.status == GeneratedDocument.Status.STORED
     assert retried.last_error_class == ""
+
+
+@pytest.mark.django_db(transaction=True)
+def test_webdav_nested_organization_root_uses_human_readable_year_path(
+    phase3_setup, monkeypatch, settings
+):
+    organization, admin, _, workshop = phase3_setup
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data(),
+        assets=[],
+        outputs=output_rows(),
+        fields=[],
+    )
+    assignment = WorkshopTemplateAssignment.objects.create(
+        organization=organization,
+        workshop=workshop,
+        template=template,
+        template_version=template.current_version,
+        assigned_by=admin,
+    )
+    documentation = get_or_create_documentation(workshop=workshop, user=admin)
+    documentation.template_assignment = assignment
+    documentation.save(update_fields=["template_assignment"])
+    generated = render_attendance_sheet(documentation, admin)
+    settings.WEBDAV_BASE_URL = "https://cloud.example.invalid/remote.php/dav/files/werkblatt"
+    settings.WEBDAV_USERNAME = "werkblatt"
+    settings.WEBDAV_PASSWORD = "test-password-not-a-real-secret"
+    settings.WEBDAV_ROOT = "ZIRCULA Intern/Workshopdokumentation"
+    settings.WEBDAV_TRUST_MODE = "self_hosted"
+
+    class FakeResponse:
+        status_code = 201
+
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        def __init__(self, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def request(self, *_args, **_kwargs):
+            return FakeResponse()
+
+        def put(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    monkeypatch.setattr("werkblatt.documents.storage.httpx.Client", FakeClient)
+    stored = store_via_webdav(generated)
+
+    assert stored.status == GeneratedDocument.Status.STORED
+    assert stored.storage_key.startswith(
+        f"ZIRCULA Intern/Workshopdokumentation/{workshop.starts_at.year}/"
+    )
+    assert str(organization.id) not in stored.storage_key
 
 
 def test_generated_document_filename_sanitizes_workshop_title(phase3_setup):
