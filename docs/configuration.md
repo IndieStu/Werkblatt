@@ -76,7 +76,7 @@ Die HTTP-Abfragen laufen vor der kurzen Datenbanktransaktion. Ein langsames oder
 
 Logo-Originale, sichere PNG-Vorschauen und erzeugte PDFs liegen im privaten Medienverzeichnis. Dieses Verzeichnis muss im Deployment persistent und privat eingebunden werden; es darf nicht direkt vom Webserver veröffentlicht werden. Downloads und Vorschauen laufen über tenantgeprüfte Django-Endpunkte.
 
-Ohne `WEBDAV_BASE_URL` verbleiben PDFs ausschließlich im privaten lokalen Volume. Für die optionale Ablage in Nextcloud/WebDAV werden zusätzlich `WEBDAV_USERNAME`, `WEBDAV_PASSWORD` und `WEBDAV_ROOT` gesetzt. Externe Aufrufe erfolgen erst nach der fachlichen Finalisierung und ohne offene Datenbanktransaktion. Fehlgeschlagene Uploads lassen sich wiederholen mit:
+Ohne `WEBDAV_BASE_URL` verbleiben PDFs ausschließlich im privaten lokalen Volume. Für die optionale Ablage in Nextcloud/WebDAV werden zusätzlich `WEBDAV_USERNAME`, `WEBDAV_PASSWORD` und `WEBDAV_ROOT` gesetzt. `WEBDAV_ROOT` muss auf einen bereits organisationsbezogenen, für den technischen Benutzer beschreibbaren Zielordner zeigen. Werkblatt speichert Dokumente darunter menschenlesbar als `<Jahr>/<Dateiname>.pdf`; eine interne Organisations-UUID wird nicht in den sichtbaren Ablagepfad aufgenommen. Im späteren Hosted-Multi-Tenant-Betrieb erhält jede Organisation eine eigene validierte Integrationskonfiguration und damit einen eigenen Root. Externe Aufrufe erfolgen erst nach der fachlichen Finalisierung und ohne offene Datenbanktransaktion. Fehlgeschlagene Uploads lassen sich wiederholen mit:
 
 ```bash
 python manage.py retry_document_storage

@@ -72,7 +72,6 @@ def store_via_webdav(document: GeneratedDocument) -> GeneratedDocument:
         filename = generated_document_filename(document, unique=True)
         key = PurePosixPath(
             _validated_root(),
-            str(document.organization_id),
             str(document.workshop.starts_at.year),
             filename,
         )
