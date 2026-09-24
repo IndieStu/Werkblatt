@@ -2,13 +2,15 @@
 
 Stand: 24. September 2026
 Bezugsstand: `uv.lock`
-SHA-256: `877a33d1026713ca9773d42b0eca9736b9af2273efa4572fc313388755766e74`
+Maschinenlesbare Baseline: `THIRD_PARTY_LICENSES.lock.sha256`
 
 Diese Übersicht ändert keine Lizenz eines Bestandteils. Maßgeblich bleiben die
 mit den jeweiligen Paketen ausgelieferten Lizenz- und Copyrightdateien. Das
 Releaseverfahren muss die Liste für jeden neuen Lock- und Containerstand neu
-erzeugen und prüfen. CI vergleicht den hier dokumentierten SHA-256 mit der
-tatsächlichen Lockdatei und verhindert dadurch unbemerkte Drift.
+erzeugen und prüfen. CI vergleicht die separate SHA-256-Baseline mit der
+tatsächlichen Lockdatei und verhindert dadurch unbemerkte Drift. Dieser
+Vergleich bestätigt nur den geprüften Bezugsstand, nicht die inhaltliche
+Richtigkeit der Lizenzbewertung.
 
 ## Direkt verwendete Python-Pakete
 

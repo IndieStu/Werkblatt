@@ -34,7 +34,9 @@ COPY --chown=werkblatt:werkblatt manage.py ./
 COPY --chown=werkblatt:werkblatt config ./config
 COPY --chown=werkblatt:werkblatt templates ./templates
 COPY --chown=werkblatt:werkblatt static ./static
-COPY --chown=root:root LICENSE NOTICE.md THIRD_PARTY_LICENSES.md BRAND_POLICY.md /usr/share/doc/werkblatt/
+COPY --chown=root:root LICENSE NOTICE.md THIRD_PARTY_LICENSES.md \
+    THIRD_PARTY_LICENSES.lock.sha256 CONTAINER_BASE_IMAGES.lock BRAND_POLICY.md \
+    /usr/share/doc/werkblatt/
 COPY --chown=root:root licenses /usr/share/doc/werkblatt/licenses
 RUN mkdir -p /app/var/media /tmp/werkblatt \
     && chown -R werkblatt:werkblatt /app/var /tmp/werkblatt \
