@@ -1,4 +1,5 @@
-from datetime import timedelta
+import calendar
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -28,6 +29,100 @@ from .services import (
 
 def _organization_id(request):
     return request.organization_context.organization_id
+
+
+def _calendar_month(value: str | None) -> date:
+    if value:
+        try:
+            parsed = date.fromisoformat(f"{value}-01")
+            if 2000 <= parsed.year <= 2100:
+                return parsed
+        except ValueError:
+            pass
+    today = timezone.localdate()
+    return today.replace(day=1)
+
+
+def _shift_month(month: date, offset: int) -> date:
+    year = month.year + (month.month - 1 + offset) // 12
+    number = (month.month - 1 + offset) % 12 + 1
+    return date(year, number, 1)
+
+
+def _filter_calendar_workshops(workshops, data):
+    visibility = data["visibility"] or Workshop.Visibility.ACTIVE
+    if visibility != "all":
+        workshops = workshops.filter(visibility=visibility)
+    if data["q"]:
+        workshops = workshops.filter(
+            Q(title__icontains=data["q"]) | Q(location__icontains=data["q"])
+        )
+    state = data["state"]
+    if state == "upcoming":
+        workshops = workshops.filter(starts_at__gte=timezone.now())
+    elif state == "undocumented":
+        workshops = workshops.filter(
+            lifecycle_status=Workshop.LifecycleStatus.ACTIVE,
+            documentation__isnull=True,
+            documentation_requirement=Workshop.DocumentationRequirement.REQUIRED,
+        )
+    elif state == "draft":
+        workshops = workshops.filter(documentation__status="draft")
+    elif state == "finalized":
+        workshops = workshops.filter(documentation__status="finalized")
+    elif state == "not_required":
+        workshops = workshops.filter(
+            documentation_requirement=Workshop.DocumentationRequirement.NOT_REQUIRED
+        )
+    elif state == "cancelled":
+        workshops = workshops.filter(lifecycle_status=Workshop.LifecycleStatus.CANCELLED)
+    return workshops
+
+
+@login_required
+def workshop_calendar(request: HttpRequest) -> HttpResponse:
+    month = _calendar_month(request.GET.get("month"))
+    form = WorkshopFilterForm(request.GET or {"visibility": Workshop.Visibility.ACTIVE})
+    month_calendar = calendar.Calendar(firstweekday=0)
+    calendar_dates = month_calendar.monthdatescalendar(month.year, month.month)
+    first_day = calendar_dates[0][0]
+    last_day = calendar_dates[-1][-1]
+    workshops = (
+        Workshop.objects.for_organization(_organization_id(request))
+        .select_related("documentation")
+        .filter(starts_at__date__range=(first_day, last_day))
+    )
+    if form.is_valid():
+        workshops = _filter_calendar_workshops(workshops, form.cleaned_data)
+    else:
+        workshops = workshops.filter(visibility=Workshop.Visibility.ACTIVE)
+    workshops_by_day = {}
+    for workshop in workshops.order_by("starts_at", "title"):
+        local_day = timezone.localtime(workshop.starts_at).date()
+        workshops_by_day.setdefault(local_day, []).append(workshop)
+    weeks = [
+        [
+            {
+                "date": day,
+                "in_month": day.month == month.month,
+                "is_today": day == timezone.localdate(),
+                "workshops": workshops_by_day.get(day, []),
+            }
+            for day in week
+        ]
+        for week in calendar_dates
+    ]
+    return render(
+        request,
+        "workshops/calendar.html",
+        {
+            "filter_form": form,
+            "month": month,
+            "previous_month": _shift_month(month, -1),
+            "next_month": _shift_month(month, 1),
+            "weeks": weeks,
+        },
+    )
 
 
 @login_required

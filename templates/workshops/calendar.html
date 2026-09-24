@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Workshopkalender - Werkblatt{% endblock %}
+{% block content %}
+<div class="section-heading">
+  <div>
+    <p class="eyebrow">Workshop-Dokumentation</p>
+    <h1>Workshopkalender</h1>
+    <p class="lead">Workshops im Monatsüberblick öffnen und dokumentieren.</p>
+    <div class="view-switch"><a href="{% url 'workshop-list' %}">Liste</a><span aria-current="page">Kalender</span></div>
+  </div>
+</div>
+
+<section class="content-card calendar-toolbar">
+  <div class="calendar-navigation">
+    <a class="button secondary" href="?month={{ previous_month|date:'Y-m' }}">Zurück</a>
+    <h2>{{ month|date:"F Y" }}</h2>
+    <a class="button secondary" href="?month={{ next_month|date:'Y-m' }}">Weiter</a>
+  </div>
+  <form method="get" class="statistics-filter">
+    <input type="hidden" name="month" value="{{ month|date:'Y-m' }}">
+    {{ filter_form.q.as_field_group }}
+    {{ filter_form.state.as_field_group }}
+    {{ filter_form.visibility.as_field_group }}
+    <button class="button" type="submit">Filtern</button>
+    <a class="button secondary" href="{% url 'workshop-calendar' %}?month={{ month|date:'Y-m' }}">Zurücksetzen</a>
+  </form>
+</section>
+
+<div class="workshop-calendar" role="grid" aria-label="Workshopkalender {{ month|date:'F Y' }}">
+  <div class="calendar-weekdays" role="row">
+    <span role="columnheader">Mo</span><span role="columnheader">Di</span><span role="columnheader">Mi</span><span role="columnheader">Do</span><span role="columnheader">Fr</span><span role="columnheader">Sa</span><span role="columnheader">So</span>
+  </div>
+  {% for week in weeks %}
+    <div class="calendar-week" role="row">
+      {% for day in week %}
+        <section class="calendar-day{% if not day.in_month %} outside-month{% endif %}{% if day.is_today %} today{% endif %}" role="gridcell" aria-label="{{ day.date|date:'l, d. F Y' }}">
+          <time datetime="{{ day.date|date:'Y-m-d' }}">{{ day.date|date:"j" }}</time>
+          <div class="calendar-events">
+            {% for workshop in day.workshops %}
+              {% if workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}<a class="calendar-event{% if workshop.documentation.status == 'finalized' %} finalized{% elif workshop.documentation.status == 'draft' %} draft{% else %} open{% endif %}" href="{% url 'documentation-detail' workshop.id %}">
+              {% else %}<div class="calendar-event{% if workshop.lifecycle_status == 'cancelled' %} cancelled{% else %} not-required{% endif %}">
+              {% endif %}
+                <strong>{{ workshop.starts_at|date:"H:i" }}</strong> {{ workshop.title }}
+                {% if workshop.lifecycle_status == "cancelled" %}<span>Abgesagt</span>{% elif workshop.documentation_requirement == "not_required" %}<span>Keine Dokumentation</span>{% elif workshop.documentation.status == "finalized" %}<span>Abgeschlossen</span>{% elif workshop.documentation.status == "draft" %}<span>Entwurf</span>{% else %}<span>Offen</span>{% endif %}
+              {% if workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}</a>{% else %}</div>{% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
