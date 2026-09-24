@@ -3,6 +3,39 @@ from django import forms
 from .models import PretixEventRule, Workshop
 
 
+class NativeWorkshopForm(forms.ModelForm):
+    class Meta:
+        model = Workshop
+        fields = ["title", "starts_at", "ends_at", "location"]
+        labels = {
+            "title": "Titel",
+            "starts_at": "Beginn",
+            "ends_at": "Ende",
+            "location": "Ort",
+        }
+        widgets = {
+            "starts_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "ends_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["starts_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["ends_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+
+    def clean(self):
+        cleaned = super().clean()
+        starts_at = cleaned.get("starts_at")
+        ends_at = cleaned.get("ends_at")
+        if starts_at and ends_at and ends_at <= starts_at:
+            self.add_error("ends_at", "Das Ende muss nach dem Beginn liegen.")
+        return cleaned
+
+
 class WorkshopFilterForm(forms.Form):
     STATE_CHOICES = [
         ("", "Alle Bearbeitungsstände"),

@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Workshops - Werkblatt{% endblock %}
 {% block content %}
-<p class="eyebrow">Workshop-Dokumentation</p>
-<h1>Workshops</h1>
-<p class="lead">Finde Workshops nach Zeitraum und Bearbeitungsstand.</p>
+<div class="section-heading">
+  <div><p class="eyebrow">Workshop-Dokumentation</p><h1>Workshops</h1><p class="lead">Finde Workshops nach Zeitraum und Bearbeitungsstand.</p></div>
+  {% if can_edit_native_workshops %}<a class="button" href="{% url 'workshop-create' %}">Workshop anlegen</a>{% endif %}
+</div>
 {% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
 <section class="content-card"><form method="get" class="statistics-filter">{{ filter_form.as_div }}<button class="button" type="submit">Filtern</button><a class="button secondary" href="{% url 'workshop-list' %}">Zurücksetzen</a></form></section>
 <div class="workshop-list">
@@ -16,6 +17,7 @@
       {% if workshop.documentation_requirement == "not_required" %}<p class="status-badge">Keine Dokumentation erforderlich</p>{% if workshop.requirement_reason %}<p class="form-hint">{{ workshop.requirement_reason }}</p>{% endif %}{% elif workshop.documentation %}<p class="status-badge">{{ workshop.documentation.get_status_display }}</p>{% else %}<p class="status-badge">Nicht dokumentiert</p>{% endif %}
       <div class="inline-actions">
         {% if workshop.documentation_requirement == "required" %}<a class="card-link" href="{% url 'documentation-detail' workshop.id %}">Dokumentation öffnen</a>{% endif %}
+        {% if can_edit_native_workshops and workshop.source_type == "native" %}<a href="{% url 'workshop-edit' workshop.id %}">Workshop bearbeiten</a>{% endif %}
         {% if can_manage_requirements %}<a href="{% url 'workshop-requirement' workshop.id %}">Dokumentationspflicht</a>{% endif %}
         {% if can_manage_visibility %}<form method="post" action="{% url 'workshop-visibility' workshop.id %}">{% csrf_token %}<input type="hidden" name="visibility" value="{% if workshop.visibility == 'active' %}hidden{% else %}active{% endif %}"><button class="link-button" type="submit">{% if workshop.visibility == 'active' %}Ausblenden{% else %}Einblenden{% endif %}</button></form>{% endif %}
       </div>

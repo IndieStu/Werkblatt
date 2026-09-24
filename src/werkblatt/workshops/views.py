@@ -11,9 +11,19 @@ from django.utils import timezone
 
 from werkblatt.identities.policies import Capability, has_capability, require_capability
 
-from .forms import PretixEventRuleForm, WorkshopFilterForm, WorkshopRequirementForm
+from .forms import (
+    NativeWorkshopForm,
+    PretixEventRuleForm,
+    WorkshopFilterForm,
+    WorkshopRequirementForm,
+)
 from .models import PretixEventRule, Workshop
-from .services import save_pretix_event_rule, set_documentation_requirement, set_workshop_visibility
+from .services import (
+    save_native_workshop,
+    save_pretix_event_rule,
+    set_documentation_requirement,
+    set_workshop_visibility,
+)
 
 
 def _organization_id(request):
@@ -79,7 +89,47 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             "can_manage_requirements": has_capability(
                 request.user, _organization_id(request), Capability.MANAGE_INTEGRATIONS
             ),
+            "can_edit_native_workshops": has_capability(
+                request.user, _organization_id(request), Capability.DOCUMENT_WORKSHOPS
+            ),
         },
+    )
+
+
+@login_required
+def native_workshop_edit(request: HttpRequest, workshop_id=None) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.DOCUMENT_WORKSHOPS,
+        "Keine Berechtigung zum Anlegen oder Bearbeiten von Workshops.",
+    )
+    workshop = None
+    if workshop_id is not None:
+        workshop = get_object_or_404(
+            Workshop.objects.for_organization(_organization_id(request)),
+            pk=workshop_id,
+            source_type=Workshop.SourceType.NATIVE,
+        )
+    form = NativeWorkshopForm(request.POST or None, instance=workshop)
+    if request.method == "POST" and form.is_valid():
+        workshop = save_native_workshop(
+            form=form,
+            organization=request.organization,
+            user=request.user,
+            workshop=workshop,
+        )
+        messages.success(
+            request,
+            "Workshop gespeichert."
+            if workshop_id is not None
+            else "Workshop angelegt. Die Dokumentation kann jetzt bearbeitet werden.",
+        )
+        return redirect("documentation-detail", workshop_id=workshop.id)
+    return render(
+        request,
+        "workshops/form.html",
+        {"form": form, "workshop": workshop},
     )
 
 

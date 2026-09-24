@@ -8,6 +8,39 @@ from .models import PretixEventRule, Workshop
 
 
 @transaction.atomic
+def save_native_workshop(*, form, organization, user, workshop=None):
+    require_capability(
+        user,
+        organization.id,
+        Capability.DOCUMENT_WORKSHOPS,
+        "Keine Berechtigung zum Anlegen oder Bearbeiten von Workshops.",
+    )
+    values = {
+        field: form.cleaned_data[field] for field in ("title", "starts_at", "ends_at", "location")
+    }
+    if workshop is None:
+        return Workshop.objects.create(
+            organization=organization,
+            source_type=Workshop.SourceType.NATIVE,
+            documentation_requirement=Workshop.DocumentationRequirement.REQUIRED,
+            requirement_source=Workshop.RequirementSource.DEFAULT,
+            **values,
+        )
+    try:
+        locked = Workshop.objects.select_for_update().get(
+            pk=workshop.pk,
+            organization=organization,
+            source_type=Workshop.SourceType.NATIVE,
+        )
+    except Workshop.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    for field, value in values.items():
+        setattr(locked, field, value)
+    locked.save(update_fields=[*values, "updated_at"])
+    return locked
+
+
+@transaction.atomic
 def set_workshop_visibility(*, workshop, organization, user, visibility):
     require_capability(
         user,

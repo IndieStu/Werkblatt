@@ -4,6 +4,8 @@ from . import views
 
 urlpatterns = [
     path("", views.workshop_list, name="workshop-list"),
+    path("new/", views.native_workshop_edit, name="workshop-create"),
+    path("<uuid:workshop_id>/edit/", views.native_workshop_edit, name="workshop-edit"),
     path("<uuid:workshop_id>/visibility/", views.workshop_visibility, name="workshop-visibility"),
     path(
         "<uuid:workshop_id>/documentation-requirement/",
