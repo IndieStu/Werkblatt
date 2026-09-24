@@ -103,6 +103,7 @@ def statistics_csv(request: HttpRequest) -> HttpResponse:
         ("Ohne Abschluss", "without_finalization"),
         ("Korrektur ausstehend", "correction_pending"),
         ("Keine Dokumentation erforderlich", "not_required_workshops"),
+        ("Abgesagt (nicht eingerechnet)", "cancelled_workshops"),
         ("Angemeldet", "registered"),
         ("Anwesend (angemeldet)", "present_registered"),
         ("Spontan", "walk_ins"),
@@ -171,6 +172,8 @@ def _facilitator_inputs(formset) -> list[FacilitatorInput]:
 @login_required
 def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpResponse:
     workshop = _workshop_for_request(request, workshop_id)
+    if workshop.lifecycle_status == Workshop.LifecycleStatus.CANCELLED:
+        raise PermissionDenied("Für abgesagte Workshops ist keine Dokumentation möglich.")
     if workshop.documentation_requirement == Workshop.DocumentationRequirement.NOT_REQUIRED:
         raise PermissionDenied(
             "Für diesen Workshop wurde festgelegt, dass keine Dokumentation erforderlich ist."

@@ -63,11 +63,12 @@ class Command(BaseCommand):
         try:
             # Externe HTTP-Arbeit findet bewusst außerhalb einer DB-Transaktion statt.
             provider = PretixWorkshopProvider(client, settings.PRETIX_ORGANIZER)
-            imported = provider.list_workshops(
+            batch = provider.list_workshop_batch(
                 include_testmode=include_test_events,
                 not_before=not_before,
                 excluded_event_slugs=excluded_event_slugs,
             )
+            imported = list(batch.workshops)
             if requested_references:
                 imported = [item for item in imported if item.reference in requested_references]
                 missing = requested_references - {item.reference for item in imported}
@@ -87,6 +88,9 @@ class Command(BaseCommand):
             ]
             registrations_by_reference = {}
             for item in imported:
+                if not item.active:
+                    registrations_by_reference[item.reference] = []
+                    continue
                 event_slug, separator, subevent = item.reference.rpartition(":")
                 if separator and subevent.isdigit():
                     registrations = provider.list_registrations(event_slug, int(subevent))
@@ -97,6 +101,18 @@ class Command(BaseCommand):
             client.close()
 
         with transaction.atomic():
+            imported_references = {item.reference for item in imported}
+            if not requested_references:
+                reconciliation_scope = Workshop.objects.filter(
+                    organization=organization,
+                    source_type=Workshop.SourceType.PRETIX,
+                    starts_at__date__gte=not_before,
+                ).exclude(
+                    parent_external_reference__in=(batch.ignored_event_slugs | excluded_event_slugs)
+                )
+                reconciliation_scope.exclude(external_reference__in=imported_references).update(
+                    lifecycle_status=Workshop.LifecycleStatus.CANCELLED
+                )
             for item in imported:
                 event_slug = event_slugs[item.reference]
                 rule = rules.get(event_slug)
@@ -115,6 +131,11 @@ class Command(BaseCommand):
                         "starts_at": item.starts_at,
                         "ends_at": item.ends_at,
                         "location": item.location,
+                        "lifecycle_status": (
+                            Workshop.LifecycleStatus.ACTIVE
+                            if item.active
+                            else Workshop.LifecycleStatus.CANCELLED
+                        ),
                     },
                 )
                 if created or workshop.requirement_source != Workshop.RequirementSource.INDIVIDUAL:
@@ -149,8 +170,11 @@ class Command(BaseCommand):
                         defaults={"display_name": registration.display_name, "active": True},
                     )
         registration_count = sum(len(rows) for rows in registrations_by_reference.values())
+        active_count = sum(item.active for item in imported)
+        cancelled_count = len(imported) - active_count
         self.stdout.write(
             self.style.SUCCESS(
-                f"{len(imported)} Workshops und {registration_count} Anmeldungen synchronisiert"
+                f"{active_count} aktive Workshops, {cancelled_count} abgesagte Workshops "
+                f"und {registration_count} Anmeldungen synchronisiert"
             )
         )

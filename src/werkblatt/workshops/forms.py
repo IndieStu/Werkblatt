@@ -44,6 +44,7 @@ class WorkshopFilterForm(forms.Form):
         ("draft", "Entwurf"),
         ("finalized", "Abgeschlossen"),
         ("not_required", "Keine Dokumentation erforderlich"),
+        ("cancelled", "Abgesagt"),
     ]
     VISIBILITY_CHOICES = [
         (Workshop.Visibility.ACTIVE, "Sichtbar"),

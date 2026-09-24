@@ -1,9 +1,10 @@
+from dataclasses import replace
 from datetime import date, datetime
 from typing import Any
 from urllib.parse import quote
 
 from .client import PretixClient
-from .types import ExternalRegistration, ExternalWorkshop
+from .types import ExternalRegistration, ExternalWorkshop, ExternalWorkshopBatch
 
 
 def translated(value: Any, language: str = "de") -> str:
@@ -37,16 +38,35 @@ class PretixWorkshopProvider:
         not_before: date | None = None,
         excluded_event_slugs: frozenset[str] = frozenset(),
     ) -> list[ExternalWorkshop]:
+        batch = self.list_workshop_batch(
+            include_testmode=include_testmode,
+            not_before=not_before,
+            excluded_event_slugs=excluded_event_slugs,
+        )
+        return [workshop for workshop in batch.workshops if workshop.active]
+
+    def list_workshop_batch(
+        self,
+        *,
+        include_testmode: bool = False,
+        not_before: date | None = None,
+        excluded_event_slugs: frozenset[str] = frozenset(),
+    ) -> ExternalWorkshopBatch:
         workshops: list[ExternalWorkshop] = []
+        synchronized_event_slugs: set[str] = set()
+        ignored_event_slugs: set[str] = set()
         event_path = f"/api/v1/organizers/{self.organizer}/events/"
         for event in self.client.pages(event_path):
-            if event.get("live") is not True or (
+            event_slug = str(event.get("slug", "")).strip()
+            if not event_slug:
+                continue
+            if event_slug in excluded_event_slugs or (
                 event.get("testmode") is True and not include_testmode
             ):
+                ignored_event_slugs.add(event_slug)
                 continue
-            event_slug = str(event.get("slug", "")).strip()
-            if not event_slug or event_slug in excluded_event_slugs:
-                continue
+            synchronized_event_slugs.add(event_slug)
+            event_active = event.get("live") is True
             escaped_event_slug = quote(event_slug, safe="")
             if event.get("has_subevents") is True:
                 subevent_path = (
@@ -55,20 +75,28 @@ class PretixWorkshopProvider:
                 params = {"date_from_after": not_before.isoformat()} if not_before else None
                 for item in self.client.pages(subevent_path, params):
                     workshop = self._map_workshop(event_slug, event, item)
-                    if (
-                        workshop is not None
-                        and item.get("active") is True
-                        and item.get("is_public", True) is True
-                        and (not_before is None or workshop.starts_at.date() >= not_before)
+                    if workshop is not None and (
+                        not_before is None or workshop.starts_at.date() >= not_before
                     ):
-                        workshops.append(workshop)
+                        workshops.append(
+                            replace(
+                                workshop,
+                                active=event_active
+                                and item.get("active") is True
+                                and item.get("is_public", True) is True,
+                            )
+                        )
             else:
                 workshop = self._map_workshop(event_slug, event, event)
                 if workshop is not None and (
                     not_before is None or workshop.starts_at.date() >= not_before
                 ):
-                    workshops.append(workshop)
-        return sorted(workshops, key=lambda item: item.starts_at)
+                    workshops.append(replace(workshop, active=event_active))
+        return ExternalWorkshopBatch(
+            workshops=tuple(sorted(workshops, key=lambda item: item.starts_at)),
+            synchronized_event_slugs=frozenset(synchronized_event_slugs),
+            ignored_event_slugs=frozenset(ignored_event_slugs),
+        )
 
     def list_registrations(
         self, event_slug: str, subevent_id: int | None = None

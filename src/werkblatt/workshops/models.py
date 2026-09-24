@@ -29,6 +29,10 @@ class Workshop(models.Model):
         ACTIVE = "active", "Sichtbar"
         HIDDEN = "hidden", "Ausgeblendet"
 
+    class LifecycleStatus(models.TextChoices):
+        ACTIVE = "active", "Aktiv"
+        CANCELLED = "cancelled", "Abgesagt"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.ForeignKey(
         "organizations.Organization", on_delete=models.CASCADE, related_name="workshops"
@@ -40,6 +44,11 @@ class Workshop(models.Model):
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField(null=True, blank=True)
     location = models.CharField(max_length=300, blank=True)
+    lifecycle_status = models.CharField(
+        max_length=16,
+        choices=LifecycleStatus,
+        default=LifecycleStatus.ACTIVE,
+    )
     documentation_requirement = models.CharField(
         max_length=16,
         choices=DocumentationRequirement,

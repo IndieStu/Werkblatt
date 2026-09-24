@@ -67,6 +67,13 @@ zukünftigen Termine. Eine Einzelentscheidung am Workshop übersteuert die
 Reihenregel. Neue Veranstaltungen bleiben ohne Regel standardmäßig
 dokumentationspflichtig.
 
+Der regelmäßige Pretix-Abgleich markiert abgesagte, nicht mehr öffentliche oder
+entfernte Termine als „Abgesagt“, statt sie zu löschen. Solche Workshops können
+nicht dokumentiert werden und fließen nicht in Durchführungs- oder
+Teilnahmestatistiken ein; vorhandene abgeschlossene Revisionen bleiben erhalten.
+Wird ein Termin in Pretix wieder aktiviert, erscheint er nach dem nächsten
+Abgleich erneut als aktiv.
+
 ## Statistik
 
 Die Statistik kann nach Workshopdatum eingegrenzt werden. Pro Dokumentation
@@ -79,7 +86,8 @@ Neben Workshops, Anmeldungen, Teilnahmen, No-Shows und spontanen Teilnahmen
 werden vorlagenspezifische Zahlenfelder mit der Darstellung „Aggregierte
 Statistik“ summiert. Die Anwesenheitsquote bezieht sich nur auf angemeldete
 Personen; spontane Teilnahmen werden separat ausgewiesen. Die gefilterte
-Auswertung kann ohne Klarnamen als CSV exportiert werden.
+Auswertung kann ohne Klarnamen als CSV exportiert werden. Abgesagte Workshops
+werden separat ausgewiesen und nicht in diese Kennzahlen eingerechnet.
 
 ## Redaktion und Organisationsverwaltung
 

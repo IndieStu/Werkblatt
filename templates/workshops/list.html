@@ -14,9 +14,9 @@
       <time datetime="{{ workshop.starts_at|date:'c' }}">{{ workshop.starts_at|date:"d.m.Y, H:i" }}</time>
       <h2>{{ workshop.title }}</h2>
       {% if workshop.location %}<p>{{ workshop.location }}</p>{% endif %}
-      {% if workshop.documentation_requirement == "not_required" %}<p class="status-badge">Keine Dokumentation erforderlich</p>{% if workshop.requirement_reason %}<p class="form-hint">{{ workshop.requirement_reason }}</p>{% endif %}{% elif workshop.documentation %}<p class="status-badge">{{ workshop.documentation.get_status_display }}</p>{% else %}<p class="status-badge">Nicht dokumentiert</p>{% endif %}
+      {% if workshop.lifecycle_status == "cancelled" %}<p class="status-badge">Abgesagt</p>{% elif workshop.documentation_requirement == "not_required" %}<p class="status-badge">Keine Dokumentation erforderlich</p>{% if workshop.requirement_reason %}<p class="form-hint">{{ workshop.requirement_reason }}</p>{% endif %}{% elif workshop.documentation %}<p class="status-badge">{{ workshop.documentation.get_status_display }}</p>{% else %}<p class="status-badge">Nicht dokumentiert</p>{% endif %}
       <div class="inline-actions">
-        {% if workshop.documentation_requirement == "required" %}<a class="card-link" href="{% url 'documentation-detail' workshop.id %}">Dokumentation öffnen</a>{% endif %}
+        {% if workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}<a class="card-link" href="{% url 'documentation-detail' workshop.id %}">Dokumentation öffnen</a>{% endif %}
         {% if can_edit_native_workshops and workshop.source_type == "native" %}<a href="{% url 'workshop-edit' workshop.id %}">Workshop bearbeiten</a>{% endif %}
         {% if can_manage_requirements %}<a href="{% url 'workshop-requirement' workshop.id %}">Dokumentationspflicht</a>{% endif %}
         {% if can_manage_visibility %}<form method="post" action="{% url 'workshop-visibility' workshop.id %}">{% csrf_token %}<input type="hidden" name="visibility" value="{% if workshop.visibility == 'active' %}hidden{% else %}active{% endif %}"><button class="link-button" type="submit">{% if workshop.visibility == 'active' %}Ausblenden{% else %}Einblenden{% endif %}</button></form>{% endif %}

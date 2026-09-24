@@ -1,5 +1,5 @@
 import socket
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import patch
 
 import httpx
@@ -16,11 +16,25 @@ from werkblatt.integrations.pretix.client import (
     validate_public_https_origin,
 )
 from werkblatt.integrations.pretix.provider import PretixWorkshopProvider
-from werkblatt.integrations.pretix.types import ExternalRegistration, ExternalWorkshop
+from werkblatt.integrations.pretix.types import (
+    ExternalRegistration,
+    ExternalWorkshop,
+    ExternalWorkshopBatch,
+)
 from werkblatt.organizations.models import Organization
 from werkblatt.workshops.models import PretixEventRule, Workshop, WorkshopRegistration
 
 PUBLIC_DNS = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))]
+
+
+def batch(workshops, *, ignored=()):
+    return ExternalWorkshopBatch(
+        workshops=tuple(workshops),
+        synchronized_event_slugs=frozenset(
+            item.event_slug or item.reference.partition(":")[0] for item in workshops
+        ),
+        ignored_event_slugs=frozenset(ignored),
+    )
 
 
 def test_rejects_non_https_and_private_hosts():
@@ -207,7 +221,7 @@ def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations
         ExternalRegistration(reference="ORDER2:2", display_name="Zweite Testperson"),
     ]
     with (
-        patch.object(PretixWorkshopProvider, "list_workshops", return_value=[workshop]),
+        patch.object(PretixWorkshopProvider, "list_workshop_batch", return_value=batch([workshop])),
         patch.object(PretixWorkshopProvider, "list_registrations", return_value=first_rows),
         patch.object(PretixClient, "__init__", return_value=None),
         patch.object(PretixClient, "close"),
@@ -223,7 +237,7 @@ def test_sync_imports_only_requested_synthetic_workshop_and_active_registrations
         ExternalRegistration(reference="ORDER2:2", display_name="Zweite Testperson geändert")
     ]
     with (
-        patch.object(PretixWorkshopProvider, "list_workshops", return_value=[workshop]),
+        patch.object(PretixWorkshopProvider, "list_workshop_batch", return_value=batch([workshop])),
         patch.object(PretixWorkshopProvider, "list_registrations", return_value=second_rows),
         patch.object(PretixClient, "__init__", return_value=None),
         patch.object(PretixClient, "close"),
@@ -260,6 +274,80 @@ def test_regular_sync_requires_valid_import_cutoff(settings):
 
 
 @pytest.mark.django_db
+def test_regular_sync_marks_missing_workshops_cancelled_and_reactivates_them(settings):
+    organization = Organization.objects.create(slug="example", name="Example Organization")
+    settings.PRETIX_API_TOKEN = "synthetic-token"
+    settings.PRETIX_ORGANIZER = "synthetic-organizer"
+    settings.DEFAULT_ORGANIZATION_SLUG = organization.slug
+    settings.PRETIX_IMPORT_NOT_BEFORE = "2026-08-25"
+    starts_at = timezone.make_aware(datetime(2026, 9, 10, 10, 0))
+    missing = Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="series:2",
+        parent_external_reference="series",
+        title="Später gelöschter Termin",
+        starts_at=starts_at,
+    )
+    ignored = Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="test:1",
+        parent_external_reference="test",
+        title="Explizites Testevent",
+        starts_at=starts_at,
+    )
+    active = ExternalWorkshop(
+        reference="series:1",
+        event_slug="series",
+        title="Aktiver Termin",
+        starts_at=starts_at,
+        ends_at=None,
+        location="Werkstatt",
+    )
+    with (
+        patch.object(
+            PretixWorkshopProvider,
+            "list_workshop_batch",
+            return_value=batch([active], ignored={"test"}),
+        ),
+        patch.object(PretixWorkshopProvider, "list_registrations", return_value=[]),
+        patch.object(PretixClient, "__init__", return_value=None),
+        patch.object(PretixClient, "close"),
+    ):
+        call_command("sync_pretix")
+
+    missing.refresh_from_db()
+    ignored.refresh_from_db()
+    assert missing.lifecycle_status == Workshop.LifecycleStatus.CANCELLED
+    assert ignored.lifecycle_status == Workshop.LifecycleStatus.ACTIVE
+
+    restored = ExternalWorkshop(
+        reference="series:2",
+        event_slug="series",
+        title="Wieder aktiver Termin",
+        starts_at=starts_at,
+        ends_at=None,
+        location="Werkstatt",
+    )
+    with (
+        patch.object(
+            PretixWorkshopProvider,
+            "list_workshop_batch",
+            return_value=batch([active, restored], ignored={"test"}),
+        ),
+        patch.object(PretixWorkshopProvider, "list_registrations", return_value=[]),
+        patch.object(PretixClient, "__init__", return_value=None),
+        patch.object(PretixClient, "close"),
+    ):
+        call_command("sync_pretix")
+
+    missing.refresh_from_db()
+    assert missing.lifecycle_status == Workshop.LifecycleStatus.ACTIVE
+    assert missing.title == "Wieder aktiver Termin"
+
+
+@pytest.mark.django_db
 def test_series_rule_applies_to_all_dates_but_individual_override_survives_sync(settings):
     organization = Organization.objects.create(slug="example", name="Example Organization")
     user = get_user_model().objects.create_user(username="admin")
@@ -287,7 +375,7 @@ def test_series_rule_applies_to_all_dates_but_individual_override_survives_sync(
         for number in (1, 2)
     ]
     with (
-        patch.object(PretixWorkshopProvider, "list_workshops", return_value=workshops),
+        patch.object(PretixWorkshopProvider, "list_workshop_batch", return_value=batch(workshops)),
         patch.object(PretixWorkshopProvider, "list_registrations", return_value=[]),
         patch.object(PretixClient, "__init__", return_value=None),
         patch.object(PretixClient, "close"),
@@ -302,7 +390,7 @@ def test_series_rule_applies_to_all_dates_but_individual_override_survives_sync(
     first.save(update_fields=["documentation_requirement", "requirement_source"])
 
     with (
-        patch.object(PretixWorkshopProvider, "list_workshops", return_value=workshops),
+        patch.object(PretixWorkshopProvider, "list_workshop_batch", return_value=batch(workshops)),
         patch.object(PretixWorkshopProvider, "list_registrations", return_value=[]),
         patch.object(PretixClient, "__init__", return_value=None),
         patch.object(PretixClient, "close"),

@@ -68,6 +68,8 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             workshops = workshops.filter(
                 documentation_requirement=Workshop.DocumentationRequirement.NOT_REQUIRED
             )
+        elif state == "cancelled":
+            workshops = workshops.filter(lifecycle_status=Workshop.LifecycleStatus.CANCELLED)
     else:
         workshops = workshops.filter(
             visibility=Workshop.Visibility.ACTIVE,
