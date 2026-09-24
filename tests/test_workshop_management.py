@@ -172,6 +172,51 @@ def test_workshop_list_filters_status_search_dates_and_paginates(workshop_manage
 
 
 @pytest.mark.django_db
+def test_workshop_calendar_is_tenant_scoped_filterable_and_links_documentation(
+    workshop_management,
+):
+    organization, users, workshop, foreign = workshop_management
+    cancelled = Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="cancelled:1",
+        parent_external_reference="cancelled",
+        title="Abgesagter Kalendereintrag",
+        starts_at=workshop.starts_at + timedelta(hours=1),
+        lifecycle_status=Workshop.LifecycleStatus.CANCELLED,
+    )
+    client = Client()
+    client.force_login(users[Membership.Role.WORKSHOP_USER])
+    month = timezone.localtime(workshop.starts_at).strftime("%Y-%m")
+
+    response = client.get(reverse("workshop-calendar"), {"month": month})
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert workshop.title in content
+    assert reverse("documentation-detail", args=[workshop.id]) in content
+    assert cancelled.title in content
+    assert reverse("documentation-detail", args=[cancelled.id]) not in content
+    assert foreign.title not in content
+
+    response = client.get(
+        reverse("workshop-calendar"),
+        {"month": month, "state": "cancelled", "visibility": "active"},
+    )
+    content = response.content.decode()
+    assert cancelled.title in content
+    assert workshop.title not in content
+
+
+@pytest.mark.django_db
+def test_workshop_calendar_rejects_invalid_month_without_error(workshop_management):
+    _, users, _, _ = workshop_management
+    client = Client()
+    client.force_login(users[Membership.Role.WORKSHOP_USER])
+    response = client.get(reverse("workshop-calendar"), {"month": "../../bad"})
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("role", list(Membership.Role))
 def test_all_workshop_roles_can_create_tenant_bound_native_workshop(workshop_management, role):
     organization, users, _, other_workshop = workshop_management

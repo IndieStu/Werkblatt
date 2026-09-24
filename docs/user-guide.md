@@ -55,6 +55,12 @@ Ansicht ausblenden und über den Filter „Ausgeblendet“ wieder einblenden. Da
 Ausblenden löscht weder Workshop noch Dokumentation und hebt eine bestehende
 Dokumentationspflicht nicht auf.
 
+Über „Kalender“ wechselt die Workshopübersicht in eine Monatsansicht. Ein Klick
+auf einen dokumentationspflichtigen Workshop öffnet direkt seine Dokumentation.
+Die Zustände offen, Entwurf, abgeschlossen, nicht erforderlich und abgesagt
+bleiben sichtbar; auf kleinen Bildschirmen wird der Monat als kompakte Agenda
+dargestellt.
+
 Nur Organization Admins dürfen für einen einzelnen Workshop „Keine
 Dokumentation erforderlich“ festlegen. Dafür ist eine Begründung Pflicht; Person
 und Zeitpunkt werden gespeichert. Solange die Entscheidung gilt, kann keine
