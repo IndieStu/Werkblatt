@@ -34,5 +34,9 @@ uv run pip-audit
 ```
 
 Bei neuen oder aktualisierten Abhängigkeiten gilt zusätzlich
-`docs/dependency-policy.md`. Änderungen dürfen keine Secrets, produktiven
-Personendaten oder organisationsbezogenen Runtime-Assets enthalten.
+`docs/dependency-policy.md`. Eine Änderung an `uv.lock` muss mit einem bewusst
+neu geprüften `THIRD_PARTY_LICENSES.md` einschließlich aktualisierter
+`THIRD_PARTY_LICENSES.lock.sha256`
+eingereicht werden; CI weist veraltete Baselines ab. Änderungen dürfen keine
+Secrets, produktiven Personendaten oder organisationsbezogenen Runtime-Assets
+enthalten.

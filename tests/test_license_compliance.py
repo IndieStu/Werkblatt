@@ -62,11 +62,41 @@ def test_license_and_brand_boundaries_are_documented():
         "BRAND_POLICY.md",
         "NOTICE.md",
         "THIRD_PARTY_LICENSES.md",
+        "THIRD_PARTY_LICENSES.lock.sha256",
+        "CONTAINER_BASE_IMAGES.lock",
         "licenses/Inter-OFL-1.1.txt",
     }
     assert all((root / path).is_file() for path in required)
     assert "erfasst das\nWerkblatt Brand System nicht" in (root / "BRAND_POLICY.md").read_text()
     assert "SIL OPEN FONT LICENSE Version 1.1" in (root / "licenses/Inter-OFL-1.1.txt").read_text()
+
+
+def test_third_party_inventory_matches_locked_dependencies():
+    root = Path(settings.BASE_DIR)
+    baseline = (root / "THIRD_PARTY_LICENSES.lock.sha256").read_text().strip()
+    documented = re.fullmatch(r"([0-9a-f]{64})  uv\.lock", baseline)
+
+    assert documented is not None, "Ungültige THIRD_PARTY_LICENSES.lock.sha256"
+    assert documented.group(1) == hashlib.sha256((root / "uv.lock").read_bytes()).hexdigest(), (
+        "uv.lock wurde geändert. THIRD_PARTY_LICENSES.md muss neu geprüft und sein "
+        "Prüfhash aktualisiert werden. Anleitung: docs/dependency-policy.md"
+    )
+
+
+def test_container_base_images_match_reviewed_baseline():
+    root = Path(settings.BASE_DIR)
+    dockerfile_images = [
+        line.split()[1]
+        for line in (root / "Dockerfile").read_text().splitlines()
+        if line.startswith("FROM ")
+    ]
+    reviewed_images = (root / "CONTAINER_BASE_IMAGES.lock").read_text().splitlines()
+
+    assert dockerfile_images == reviewed_images, (
+        "Dockerfile-Basisimages weichen von der geprüften Baseline ab. "
+        "Anleitung: docs/dependency-policy.md"
+    )
+    assert all("@sha256:" in image for image in dockerfile_images)
 
 
 def test_source_distribution_has_an_explicit_release_boundary():

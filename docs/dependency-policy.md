@@ -27,6 +27,44 @@ CycloneDX-Stückliste der Python-Umgebung; Trivy erzeugt zusätzlich eine
 CycloneDX-Stückliste des tatsächlich gebauten Images. Releaseartefakte müssen
 beide SBOMs, Image-Digest, Werkblatt-Commit und Third-Party-Hinweise enthalten.
 
+Zusätzlich enthält `THIRD_PARTY_LICENSES.lock.sha256` den SHA-256 der geprüften
+`uv.lock`. Der schnelle, netzwerkfreie CI-Test schlägt bei jeder
+Lockdatei-Änderung fehl, bis das
+vollständige transitive Inventar erneut geprüft und die Baseline bewusst
+aktualisiert wurde. Das Gate erkennt Drift und erzwingt einen Review; es
+beweist nicht selbst die Korrektheit der Lizenzzuordnung. Der Ablauf für
+Dependency-Updates ist:
+
+```bash
+uv sync --frozen --all-extras
+uvx --from pip-licenses==5.5.5 pip-licenses --python=.venv/bin/python \
+  --with-urls --with-license-file --no-license-path
+uv run pip-audit
+shasum -a 256 uv.lock
+```
+
+Die Ergebnisse werden gegen Paketmetadaten und die tatsächlich ausgelieferten
+Lizenzdateien geprüft. Erst danach werden `THIRD_PARTY_LICENSES.md` und dessen
+Lock-SHA aktualisiert. Ein bloßes Ersetzen des Hashes ohne diese inhaltliche
+Prüfung erfüllt die Policy nicht.
+
+`CONTAINER_BASE_IMAGES.lock` bildet analog die geprüften `FROM`-Referenzen des
+Dockerfiles ab. Alle Basisimages müssen einen Multi-Arch-SHA-256-Digest tragen.
+Eine Änderung an Image, Version oder Digest lässt CI fehlschlagen, bis
+Vulnerabilities, Paket-/Lizenzinventar und Upstream-Herkunft geprüft und die
+Baseline bewusst aktualisiert wurden.
+
+Der langsamere CI-Pfad erzeugt bei jedem PR und zusätzlich wöchentlich einen
+maschinenlesbaren `pip-licenses`-Report sowie Python- und Container-SBOMs als
+Artefakte. Rückwirkende Änderungen an Upstream-Metadaten werden dadurch sichtbar,
+auch wenn sich `uv.lock` nicht geändert hat.
+
+Die Dateien `THIRD_PARTY_LICENSES.md`,
+`THIRD_PARTY_LICENSES.lock.sha256`, `CONTAINER_BASE_IMAGES.lock`, `Dockerfile`
+und diese Policy haben einen Code Owner. Das erzwingt auf GitHub nur dann eine
+Freigabe durch den Code Owner, wenn für `main` zusätzlich „Require review from
+Code Owners“ in der Branchschutzregel aktiviert ist.
+
 Automatische Werkzeuge dürfen keine fremden Copyright-Header überschreiben,
 keine Lizenztexte ersetzen und vorbehaltene Brand-Assets nicht pauschal als
 AGPL kennzeichnen.

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "23 4 * * 1"
 
 permissions:
   contents: read
@@ -91,10 +93,21 @@ jobs:
       - run: uv run pip-audit
       - name: Create Python CycloneDX SBOM
         run: uv run pip-audit --format cyclonedx-json --output python-sbom.cdx.json
+      - name: Create Python license metadata report
+        run: >-
+          uvx --from pip-licenses==5.5.5 pip-licenses
+          --python=.venv/bin/python
+          --format=json
+          --with-urls
+          --output-file=python-licenses.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: python-sbom
           path: python-sbom.cdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: python-license-metadata
+          path: python-licenses.json
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -135,6 +148,8 @@ jobs:
             'test -r /usr/share/doc/werkblatt/LICENSE && \
              test -r /usr/share/doc/werkblatt/NOTICE.md && \
              test -r /usr/share/doc/werkblatt/THIRD_PARTY_LICENSES.md && \
+             test -r /usr/share/doc/werkblatt/THIRD_PARTY_LICENSES.lock.sha256 && \
+             test -r /usr/share/doc/werkblatt/CONTAINER_BASE_IMAGES.lock && \
              test -r /usr/share/doc/werkblatt/BRAND_POLICY.md && \
              test -r /usr/share/doc/werkblatt/licenses/Inter-OFL-1.1.txt'
       - run: mkdir -p qa-output && chmod 0777 qa-output

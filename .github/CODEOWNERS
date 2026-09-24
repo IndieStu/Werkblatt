@@ -1,0 +1,8 @@
+# Änderungen an Lizenzinventar und geprüften Fremdkomponenten benötigen eine
+# bewusste fachliche Prüfung. Die GitHub-Branchregel muss Code-Owner-Reviews
+# zusätzlich verpflichtend machen.
+/THIRD_PARTY_LICENSES.md @IndieStu
+/THIRD_PARTY_LICENSES.lock.sha256 @IndieStu
+/CONTAINER_BASE_IMAGES.lock @IndieStu
+/Dockerfile @IndieStu
+/docs/dependency-policy.md @IndieStu
