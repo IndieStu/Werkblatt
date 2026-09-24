@@ -169,3 +169,108 @@ def test_workshop_list_filters_status_search_dates_and_paginates(workshop_manage
     workshop.save(update_fields=["visibility"])
     response = client.get(reverse("workshop-list") + "?visibility=invalid")
     assert workshop.title not in response.content.decode()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", list(Membership.Role))
+def test_all_workshop_roles_can_create_tenant_bound_native_workshop(workshop_management, role):
+    organization, users, _, other_workshop = workshop_management
+    client = Client()
+    client.force_login(users[role])
+    list_response = client.get(reverse("workshop-list"))
+    assert reverse("workshop-create") in list_response.content.decode()
+
+    starts_at = timezone.localtime(timezone.now() + timedelta(days=2)).replace(
+        second=0, microsecond=0
+    )
+    ends_at = starts_at + timedelta(hours=3)
+    response = client.post(
+        reverse("workshop-create"),
+        {
+            "title": "Manueller Klimaworkshop",
+            "starts_at": starts_at.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": ends_at.strftime("%Y-%m-%dT%H:%M"),
+            "location": "Werkraum",
+            "organization": str(other_workshop.organization_id),
+            "source_type": Workshop.SourceType.PRETIX,
+            "documentation_requirement": Workshop.DocumentationRequirement.NOT_REQUIRED,
+        },
+    )
+
+    workshop = Workshop.objects.get(title="Manueller Klimaworkshop")
+    assert response.status_code == 302
+    assert response.url == reverse("documentation-detail", args=[workshop.id])
+    assert workshop.organization == organization
+    assert workshop.source_type == Workshop.SourceType.NATIVE
+    assert workshop.external_reference == ""
+    assert workshop.documentation_requirement == Workshop.DocumentationRequirement.REQUIRED
+    assert workshop.location == "Werkraum"
+
+
+@pytest.mark.django_db
+def test_native_workshop_form_validates_dates_and_requires_membership(workshop_management):
+    _, users, _, _ = workshop_management
+    client = Client()
+    outsider = get_user_model().objects.create_user(username="outsider")
+    client.force_login(outsider)
+    assert client.get(reverse("workshop-create")).status_code == 403
+
+    client.force_login(users[Membership.Role.WORKSHOP_USER])
+    starts_at = timezone.localtime(timezone.now() + timedelta(days=2)).replace(
+        second=0, microsecond=0
+    )
+    response = client.post(
+        reverse("workshop-create"),
+        {
+            "title": "Ungültige Zeit",
+            "starts_at": starts_at.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": (starts_at - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M"),
+            "location": "",
+        },
+    )
+    assert response.status_code == 200
+    assert "Das Ende muss nach dem Beginn liegen." in response.content.decode()
+    assert not Workshop.objects.filter(title="Ungültige Zeit").exists()
+
+
+@pytest.mark.django_db
+def test_native_workshop_edit_is_tenant_scoped_and_rejects_pretix(workshop_management):
+    organization, users, pretix_workshop, _ = workshop_management
+    native = Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.NATIVE,
+        title="Manuell",
+        starts_at=timezone.now() + timedelta(days=1),
+    )
+    other = Organization.objects.get(slug="other")
+    foreign_native = Workshop.objects.create(
+        organization=other,
+        source_type=Workshop.SourceType.NATIVE,
+        title="Fremd manuell",
+        starts_at=timezone.now() + timedelta(days=1),
+    )
+    client = Client()
+    client.force_login(users[Membership.Role.WORKSHOP_USER])
+
+    assert client.get(reverse("workshop-edit", args=[pretix_workshop.id])).status_code == 404
+    assert client.get(reverse("workshop-edit", args=[foreign_native.id])).status_code == 404
+
+    starts_at = timezone.localtime(timezone.now() + timedelta(days=4)).replace(
+        second=0, microsecond=0
+    )
+    response = client.post(
+        reverse("workshop-edit", args=[native.id]),
+        {
+            "title": "Manuell korrigiert",
+            "starts_at": starts_at.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": "",
+            "location": "Neuer Ort",
+            "source_type": Workshop.SourceType.PRETIX,
+        },
+    )
+    assert response.status_code == 302
+    native.refresh_from_db()
+    assert native.title == "Manuell korrigiert"
+    assert native.location == "Neuer Ort"
+    assert native.source_type == Workshop.SourceType.NATIVE
+    assert native.organization == organization

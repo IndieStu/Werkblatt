@@ -8,6 +8,7 @@ Organisation.
 | Fähigkeit | Workshop User | Editor | Organization Admin |
 |---|---:|---:|---:|
 | Workshops sehen und dokumentieren | ja | ja | ja |
+| Manuelle Workshops anlegen und bearbeiten | ja | ja | ja |
 | Dokumentationen finalisieren und Vorlagen verwenden | ja | ja | ja |
 | Organisationsstatistik und aggregierten CSV-Export sehen | ja | ja | ja |
 | Workshops reversibel aus- und einblenden | nein | ja | ja |

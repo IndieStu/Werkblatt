@@ -32,6 +32,13 @@ werden erst auswählbar, wenn ihre Übersetzung vollständig bereitsteht.
 
 ## Workshops und Dokumentationen
 
+Mit „Workshop anlegen“ können Workshop User, Editor und Organization Admins
+Veranstaltungen erfassen, die nicht aus Pretix stammen. Titel und Beginn sind
+Pflicht; Ende und Ort können ergänzt werden. Werkblatt öffnet anschließend
+direkt die neue Dokumentation. Manuell angelegte Workshops lassen sich über
+„Workshop bearbeiten“ korrigieren. Pretix-Workshops werden weiterhin durch die
+Integration gepflegt und können dort nicht bearbeitet werden.
+
 Ein Workshop führt zur zugehörigen Dokumentation. Dort können berechtigte
 Nutzer der eigenen Organisation Entwurfsdaten, Teilnehmende, Anwesenheiten und
 weitere vorlagenabhängige Angaben bearbeiten.

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{% if workshop %}Workshop bearbeiten{% else %}Workshop anlegen{% endif %} - Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'workshop-list' %}">Workshops</a> / {% if workshop %}Bearbeiten{% else %}Neu{% endif %}</nav>
+<p class="eyebrow">Werkblatt-Workshop</p>
+<h1>{% if workshop %}Workshop bearbeiten{% else %}Workshop anlegen{% endif %}</h1>
+<p class="lead">Für Veranstaltungen, die nicht aus Pretix importiert werden.</p>
+<section class="content-card">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="form-actions">
+      <a class="button secondary" href="{% url 'workshop-list' %}">Abbrechen</a>
+      <button class="button" type="submit">{% if workshop %}Änderungen speichern{% else %}Workshop anlegen{% endif %}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
