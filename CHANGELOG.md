@@ -4,7 +4,7 @@ Alle wesentlichen Änderungen an Werkblatt werden in dieser Datei dokumentiert.
 Das Projekt verwendet für Tags Semantic Versioning und für das Python-Paket die
 entsprechende PEP-440-Schreibweise.
 
-## 0.1.0rc1 – unveröffentlicht
+## 0.1.0rc1 – 2026-09-24
 
 Erster formal versionierter Release Candidate für einen kontrollierten,
 selbst gehosteten Single-Tenant-Pilotbetrieb.
