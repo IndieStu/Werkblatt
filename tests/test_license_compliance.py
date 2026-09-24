@@ -45,6 +45,15 @@ def test_project_license_metadata_and_official_text_are_present():
     )
 
 
+def test_project_version_matches_lockfile():
+    root = Path(settings.BASE_DIR)
+    metadata = tomllib.loads((root / "pyproject.toml").read_text())
+    lock = tomllib.loads((root / "uv.lock").read_text())
+    locked_project = next(package for package in lock["package"] if package["name"] == "werkblatt")
+
+    assert metadata["project"]["version"] == locked_project["version"]
+
+
 def test_direct_dependency_inventory_requires_conscious_review():
     metadata = tomllib.loads((Path(settings.BASE_DIR) / "pyproject.toml").read_text())
     runtime = {_dependency_name(item) for item in metadata["project"]["dependencies"]}
@@ -103,7 +112,14 @@ def test_source_distribution_has_an_explicit_release_boundary():
     metadata = tomllib.loads((Path(settings.BASE_DIR) / "pyproject.toml").read_text())
     included = set(metadata["tool"]["hatch"]["build"]["targets"]["sdist"]["include"])
 
-    assert {"/src", "/static", "/templates", "/LICENSE", "/BRAND_POLICY.md"} <= included
+    assert {
+        "/src",
+        "/static",
+        "/templates",
+        "/LICENSE",
+        "/BRAND_POLICY.md",
+        "/CHANGELOG.md",
+    } <= included
     assert "/output" not in included
     assert "/var" not in included
     assert "/db.sqlite3" not in included

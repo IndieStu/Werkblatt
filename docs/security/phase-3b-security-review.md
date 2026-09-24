@@ -53,7 +53,11 @@ GitHub Actions [CI-Lauf 11](https://github.com/IndieStu/Werkblatt/actions/runs/3
 - Entzug einer Authentik-Gruppe beendet eine bereits laufende Django-Session nicht sofort. Vor Hosted-Multi-Tenant-Betrieb sind kurze Session-Laufzeiten oder Backchannel-Logout/Session-Revocation festzulegen.
 - PDF-Rendering läuft synchron im Gunicorn-Worker. Eingabelängen, URL-Allowlist, 30-Sekunden-Worker-Timeout und Containerressourcen begrenzen das Risiko; vor hohem öffentlichen Volumen gehört Rendering in einen separat limitierten Worker.
 - HSTS `includeSubDomains` und Preload werden bewusst in der jeweiligen Zielinfrastruktur entschieden. Deshalb meldet `check --deploy` nachvollziehbar W005 und W021; keine Warnung wird mehr unterdrückt.
-- GitHub Actions sind auf feste Commit-SHAs gepinnt. Die Python-, PostgreSQL- und uv-Container-Basisimages verwenden weiterhin nachvollziehbare Versionstags statt Plattform-Multiarch-Digests; deren Digest-Pinning und turnusmäßige Renovate-/Dependabot-Aktualisierung ist vor einem formalen Release mit höherem Supply-Chain-Assurance-Level festzulegen.
+- GitHub Actions und Container-Basisimages sind auf feste Commit- beziehungsweise
+  Multi-Arch-SHA-256-Digests gepinnt. Eine geprüfte Baseline der Dockerfile-
+  `FROM`-Referenzen und der `uv.lock` wird durch CI gegen Drift geschützt.
+  Aktualisierungen benötigen weiterhin Vulnerability-, SBOM- und
+  Lizenzprüfung; automatische Updatevorschläge ersetzen diese Freigabe nicht.
 
 ## Hosted-Multi-Tenant vor Produktivfreigabe
 
