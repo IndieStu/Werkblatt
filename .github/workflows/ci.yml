@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232
         env:
           POSTGRES_DB: werkblatt_test
           POSTGRES_USER: werkblatt
@@ -89,6 +89,12 @@ jobs:
           OIDC_CLIENT_SECRET: "ci-only-oidc-secret"
           OIDC_ALLOWED_GROUPS: "Werkblatt Users"
       - run: uv run pip-audit
+      - name: Create Python CycloneDX SBOM
+        run: uv run pip-audit --format cyclonedx-json --output python-sbom.cdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: python-sbom
+          path: python-sbom.cdx.json
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -117,6 +123,20 @@ jobs:
           load: true
           push: false
           tags: werkblatt:ci
+          build-args: |
+            WERKBLATT_BUILD_VERSION=${{ github.sha }}
+            WERKBLATT_SOURCE_CODE_URL=${{ github.server_url }}/${{ github.repository }}/tree/${{ github.sha }}
+      - name: Check image license metadata and notices
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect werkblatt:ci --format '{{ index .Config.Labels "org.opencontainers.image.licenses" }}')" = "AGPL-3.0-or-later"
+          test "$(docker image inspect werkblatt:ci --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "${GITHUB_SHA}"
+          docker run --rm --entrypoint sh werkblatt:ci -c \
+            'test -r /usr/share/doc/werkblatt/LICENSE && \
+             test -r /usr/share/doc/werkblatt/NOTICE.md && \
+             test -r /usr/share/doc/werkblatt/THIRD_PARTY_LICENSES.md && \
+             test -r /usr/share/doc/werkblatt/BRAND_POLICY.md && \
+             test -r /usr/share/doc/werkblatt/licenses/Inter-OFL-1.1.txt'
       - run: mkdir -p qa-output && chmod 0777 qa-output
       - run: >-
           docker run --rm
@@ -204,6 +224,18 @@ jobs:
       - run: uv sync --frozen --all-extras
       - run: uv run python tests/verify_container_pdfs.py qa-output/run-one qa-output/run-two
       - uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # v0.32.0
+        name: Create container CycloneDX SBOM
+        with:
+          version: v0.73.0
+          image-ref: werkblatt:ci
+          format: cyclonedx
+          output: container-sbom.cdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: container-sbom
+          path: container-sbom.cdx.json
+      - uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # v0.32.0
+        name: Scan container for critical vulnerabilities
         with:
           version: v0.73.0
           image-ref: werkblatt:ci

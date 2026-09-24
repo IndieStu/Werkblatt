@@ -57,7 +57,8 @@ def test_saved_theme_is_rendered_on_html_root(settings_user, theme):
     assert response.status_code == 200
     assert f'data-theme="{theme}"'.encode() in response.content
     assert b"Nutzungsanleitung" in response.content
-    assert b"Quellcode auf GitHub" in response.content
+    assert b"Quellcode dieser Version" in response.content
+    assert b"AGPL-3.0-or-later" in response.content
 
 
 @pytest.mark.django_db
