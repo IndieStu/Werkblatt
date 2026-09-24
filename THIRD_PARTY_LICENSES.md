@@ -1,13 +1,14 @@
 # Drittkomponenten und Lizenzhinweise
 
 Stand: 24. September 2026
-Bezugsstand: `uv.lock` aus Werkblatt-Commit
-`4e28a642e2e46df38ad42ffc25d1d7d750d56383`
+Bezugsstand: `uv.lock`
+SHA-256: `877a33d1026713ca9773d42b0eca9736b9af2273efa4572fc313388755766e74`
 
 Diese Übersicht ändert keine Lizenz eines Bestandteils. Maßgeblich bleiben die
 mit den jeweiligen Paketen ausgelieferten Lizenz- und Copyrightdateien. Das
 Releaseverfahren muss die Liste für jeden neuen Lock- und Containerstand neu
-erzeugen und prüfen.
+erzeugen und prüfen. CI vergleicht den hier dokumentierten SHA-256 mit der
+tatsächlichen Lockdatei und verhindert dadurch unbemerkte Drift.
 
 ## Direkt verwendete Python-Pakete
 

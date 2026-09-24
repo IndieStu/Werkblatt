@@ -27,6 +27,23 @@ CycloneDX-Stückliste der Python-Umgebung; Trivy erzeugt zusätzlich eine
 CycloneDX-Stückliste des tatsächlich gebauten Images. Releaseartefakte müssen
 beide SBOMs, Image-Digest, Werkblatt-Commit und Third-Party-Hinweise enthalten.
 
+Zusätzlich enthält `THIRD_PARTY_LICENSES.md` den SHA-256 der geprüften
+`uv.lock`. Der CI-Test schlägt bei jeder Lockdatei-Änderung fehl, bis das
+vollständige transitive Inventar erneut geprüft und die Baseline bewusst
+aktualisiert wurde. Der Ablauf für Dependency-Updates ist:
+
+```bash
+uv sync --frozen --all-extras
+uv run --with pip-licenses pip-licenses --with-urls --with-license-file --no-license-path
+uv run pip-audit
+shasum -a 256 uv.lock
+```
+
+Die Ergebnisse werden gegen Paketmetadaten und die tatsächlich ausgelieferten
+Lizenzdateien geprüft. Erst danach werden `THIRD_PARTY_LICENSES.md` und dessen
+Lock-SHA aktualisiert. Ein bloßes Ersetzen des Hashes ohne diese inhaltliche
+Prüfung erfüllt die Policy nicht.
+
 Automatische Werkzeuge dürfen keine fremden Copyright-Header überschreiben,
 keine Lizenztexte ersetzen und vorbehaltene Brand-Assets nicht pauschal als
 AGPL kennzeichnen.

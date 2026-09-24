@@ -69,6 +69,18 @@ def test_license_and_brand_boundaries_are_documented():
     assert "SIL OPEN FONT LICENSE Version 1.1" in (root / "licenses/Inter-OFL-1.1.txt").read_text()
 
 
+def test_third_party_inventory_matches_locked_dependencies():
+    root = Path(settings.BASE_DIR)
+    inventory = (root / "THIRD_PARTY_LICENSES.md").read_text()
+    documented = re.search(r"^SHA-256: `([0-9a-f]{64})`$", inventory, re.MULTILINE)
+
+    assert documented is not None, "THIRD_PARTY_LICENSES.md benötigt den uv.lock-SHA-256"
+    assert documented.group(1) == hashlib.sha256((root / "uv.lock").read_bytes()).hexdigest(), (
+        "uv.lock wurde geändert. THIRD_PARTY_LICENSES.md muss neu geprüft und sein "
+        "SHA-256 aktualisiert werden."
+    )
+
+
 def test_source_distribution_has_an_explicit_release_boundary():
     metadata = tomllib.loads((Path(settings.BASE_DIR) / "pyproject.toml").read_text())
     included = set(metadata["tool"]["hatch"]["build"]["targets"]["sdist"]["include"])
