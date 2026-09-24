@@ -31,6 +31,17 @@ den Bereich „Hilfe & Projekt“ in den persönlichen Einstellungen. Standardm�
 verweisen sie auf das öffentliche Werkblatt-Repository, seine Nutzungsanleitung
 und den Issue-Tracker.
 
+`WERKBLATT_BUILD_VERSION` enthält für produktive Builds den Release-Tag und den
+kurzen Commit. `WERKBLATT_SOURCE_CODE_URL` muss auf den korrespondierenden
+Quellstand genau dieses Builds zeigen, nicht allgemein auf `main`. Die Anwendung
+zeigt diesen Link zusammen mit `WERKBLATT_LICENSE_EXPRESSION` und
+`WERKBLATT_LICENSE_URL` im Footer und unter „Hilfe & Projekt“ an. Der offizielle
+Container erhält dieselben Angaben als OCI-Labels und Build-Umgebungswerte.
+
+Der Programmcode steht unter `AGPL-3.0-or-later`. Das Werkblatt Brand System ist
+hiervon ausgenommen und darf ohne gesonderte Erlaubnis nicht weitergegeben oder
+als Kennzeichnung eines Forks verwendet werden; siehe `BRAND_POLICY.md`.
+
 ## Authentik / OIDC
 
 Die Anwendung ist für einen eigenen Authentik OAuth2/OIDC-Provider mit Application-Slug `werkblatt` vorbereitet:

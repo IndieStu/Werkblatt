@@ -433,6 +433,12 @@ Jede Phase endet mit Tests, nachvollziehbarem Zwischenstand und Freigabe. Phase 
 
 ## 19. Lizenzvorschlag - Entscheidung erforderlich
 
+> **Spätere Entscheidung vom 24. September 2026:** Der Werkblatt-Programmcode
+> ist unter `AGPL-3.0-or-later` lizenziert. Das Werkblatt Brand System bleibt
+> davon ausgenommen und vollständig vorbehalten. Maßgeblich sind
+> `docs/licensing.md`, `LICENSE` und `BRAND_POLICY.md`. Die folgenden Absätze
+> dokumentieren den damaligen Phase-0-Entscheidungsstand.
+
 Zwei sinnvolle Richtungen:
 
 - **AGPL-3.0-or-later:** Änderungen, die als Netzwerkdienst angeboten werden, müssen den Nutzenden als Quellcode zugänglich gemacht werden. Das schützt den offenen Charakter auch im Hosted-Betrieb, kann aber kommerzielle Integratoren abschrecken und erfordert sorgfältige Kompatibilitätsprüfung.

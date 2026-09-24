@@ -30,4 +30,20 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
 
 ## Lizenz
 
-AGPL-3.0-or-later und EUPL-1.2-or-later werden geprüft. Die endgültige Software- und Markenlizenzentscheidung ist noch nicht getroffen; daher liegt noch keine `LICENSE`-Datei bei. Diese Entscheidung einschließlich Abhängigkeits- und Rechteprüfung ist ein hartes Gate vor dem ersten öffentlichen Release.
+Der Werkblatt-Programmcode steht unter der **GNU Affero General Public License
+Version 3 oder jeder späteren Version** (`AGPL-3.0-or-later`). Der vollständige
+Lizenztext steht in [`LICENSE`](LICENSE).
+
+Das Werkblatt Brand System ist ausdrücklich nicht Bestandteil dieser
+Lizenzfreigabe. Name, Logos, Signet, Claim-Lockups, Icons, Brand-Tokens und
+Login-Hintergrund bleiben vorbehalten. Die verbindliche Abgrenzung und die
+betroffenen Pfade stehen in [`BRAND_POLICY.md`](BRAND_POLICY.md).
+
+Inter und weitere Drittkomponenten bleiben unter ihren jeweiligen Lizenzen.
+Eine Übersicht steht in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md),
+die Projekt- und Rechtezuordnung in [`NOTICE.md`](NOTICE.md).
+
+Die dokumentierte Entscheidung und das technische Kompatibilitätsaudit stehen
+in [`docs/licensing.md`](docs/licensing.md). Beiträge folgen
+[`CONTRIBUTING.md`](CONTRIBUTING.md) und werden unter derselben Lizenz mit DCO
+Sign-off eingereicht.

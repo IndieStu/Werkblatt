@@ -1,5 +1,9 @@
 # Brand Assets
 
+Die hier bezeichneten Werkblatt-Brand-Assets sind **nicht** unter der
+AGPL-Softwarelizenz freigegeben. Copyright © 2026 Timo Hecken, alle Rechte
+vorbehalten. Maßgeblich ist `BRAND_POLICY.md`.
+
 Werkblatt verwendet das freigegebene **Werkblatt Brand System 1.0.1**. Die geometrischen Master unter `source-master/` wurden nicht in dieses Repository übernommen und nicht verändert. Die folgenden Produktionsassets wurden am 28. August 2026 byte-identisch übernommen.
 
 | Ziel | Rolle | SHA-256 |

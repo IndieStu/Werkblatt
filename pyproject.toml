@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,7 +7,13 @@ name = "werkblatt"
 version = "0.1.0"
 description = "Open-source workshop documentation for associations and educational organizations."
 readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.14"
+authors = [{ name = "Timo Hecken" }]
+classifiers = [
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+]
 dependencies = [
   "Authlib>=1.6,<2",
   "CairoSVG>=2.8,<3",
@@ -35,6 +41,32 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/werkblatt"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/.dockerignore",
+  "/.env.example",
+  "/.github",
+  "/.gitignore",
+  "/BRAND_POLICY.md",
+  "/Dockerfile",
+  "/LICENSE",
+  "/NOTICE.md",
+  "/README.md",
+  "/THIRD_PARTY_LICENSES.md",
+  "/compose.yaml",
+  "/CONTRIBUTING.md",
+  "/config",
+  "/docs",
+  "/licenses",
+  "/manage.py",
+  "/pyproject.toml",
+  "/src",
+  "/static",
+  "/templates",
+  "/tests",
+  "/uv.lock",
+]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.test_settings"

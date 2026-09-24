@@ -15,7 +15,8 @@
   <h2>Hilfe &amp; Projekt</h2>
   <ul class="link-list">
     <li><a href="{{ user_documentation_url }}" target="_blank" rel="noopener noreferrer">Nutzungsanleitung</a></li>
-    <li><a href="{{ software_repository_url }}" target="_blank" rel="noopener noreferrer">Quellcode auf GitHub</a></li>
+    <li><a href="{{ software_source_code_url }}" target="_blank" rel="noopener noreferrer">Quellcode dieser Version{% if software_build_version != 'development' %} ({{ software_build_version }}){% endif %}</a></li>
+    <li><a href="{{ software_license_url }}" target="_blank" rel="noopener noreferrer">Lizenz: {{ software_license_expression }}</a></li>
     <li><a href="{{ issue_tracker_url }}" target="_blank" rel="noopener noreferrer">Problem melden</a></li>
   </ul>
 </section>
