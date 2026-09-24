@@ -43,6 +43,7 @@ def _latest_revisions(organization_id, period: StatisticsPeriod):
             documentation__workshop__documentation_requirement=(
                 Workshop.DocumentationRequirement.REQUIRED
             ),
+            documentation__workshop__lifecycle_status=Workshop.LifecycleStatus.ACTIVE,
             id=Subquery(latest_revision_id),
         )
         .select_related("documentation", "documentation__workshop")
@@ -67,9 +68,13 @@ def _decimal_display(value: Decimal) -> str:
 
 def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dict:
     start, end = _period_bounds(period)
-    workshops = Workshop.objects.for_organization(organization_id).filter(
+    period_workshops = Workshop.objects.for_organization(organization_id).filter(
         starts_at__range=(start, end)
     )
+    cancelled_workshop_count = period_workshops.filter(
+        lifecycle_status=Workshop.LifecycleStatus.CANCELLED
+    ).count()
+    workshops = period_workshops.filter(lifecycle_status=Workshop.LifecycleStatus.ACTIVE)
     workshop_count = workshops.count()
     required_workshop_count = workshops.filter(
         documentation_requirement=Workshop.DocumentationRequirement.REQUIRED
@@ -144,6 +149,7 @@ def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dic
         "finalized_workshops": len(latest_revisions),
         "without_finalization": required_workshop_count - len(latest_revisions),
         "not_required_workshops": not_required_workshop_count,
+        "cancelled_workshops": cancelled_workshop_count,
         "correction_pending": correction_pending,
         "registered": registered,
         "present_registered": totals["present_registered"],

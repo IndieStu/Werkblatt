@@ -75,11 +75,33 @@ Ein dedizierter Team-API-Token soll nur lesenden Zugriff auf Organizer, Events, 
 
 Phase 1 verwendet synthetische API-Fixtures. Reale Event-IDs sind erst für den integrierten Provider-Test erforderlich.
 
-Nach lokaler Secret-Konfiguration wird der Import bewusst manuell ausgelöst:
+Nach lokaler Secret-Konfiguration kann ein begrenzter Testimport bewusst
+manuell ausgelöst werden:
 
 ```bash
 python manage.py sync_pretix --workshop-reference SYNTHETIC-TEST-EVENT --include-test-events
 ```
+
+Der reguläre, idempotente Abgleich verwendet Stichtag und Veranstaltungsregeln:
+
+```bash
+python manage.py sync_pretix
+```
+
+Produktiv soll der Betreiber diesen Befehl über den vorhandenen Scheduler der
+Deployment-Plattform regelmäßig starten, beispielsweise alle 15 Minuten mit
+Überlappungsschutz. Werkblatt bringt bewusst keinen zweiten eingebauten
+Scheduler oder Worker-Stack mit. Ein fehlgeschlagener Lauf muss ungleich null
+enden und über das betriebliche Monitoring sichtbar werden.
+
+Der Abgleich markiert inaktive, nicht öffentliche oder aus dem abgefragten
+Pretix-Umfang entfernte Termine als abgesagt, statt sie zu löschen. Bewusst
+ausgeschlossene Reihen und Testevents werden nicht durch einen regulären Lauf
+umklassifiziert. Wird ein Termin in Pretix wieder aktiviert, setzt der nächste
+Abgleich ihn in Werkblatt ebenfalls wieder auf aktiv. Abgesagte Workshops
+können nicht dokumentiert oder erneut geöffnet werden; vorhandene Revisionen
+bleiben unverändert erhalten und werden nicht in Durchführungs- oder
+Teilnahmestatistiken eingerechnet.
 
 Die HTTP-Abfragen laufen vor der kurzen Datenbanktransaktion. Ein langsames oder nicht erreichbares Pretix hält daher keine lang laufende DB-Transaktion offen.
 

@@ -98,6 +98,48 @@ def test_new_documentation_imports_registrations_and_proposes_current_user(docum
 
 
 @pytest.mark.django_db
+def test_cancelled_workshop_rejects_view_save_finalize_and_reopen(documentation_setup, settings):
+    data = documentation_setup
+    documentation = data["documentation"]
+    data["workshop"].lifecycle_status = Workshop.LifecycleStatus.CANCELLED
+    data["workshop"].save(update_fields=["lifecycle_status"])
+    settings.DEFAULT_ORGANIZATION_SLUG = data["organization"].slug
+    client = Client()
+    client.force_login(data["user"])
+    assert (
+        client.get(reverse("documentation-detail", args=[data["workshop"].id])).status_code == 403
+    )
+
+    with pytest.raises(ValidationError, match="abgesagten Workshop"):
+        save_draft(
+            documentation_id=documentation.id,
+            organization_id=data["organization"].id,
+            user=data["user"],
+            expected_version=documentation.version,
+            conducted_as_planned=True,
+            report="",
+            participants=[],
+            facilitators=[],
+        )
+    with pytest.raises(ValidationError, match="abgesagten Workshop"):
+        finalize_documentation(
+            documentation_id=documentation.id,
+            organization_id=data["organization"].id,
+            user=data["user"],
+            expected_version=documentation.version,
+        )
+    documentation.status = Documentation.Status.FINALIZED
+    documentation.save(update_fields=["status"])
+    with pytest.raises(ValidationError, match="abgesagten Workshop"):
+        reopen_documentation(
+            documentation_id=documentation.id,
+            organization_id=data["organization"].id,
+            user=data["user"],
+            expected_version=documentation.version,
+        )
+
+
+@pytest.mark.django_db
 def test_statistics_are_mathematically_consistent(documentation_setup):
     data = documentation_setup
     documentation = data["documentation"]

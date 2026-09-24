@@ -1,4 +1,5 @@
 from .client import PretixClient
 from .provider import PretixWorkshopProvider
+from .types import ExternalWorkshopBatch
 
-__all__ = ["PretixClient", "PretixWorkshopProvider"]
+__all__ = ["ExternalWorkshopBatch", "PretixClient", "PretixWorkshopProvider"]

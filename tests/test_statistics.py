@@ -103,6 +103,15 @@ def statistics_setup(db, settings):
         title="Noch nicht abgeschlossen",
         starts_at=aware(2026, 6, 10),
     )
+    Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="cancelled:1",
+        parent_external_reference="cancelled",
+        title="Abgesagter Workshop",
+        starts_at=aware(2026, 7, 10),
+        lifecycle_status=Workshop.LifecycleStatus.CANCELLED,
+    )
     foreign_workshop = Workshop.objects.create(
         organization=other,
         source_type=Workshop.SourceType.NATIVE,
@@ -137,6 +146,7 @@ def test_statistics_use_only_latest_revision_and_report_open_correction(statisti
     assert result["workshops"] == 2
     assert result["finalized_workshops"] == 1
     assert result["without_finalization"] == 1
+    assert result["cancelled_workshops"] == 1
     assert result["correction_pending"] == 1
     assert result["registered"] == 12
     assert result["present_registered"] == 9

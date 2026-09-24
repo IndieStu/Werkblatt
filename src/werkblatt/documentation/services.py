@@ -29,6 +29,11 @@ class ConcurrentDocumentationUpdate(ValidationError):
     pass
 
 
+def _ensure_workshop_is_active(workshop: Workshop) -> None:
+    if workshop.lifecycle_status == Workshop.LifecycleStatus.CANCELLED:
+        raise ValidationError("Für einen abgesagten Workshop ist keine Dokumentation möglich")
+
+
 @dataclass(frozen=True)
 class ParticipantInput:
     entry_id: UUID | None
@@ -46,6 +51,7 @@ class FacilitatorInput:
 
 @transaction.atomic
 def get_or_create_documentation(*, workshop: Workshop, user) -> Documentation:
+    _ensure_workshop_is_active(workshop)
     documentation, created = Documentation.objects.get_or_create(
         organization_id=workshop.organization_id,
         workshop=workshop,
@@ -209,6 +215,7 @@ def save_draft(
     custom_values: dict[str, object] | None = None,
 ) -> Documentation:
     documentation = _locked_documentation(documentation_id, organization_id)
+    _ensure_workshop_is_active(documentation.workshop)
     _check_version(documentation, expected_version)
     if documentation.status != Documentation.Status.DRAFT:
         raise ValidationError("Abgeschlossene Dokumentation zuerst wieder öffnen")
@@ -372,6 +379,7 @@ def finalize_documentation(
     optional_change_reason: str = "",
 ) -> DocumentationRevision:
     documentation = _locked_documentation(documentation_id, organization_id)
+    _ensure_workshop_is_active(documentation.workshop)
     _check_version(documentation, expected_version)
     if documentation.status != Documentation.Status.DRAFT:
         raise ValidationError("Dokumentation ist bereits abgeschlossen")
@@ -474,6 +482,7 @@ def reopen_documentation(
     *, documentation_id: UUID, organization_id: UUID, user, expected_version: int
 ) -> Documentation:
     documentation = _locked_documentation(documentation_id, organization_id)
+    _ensure_workshop_is_active(documentation.workshop)
     _check_version(documentation, expected_version)
     if documentation.status != Documentation.Status.FINALIZED:
         raise ValidationError("Nur abgeschlossene Dokumentationen können geöffnet werden")
