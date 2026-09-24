@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "werkblatt"
-version = "0.1.0"
+version = "0.1.0rc1"
 description = "Open-source workshop documentation for associations and educational organizations."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -49,6 +49,7 @@ include = [
   "/.github",
   "/.gitignore",
   "/BRAND_POLICY.md",
+  "/CHANGELOG.md",
   "/CONTAINER_BASE_IMAGES.lock",
   "/Dockerfile",
   "/LICENSE",

@@ -7,7 +7,8 @@ Werkblatt ist als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeld
 Das unabhängige Open-Source-Projekt wurde von Timo Hecken initiiert und wird von
 ihm gepflegt. Zircula e.V. ist Erstanwender und enger Entwicklungspartner.
 
-Aktueller Stand: technischer Pilot nach Phase 4a. Noch kein öffentlicher produktiver Release.
+Aktueller Stand: Release Candidate `0.1.0rc1` für den kontrollierten
+Single-Tenant-Pilotbetrieb. Noch kein allgemeiner Hosted-Multi-Tenant-Release.
 
 ## Entwicklung
 
@@ -25,8 +26,19 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
 
 ## Status der Funktionen
 
-- vorhanden: tenantgebundene Organisationen, User-/Identity-Modell, Rollen, OIDC, Pretix-Adapter mit sicherem Importstichtag und Veranstaltungsregeln, filterbare Workshopliste, Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek, wiederverwendbare und sicher archivierbare Dokumentvorlagen, Custom Fields, Abschluss-PDFs, druckbare Teilnahmelisten, optionaler WebDAV-Storage sowie organisationsbezogene aggregierte Statistik mit CSV-Export;
-- noch nicht vorhanden: lokale Accounts, Hosted-Multi-Tenant-Auswahl und öffentlicher Release.
+- vorhanden: tenantgebundene Organisationen, User-/Identity-Modell, Rollen,
+  OIDC, Pretix-Adapter mit sicherem Importstichtag, Veranstaltungsregeln und
+  reversiblen Absagen, filterbare Workshopliste und Monatskalender,
+  Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek,
+  wiederverwendbare und sicher archivierbare Dokumentvorlagen, Custom Fields,
+  Abschluss-PDFs, druckbare Teilnahmelisten, optionaler WebDAV-Storage sowie
+  organisationsbezogene aggregierte Statistik mit CSV-Export;
+- noch nicht vorhanden: lokale Accounts, öffentlicher Demo-Modus und sichere
+  Hosted-Multi-Tenant-Auswahl.
+
+Änderungen und bekannte Grenzen stehen in [`CHANGELOG.md`](CHANGELOG.md). Die
+konkreten Hinweise für RC1 stehen in
+[`docs/releases/0.1.0-rc1.md`](docs/releases/0.1.0-rc1.md).
 
 ## Lizenz
 
