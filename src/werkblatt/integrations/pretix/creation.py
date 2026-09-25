@@ -79,6 +79,14 @@ class CreatedPretixEvent:
     is_public: bool
 
 
+@dataclass(frozen=True)
+class PretixTemplateInspection:
+    event_slug: str
+    primary_item_internal_name: str
+    child_item_internal_name: str
+    capacity: int | None
+
+
 class PretixEventCreator:
     def __init__(self, client: PretixClient, organizer: str):
         if not _valid_slug(organizer):
@@ -90,21 +98,7 @@ class PretixEventCreator:
         self, *, draft: PretixEventDraft, preset: PretixCreationPreset
     ) -> CreatedPretixEvent:
         event_path = f"/api/v1/organizers/{self.organizer}/events/"
-        template_slug = quote(preset.template_event_slug, safe="")
-        template_path = f"{event_path}{template_slug}"
-        template_items = list(self.client.pages(template_path + "/items/"))
-        template_primary = self._item_by_internal_name(
-            template_items, preset.primary_item_internal_name
-        )
-        template_child = self._item_by_internal_name(
-            template_items, preset.child_item_internal_name
-        )
-        template_quotas = list(self.client.pages(template_path + "/quotas/"))
-        self._capacity_quota(
-            template_quotas,
-            int(template_primary["id"]),
-            int(template_child["id"]),
-        )
+        self.inspect_template(preset)
         payload = {
             "name": {"de": draft.title.strip()},
             "slug": draft.slug,
@@ -164,6 +158,27 @@ class PretixEventCreator:
             public_url=str(verified.get("public_url") or event.get("public_url") or ""),
             live=False,
             is_public=False,
+        )
+
+    def inspect_template(self, preset: PretixCreationPreset) -> PretixTemplateInspection:
+        template_slug = quote(preset.template_event_slug, safe="")
+        template_path = f"/api/v1/organizers/{self.organizer}/events/{template_slug}"
+        event = self.client.get(template_path + "/")
+        if event.get("live") is not False or event.get("is_public") is not False:
+            raise PretixUnavailable("Pretix template is not safely hidden")
+        items = list(self.client.pages(template_path + "/items/"))
+        primary = self._item_by_internal_name(items, preset.primary_item_internal_name)
+        child = self._item_by_internal_name(items, preset.child_item_internal_name)
+        quotas = list(self.client.pages(template_path + "/quotas/"))
+        capacity_quota = self._capacity_quota(quotas, int(primary["id"]), int(child["id"]))
+        capacity = capacity_quota.get("size")
+        if capacity is not None and not isinstance(capacity, int):
+            raise PretixUnavailable("Pretix template quota has an invalid capacity")
+        return PretixTemplateInspection(
+            event_slug=str(event.get("slug") or preset.template_event_slug),
+            primary_item_internal_name=preset.primary_item_internal_name,
+            child_item_internal_name=preset.child_item_internal_name,
+            capacity=capacity,
         )
 
     @staticmethod

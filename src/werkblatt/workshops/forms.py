@@ -1,6 +1,17 @@
 from django import forms
 
-from .models import PretixEventRule, Workshop
+from .models import (
+    PretixEventCreationPreset,
+    PretixEventRule,
+    PretixFundingText,
+    Workshop,
+)
+
+
+def _valid_pretix_identifier(value):
+    return bool(value) and all(
+        character.isascii() and (character.isalnum() or character in "-_") for character in value
+    )
 
 
 class NativeWorkshopForm(forms.ModelForm):
@@ -139,4 +150,104 @@ class PretixEventRuleForm(forms.ModelForm):
             == Workshop.DocumentationRequirement.NOT_REQUIRED
         ) and not cleaned.get("reason", "").strip():
             self.add_error("reason", "Für diese Ausnahme ist eine Begründung erforderlich.")
+        return cleaned
+
+
+class PretixEventCreationPresetForm(forms.ModelForm):
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization_id = organization_id
+
+    class Meta:
+        model = PretixEventCreationPreset
+        fields = [
+            "display_name",
+            "template_event_slug",
+            "primary_item_internal_name",
+            "child_item_internal_name",
+            "active",
+        ]
+        labels = {
+            "display_name": "Bezeichnung",
+            "template_event_slug": "Slug der Pretix-Vorlage",
+            "primary_item_internal_name": "Interner Name des Standardtickets",
+            "child_item_internal_name": "Interner Name der Kinderanmeldung",
+            "active": "Für neue Workshops auswählbar",
+        }
+        help_texts = {
+            "template_event_slug": "Die Vorlage muss in Pretix inaktiv und nicht öffentlich sein.",
+            "primary_item_internal_name": "Nicht der sichtbare Ticketname.",
+            "child_item_internal_name": "Nicht der sichtbare Ticketname.",
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        for field in (
+            "template_event_slug",
+            "primary_item_internal_name",
+            "child_item_internal_name",
+        ):
+            value = cleaned.get(field, "").strip()
+            if value and not _valid_pretix_identifier(value):
+                self.add_error(field, "Nur ASCII-Buchstaben, Zahlen, Bindestrich und _ verwenden.")
+            cleaned[field] = value
+        if cleaned.get("primary_item_internal_name") == cleaned.get("child_item_internal_name"):
+            self.add_error(
+                "child_item_internal_name",
+                "Standardticket und Kinderanmeldung benötigen unterschiedliche interne Namen.",
+            )
+        name = cleaned.get("display_name", "").strip()
+        cleaned["display_name"] = name
+        if name and (
+            PretixEventCreationPreset.objects.filter(
+                organization_id=self.organization_id,
+                display_name=name,
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            self.add_error("display_name", "Diese Bezeichnung wird bereits verwendet.")
+        slug = cleaned.get("template_event_slug", "")
+        if slug and (
+            PretixEventCreationPreset.objects.filter(
+                organization_id=self.organization_id,
+                template_event_slug=slug,
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            self.add_error("template_event_slug", "Diese Pretix-Vorlage wird bereits verwendet.")
+        return cleaned
+
+
+class PretixFundingTextForm(forms.ModelForm):
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization_id = organization_id
+
+    class Meta:
+        model = PretixFundingText
+        fields = ["display_name", "text", "active"]
+        labels = {
+            "display_name": "Bezeichnung",
+            "text": "Fördertext",
+            "active": "Für neue Workshops auswählbar",
+        }
+        widgets = {"text": forms.Textarea(attrs={"rows": 8})}
+
+    def clean(self):
+        cleaned = super().clean()
+        name = cleaned.get("display_name", "").strip()
+        text = cleaned.get("text", "").strip()
+        cleaned["display_name"] = name
+        cleaned["text"] = text
+        if name and (
+            PretixFundingText.objects.filter(
+                organization_id=self.organization_id,
+                display_name=name,
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            self.add_error("display_name", "Diese Bezeichnung wird bereits verwendet.")
         return cleaned
