@@ -17,6 +17,7 @@ class PretixUnavailable(RuntimeError):
 
 
 MAX_PRETIX_RESPONSE_BYTES = 5 * 1024 * 1024
+MAX_PRETIX_REQUEST_BYTES = 256 * 1024
 
 
 def validate_public_https_origin(value: str) -> str:
@@ -67,12 +68,25 @@ class PretixClient:
     def close(self) -> None:
         self._client.close()
 
-    def get(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if method not in {"GET", "POST", "PATCH"}:
+            raise ValueError("Unsupported Pretix request method")
         if not path.startswith("/api/v1/") or ".." in path:
             raise ValueError("Pretix requests are restricted to fixed API paths")
+        if json_body is not None:
+            encoded_body = json.dumps(json_body, ensure_ascii=False).encode("utf-8")
+            if len(encoded_body) > MAX_PRETIX_REQUEST_BYTES:
+                raise PretixConfigurationError("Pretix request exceeds the safe size limit")
         validate_public_https_origin(self.base_url)
         try:
-            with self._client.stream("GET", path, params=params) as response:
+            with self._client.stream(method, path, params=params, json=json_body) as response:
                 response.raise_for_status()
                 chunks = []
                 size = 0
@@ -81,12 +95,30 @@ class PretixClient:
                     if size > MAX_PRETIX_RESPONSE_BYTES:
                         raise PretixUnavailable("Pretix response exceeds the safe size limit")
                     chunks.append(chunk)
-            payload = json.loads(b"".join(chunks))
+            response_body = b"".join(chunks)
+            if not response_body and response.status_code == 204:
+                return {}
+            payload = json.loads(response_body)
         except (httpx.HTTPError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise PretixUnavailable("Pretix request failed") from exc
         if not isinstance(payload, dict):
             raise PretixUnavailable("Pretix returned an invalid response")
         return payload
+
+    def get(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
+        return self._request("GET", path, params=params)
+
+    def post(
+        self,
+        path: str,
+        payload: dict[str, Any],
+        *,
+        params: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        return self._request("POST", path, params=params, json_body=payload)
+
+    def patch(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._request("PATCH", path, json_body=payload)
 
     def pages(self, path: str, params: dict[str, str] | None = None) -> Iterator[dict[str, Any]]:
         query = dict(params or {})
