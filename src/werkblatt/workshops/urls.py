@@ -8,6 +8,17 @@ urlpatterns = [
     path("calendar/", views.workshop_calendar, name="workshop-calendar"),
     path("view/", views.workshop_view_preference, name="workshop-view-preference"),
     path("new/", views.native_workshop_edit, name="workshop-create"),
+    path("pretix/new/", views.pretix_workshop_create, name="pretix-workshop-create"),
+    path(
+        "pretix/creations/<uuid:creation_id>/",
+        views.pretix_workshop_review,
+        name="pretix-workshop-review",
+    ),
+    path(
+        "pretix/creations/<uuid:creation_id>/publish/",
+        views.pretix_workshop_publish,
+        name="pretix-workshop-publish",
+    ),
     path("<uuid:workshop_id>/edit/", views.native_workshop_edit, name="workshop-edit"),
     path("<uuid:workshop_id>/visibility/", views.workshop_visibility, name="workshop-visibility"),
     path(

@@ -4,6 +4,11 @@
 <nav class="breadcrumb"><a href="{% url 'settings-home' %}">Verwaltung</a> / Pretix-Erstellung</nav>
 <div class="section-heading"><div><p class="eyebrow">Integration</p><h1>Pretix-Erstellung</h1><p class="lead">Verborgene Pretix-Vorlagen und optionale Fördertexte für den vereinfachten Workshop-Ablauf.</p></div></div>
 {% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<aside class="content-card">
+  <h2>Erweiterte Einstellungen weiterhin in Pretix</h2>
+  <p>Werkblatt deckt bewusst den einfachen Standardfall ab. Verpflichtende Fragen, zusätzliche Ticketarten und Varianten, besondere E-Mail-Texte sowie weitere Einstellungen werden weiterhin direkt in der Pretix-Verwaltung gepflegt.</p>
+  <p><a href="{{ pretix_control_url }}" target="_blank" rel="noopener noreferrer">Pretix-Verwaltung öffnen</a></p>
+</aside>
 <section class="content-card">
   <div class="section-heading"><div><h2>Erstellungsstandards</h2><p class="form-hint">Die Prüfung liest ausschließlich Event, Produkte und Kontingente.</p></div><a class="button" href="{% url 'pretix-creation-preset-create' %}">Standard anlegen</a></div>
   <div class="workshop-list">

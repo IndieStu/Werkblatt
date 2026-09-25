@@ -20,23 +20,34 @@ from werkblatt.integrations.pretix.client import (
     PretixConfigurationError,
     PretixUnavailable,
 )
-from werkblatt.integrations.pretix.creation import PretixCreationPreset, PretixEventCreator
+from werkblatt.integrations.pretix.creation import (
+    PretixCreationPreset,
+    PretixEventCreator,
+    PretixEventDraft,
+)
 
 from .forms import (
     NativeWorkshopForm,
     PretixEventCreationPresetForm,
     PretixEventRuleForm,
     PretixFundingTextForm,
+    PretixWorkshopCreationForm,
     WorkshopFilterForm,
     WorkshopRequirementForm,
 )
 from .models import (
+    PretixEventCreation,
     PretixEventCreationPreset,
     PretixEventRule,
     PretixFundingText,
     Workshop,
 )
 from .services import (
+    claim_pretix_event_creation,
+    complete_pretix_event_creation,
+    fail_pretix_event_creation,
+    materialize_pretix_event_creation,
+    reserve_pretix_event_creation,
     save_native_workshop,
     save_pretix_creation_preset,
     save_pretix_event_rule,
@@ -162,6 +173,11 @@ def workshop_calendar(request: HttpRequest) -> HttpResponse:
             "next_month": _shift_month(month, 1),
             "weeks": weeks,
             "view_switch_query": _view_switch_query(request.GET),
+            "can_create_pretix_workshops": has_capability(
+                request.user,
+                _organization_id(request),
+                Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+            ),
         },
     )
 
@@ -230,6 +246,11 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             ),
             "can_edit_native_workshops": has_capability(
                 request.user, _organization_id(request), Capability.DOCUMENT_WORKSHOPS
+            ),
+            "can_create_pretix_workshops": has_capability(
+                request.user,
+                _organization_id(request),
+                Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
             ),
         },
     )
@@ -389,6 +410,7 @@ def pretix_creation_settings(request: HttpRequest) -> HttpResponse:
             "funding_texts": PretixFundingText.objects.filter(
                 organization_id=_organization_id(request)
             ),
+            "pretix_control_url": f"{settings.PRETIX_BASE_URL.rstrip('/')}/control",
         },
     )
 
@@ -500,3 +522,167 @@ def pretix_creation_preset_check(request: HttpRequest, preset_id) -> HttpRespons
         if client is not None:
             client.close()
     return redirect("pretix-creation-settings")
+
+
+@login_required
+def pretix_workshop_create(request: HttpRequest) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        "Keine Berechtigung zum Erstellen von Pretix-Workshops.",
+    )
+    form = PretixWorkshopCreationForm(
+        request.POST or None,
+        organization_id=_organization_id(request),
+    )
+    if request.method == "POST" and form.is_valid():
+        client = None
+        try:
+            client = PretixClient(settings.PRETIX_BASE_URL, settings.PRETIX_API_TOKEN)
+            external_slugs = PretixEventCreator(
+                client, settings.PRETIX_ORGANIZER
+            ).list_event_slugs()
+        except (PretixConfigurationError, PretixUnavailable, ValueError):
+            form.add_error(
+                None,
+                "Pretix konnte nicht sicher geprüft werden. Bitte später erneut versuchen.",
+            )
+        else:
+            creation = reserve_pretix_event_creation(
+                organization=request.organization,
+                user=request.user,
+                preset=form.cleaned_data["preset"],
+                funding_text=form.cleaned_data["funding_text"],
+                title=form.cleaned_data["title"],
+                description=form.cleaned_data["description"],
+                starts_at=form.cleaned_data["starts_at"],
+                ends_at=form.cleaned_data["ends_at"],
+                location=form.cleaned_data["location"],
+                capacity=form.cleaned_data["capacity"],
+                child_registration_enabled=form.cleaned_data["child_registration_enabled"],
+                existing_external_slugs=external_slugs,
+            )
+            return redirect("pretix-workshop-review", creation_id=creation.id)
+        finally:
+            if client is not None:
+                client.close()
+    return render(
+        request,
+        "workshops/pretix_creation/workshop_form.html",
+        {
+            "form": form,
+            "pretix_control_url": f"{settings.PRETIX_BASE_URL.rstrip('/')}/control",
+        },
+    )
+
+
+@login_required
+def pretix_workshop_review(request: HttpRequest, creation_id) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        "Keine Berechtigung zum Erstellen von Pretix-Workshops.",
+    )
+    creation = get_object_or_404(
+        PretixEventCreation.objects.filter(
+            organization_id=_organization_id(request),
+            created_by=request.user,
+        ).select_related("preset", "funding_text"),
+        pk=creation_id,
+    )
+    return render(
+        request,
+        "workshops/pretix_creation/workshop_review.html",
+        {
+            "creation": creation,
+            "pretix_control_url": f"{settings.PRETIX_BASE_URL.rstrip('/')}/control",
+        },
+    )
+
+
+@require_POST
+@login_required
+def pretix_workshop_publish(request: HttpRequest, creation_id) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        "Keine Berechtigung zum Erstellen von Pretix-Workshops.",
+    )
+    creation = get_object_or_404(
+        PretixEventCreation.objects.filter(
+            organization_id=_organization_id(request),
+            created_by=request.user,
+        ),
+        pk=creation_id,
+    )
+    try:
+        creation = claim_pretix_event_creation(
+            creation_id=creation.id,
+            organization=request.organization,
+            user=request.user,
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("pretix-workshop-review", creation_id=creation.id)
+
+    client = None
+    failure_code = PretixEventCreation.FailureCode.PRETIX_UNAVAILABLE
+    try:
+        client = PretixClient(settings.PRETIX_BASE_URL, settings.PRETIX_API_TOKEN)
+        creator = PretixEventCreator(client, settings.PRETIX_ORGANIZER)
+        snapshot = creation.preset_snapshot
+        creator.create_from_template(
+            draft=PretixEventDraft(
+                slug=creation.external_slug,
+                title=creation.title,
+                starts_at=creation.starts_at,
+                ends_at=creation.ends_at,
+                location=creation.location,
+                capacity=creation.capacity,
+                child_registration_enabled=creation.child_registration_enabled,
+                description=creation.description,
+                funding_text=creation.funding_text_snapshot,
+            ),
+            preset=PretixCreationPreset(
+                template_event_slug=snapshot["template_event_slug"],
+                primary_item_internal_name=snapshot["primary_item_internal_name"],
+                child_item_internal_name=snapshot["child_item_internal_name"],
+            ),
+        )
+        published = creator.publish_event(creation.external_slug)
+    except (KeyError, PretixConfigurationError, ValueError):
+        failure_code = PretixEventCreation.FailureCode.TEMPLATE_INVALID
+        published = None
+    except PretixUnavailable:
+        published = None
+    finally:
+        if client is not None:
+            client.close()
+
+    if published is None:
+        fail_pretix_event_creation(
+            creation_id=creation.id,
+            organization=request.organization,
+            failure_code=failure_code,
+        )
+        messages.error(
+            request,
+            "Die Pretix-Veranstaltung konnte nicht vollständig erstellt und bestätigt werden. "
+            "Es wurde keine automatische Wiederholung ausgeführt.",
+        )
+        return redirect("pretix-workshop-review", creation_id=creation.id)
+
+    complete_pretix_event_creation(
+        creation_id=creation.id,
+        organization=request.organization,
+        external_url=published.public_url,
+    )
+    workshop = materialize_pretix_event_creation(
+        creation_id=creation.id,
+        organization=request.organization,
+    )
+    messages.success(request, "Workshop in Pretix erstellt und veröffentlicht.")
+    return redirect("documentation-detail", workshop_id=workshop.id)

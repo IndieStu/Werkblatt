@@ -251,3 +251,59 @@ class PretixFundingTextForm(forms.ModelForm):
         ):
             self.add_error("display_name", "Diese Bezeichnung wird bereits verwendet.")
         return cleaned
+
+
+class PretixWorkshopCreationForm(forms.Form):
+    preset = forms.ModelChoiceField(
+        queryset=PretixEventCreationPreset.objects.none(),
+        label="Workshop-Standard",
+    )
+    title = forms.CharField(max_length=300, label="Titel")
+    starts_at = forms.DateTimeField(
+        label="Beginn",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        input_formats=["%Y-%m-%dT%H:%M"],
+    )
+    ends_at = forms.DateTimeField(
+        required=False,
+        label="Ende",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        input_formats=["%Y-%m-%dT%H:%M"],
+    )
+    location = forms.CharField(required=False, max_length=300, label="Ort")
+    description = forms.CharField(
+        required=False,
+        max_length=10000,
+        label="Beschreibung",
+        widget=forms.Textarea(attrs={"rows": 8}),
+    )
+    funding_text = forms.ModelChoiceField(
+        queryset=PretixFundingText.objects.none(),
+        required=False,
+        empty_label="Kein Fördertext",
+        label="Fördertext",
+    )
+    capacity = forms.IntegerField(min_value=1, max_value=10000, label="Teilnehmendenzahl")
+    child_registration_enabled = forms.BooleanField(
+        required=False,
+        label="Anmeldung für Kinder anbieten",
+    )
+
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["preset"].queryset = PretixEventCreationPreset.objects.filter(
+            organization_id=organization_id,
+            active=True,
+        )
+        self.fields["funding_text"].queryset = PretixFundingText.objects.filter(
+            organization_id=organization_id,
+            active=True,
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        starts_at = cleaned.get("starts_at")
+        ends_at = cleaned.get("ends_at")
+        if starts_at and ends_at and ends_at <= starts_at:
+            self.add_error("ends_at", "Das Ende muss nach dem Beginn liegen.")
+        return cleaned

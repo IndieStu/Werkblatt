@@ -144,3 +144,16 @@ fordert `live = false` und `is_public = false`, eindeutige interne Namen für
 Standard- und Kinderprodukt sowie genau ein gemeinsames Kontingent. Die
 Prüfung führt weder POST noch PATCH aus und liest keine Bestellungen oder
 Teilnehmendendaten.
+
+Der Erstellungsassistent ist umgesetzt. Alle dokumentationsberechtigten Rollen
+können organisationsgebundene aktive Standards und Fördertexte verwenden. Der
+erste Formularschritt liest ausschließlich vorhandene Event-Slugs für die
+Nummernvergabe und reserviert anschließend einen lokalen Entwurf. Eine
+Zusammenfassungsseite zeigt alle wirksamen Angaben einschließlich Slug.
+
+Erst die ausdrückliche Bestätigung klont die Vorlage als verborgenes Event,
+setzt Kinderprodukt, gemeinsames Kontingent und `frontpage_text`, prüft den
+verborgenen Zustand und veröffentlicht das Event anschließend bewusst. Nach
+bestätigter Veröffentlichung wird derselbe Workshop lokal materialisiert. Die
+periodische Synchronisation übernimmt danach regulär Änderungen und
+Anmeldungen.
