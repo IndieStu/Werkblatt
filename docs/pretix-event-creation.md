@@ -157,3 +157,13 @@ verborgenen Zustand und veröffentlicht das Event anschließend bewusst. Nach
 bestätigter Veröffentlichung wird derselbe Workshop lokal materialisiert. Die
 periodische Synchronisation übernimmt danach regulär Änderungen und
 Anmeldungen.
+
+## Offener UI-/UX-Pass
+
+Der reale Pilot-Test hat den Ablauf funktional bestätigt. Die visuelle
+Ausarbeitung des Erstellungsformulars bleibt bewusst ein eigener späterer
+Produktdesign-Schritt. Insbesondere Feldbreiten, Label-/Control-Ausrichtung,
+Gruppierung, vertikale Abstände, Nutzung der verfügbaren Kartenbreite und die
+Formularwirkung im Dark Mode sollen gemeinsam für Desktop und Mobil überarbeitet
+werden. Diese offene Aufgabe ändert weder den freigegebenen Funktionsumfang noch
+die fachliche Formularstruktur.

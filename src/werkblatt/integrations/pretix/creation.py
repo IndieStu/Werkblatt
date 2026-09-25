@@ -18,15 +18,20 @@ def numbered_event_slug(title: str, existing_slugs: set[str]) -> str:
     normalized = unicodedata.normalize("NFKD", title)
     ascii_title = normalized.encode("ascii", "ignore").decode("ascii").lower()
     base = re.sub(r"[^a-z0-9]+", "-", ascii_title).strip("-") or "workshop"
-    base = base[:72].rstrip("-") or "workshop"
-    pattern = re.compile(rf"^{re.escape(base)}-(\d+)$")
-    used_numbers = {
-        int(match.group(1))
-        for slug in existing_slugs
-        if (match := pattern.fullmatch(slug)) is not None
-    }
+    used_numbers = set()
+    for slug in existing_slugs:
+        match = re.search(r"-(\d+)$", slug)
+        if match is None:
+            continue
+        number = int(match.group(1))
+        suffix = f"-{number}"
+        candidate_base = base[: 50 - len(suffix)].rstrip("-") or "workshop"
+        if slug == f"{candidate_base}{suffix}":
+            used_numbers.add(number)
     number = max(used_numbers, default=0) + 1
-    return f"{base}-{number}"
+    suffix = f"-{number}"
+    candidate_base = base[: 50 - len(suffix)].rstrip("-") or "workshop"
+    return f"{candidate_base}{suffix}"
 
 
 @dataclass(frozen=True)

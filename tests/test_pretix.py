@@ -488,6 +488,29 @@ def test_numbered_event_slug_is_automatic_stable_and_ascii_safe():
     assert numbered_event_slug("***", set()) == "workshop-1"
 
 
+def test_numbered_event_slug_respects_pretix_limit_and_keeps_counting():
+    title = "Synthetischer Test Werkblatt Erstellungsassistent"
+    first = numbered_event_slug(title, set())
+    assert first == "synthetischer-test-werkblatt-erstellungsassisten-1"
+    assert len(first) == 50
+
+    existing = {first}
+    existing.add(numbered_event_slug(title, existing))
+    third = numbered_event_slug(title, existing)
+    assert third.endswith("-3")
+    assert len(third) == 50
+
+
+def test_numbered_event_slug_adjusts_prefix_when_suffix_grows():
+    title = "Ein sehr langer Workshopname zur Prüfung der Nummerierung"
+    existing = set()
+    for expected_number in range(1, 11):
+        slug = numbered_event_slug(title, existing)
+        assert slug.endswith(f"-{expected_number}")
+        assert len(slug) <= 50
+        existing.add(slug)
+
+
 def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
     requests = []
 
