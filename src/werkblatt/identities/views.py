@@ -26,7 +26,7 @@ def oidc_callback(request: HttpRequest) -> HttpResponse:
     claims = normalized_claims(dict(token.get("userinfo") or {}))
     user = provision_oidc_user(claims)
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-    return redirect("workshop-list")
+    return redirect("workshop-index")
 
 
 @require_POST

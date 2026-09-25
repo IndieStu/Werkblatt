@@ -217,6 +217,42 @@ def test_workshop_calendar_rejects_invalid_month_without_error(workshop_manageme
 
 
 @pytest.mark.django_db
+def test_workshop_index_uses_and_switches_personal_default_view(workshop_management):
+    _, users, _, _ = workshop_management
+    user = users[Membership.Role.WORKSHOP_USER]
+    client = Client()
+    client.force_login(user)
+
+    response = client.get(reverse("workshop-index"))
+    assert response.status_code == 302
+    assert response.url == reverse("workshop-calendar")
+
+    response = client.post(
+        reverse("workshop-view-preference"),
+        {
+            "view": "list",
+            "query": "state=upcoming&visibility=active&month=2026-09&next=https://invalid.test",
+        },
+    )
+    assert response.status_code == 302
+    assert response.url == f"{reverse('workshop-list')}?state=upcoming&visibility=active"
+    user.refresh_from_db()
+    assert user.preferred_workshop_view == "list"
+    assert client.get(reverse("workshop-index")).url == reverse("workshop-list")
+
+
+@pytest.mark.django_db
+def test_workshop_view_switch_rejects_invalid_value(workshop_management):
+    _, users, _, _ = workshop_management
+    client = Client()
+    client.force_login(users[Membership.Role.WORKSHOP_USER])
+
+    response = client.post(reverse("workshop-view-preference"), {"view": "foreign"})
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("role", list(Membership.Role))
 def test_all_workshop_roles_can_create_tenant_bound_native_workshop(workshop_management, role):
     organization, users, _, other_workshop = workshop_management

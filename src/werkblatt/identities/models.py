@@ -10,11 +10,20 @@ class User(AbstractUser):
         DARK = "dark", "Dunkel"
         SYSTEM = "system", "Systemeinstellung"
 
+    class WorkshopView(models.TextChoices):
+        CALENDAR = "calendar", "Kalender"
+        LIST = "list", "Liste"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=150, unique=True)
     display_name = models.CharField(max_length=200, blank=True)
     preferred_language = models.CharField(max_length=16, default="de")
     theme = models.CharField(max_length=16, choices=Theme, default=Theme.SYSTEM)
+    preferred_workshop_view = models.CharField(
+        max_length=16,
+        choices=WorkshopView,
+        default=WorkshopView.CALENDAR,
+    )
 
     def get_full_name(self) -> str:
         return self.display_name or super().get_full_name() or self.username

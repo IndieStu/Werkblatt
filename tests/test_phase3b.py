@@ -294,6 +294,9 @@ def test_documentation_uses_dynamic_participant_and_facilitator_rows(phase3_setu
     assert 'data-formset="facilitators"' in content
     assert "__prefix__" in content
     assert 'type="button" data-add-row>+ Teilnehmer:in</button>' in content
+    assert 'id="id_participants-__prefix__-origin"' in content
+    assert "Außerhalb von Pretix angemeldet" in content
+    assert "Spontan teilgenommen" in content
     assert 'type="button" data-add-row>+ Durchführende Person</button>' in content
     assert "werkblatt/js/formsets.js" in content
     assert 'aria-label="Teilnehmer:in entfernen"' in content

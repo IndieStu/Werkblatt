@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen an Werkblatt werden in dieser Datei dokumentiert.
 Das Projekt verwendet für Tags Semantic Versioning und für das Python-Paket die
 entsprechende PEP-440-Schreibweise.
 
+## Unveröffentlicht
+
+### Hinzugefügt
+
+- persönliche Standardansicht für Workshops mit Kalender als Voreinstellung
+  und direkter, dauerhaft gespeicherter Umschaltung zwischen Kalender und Liste;
+- manuell ergänzte Teilnehmende können als spontan oder außerhalb von Pretix
+  angemeldet erfasst werden; Pretix-Importe bleiben geschützt und die Auswahl
+  wird in Statistik und Revisionssnapshot berücksichtigt.
+
 ## 0.1.0rc1 – 2026-09-24
 
 Erster formal versionierter Release Candidate für einen kontrollierten,

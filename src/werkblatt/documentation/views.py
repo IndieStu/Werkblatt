@@ -148,6 +148,7 @@ def _participant_inputs(formset) -> list[ParticipantInput]:
                 entry_id=form.instance.pk if form.instance._state.adding is False else None,
                 display_name=form.cleaned_data.get("display_name", ""),
                 present=form.cleaned_data.get("present", False),
+                origin=form.cleaned_data.get("origin", ParticipantEntry.Origin.WALK_IN),
                 delete=form.cleaned_data.get("DELETE", False),
             )
         )
@@ -364,7 +365,6 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
             "assignment_form": assignment_form,
             "custom_form": custom_form,
             "statistics": statistics_for(documentation),
-            "registered_origin": ParticipantEntry.Origin.REGISTERED,
             "revisions": documentation.revisions.all(),
             "attendance_available": (
                 documentation.template_assignment_id

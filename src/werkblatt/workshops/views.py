@@ -6,10 +6,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
+from werkblatt.identities.models import User
 from werkblatt.identities.policies import Capability, has_capability, require_capability
 
 from .forms import (
@@ -29,6 +32,27 @@ from .services import (
 
 def _organization_id(request):
     return request.organization_context.organization_id
+
+
+@login_required
+def workshop_index(request: HttpRequest) -> HttpResponse:
+    if request.user.preferred_workshop_view == User.WorkshopView.LIST:
+        return redirect("workshop-list")
+    return redirect("workshop-calendar")
+
+
+@require_POST
+@login_required
+def workshop_view_preference(request: HttpRequest) -> HttpResponse:
+    selected_view = request.POST.get("view")
+    if selected_view not in User.WorkshopView.values:
+        raise PermissionDenied("Ungültige Workshopansicht")
+    if request.user.preferred_workshop_view != selected_view:
+        request.user.preferred_workshop_view = selected_view
+        request.user.save(update_fields=["preferred_workshop_view"])
+    target = "workshop-calendar" if selected_view == User.WorkshopView.CALENDAR else "workshop-list"
+    query = _view_switch_query(QueryDict(request.POST.get("query", "")))
+    return redirect(f"{reverse(target)}?{query}" if query else target)
 
 
 def _calendar_month(value: str | None) -> date:
@@ -121,6 +145,7 @@ def workshop_calendar(request: HttpRequest) -> HttpResponse:
             "previous_month": _shift_month(month, -1),
             "next_month": _shift_month(month, 1),
             "weeks": weeks,
+            "view_switch_query": _view_switch_query(request.GET),
         },
     )
 
@@ -180,6 +205,7 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             "filter_form": form,
             "page": page,
             "query_without_page": query.urlencode(),
+            "view_switch_query": _view_switch_query(request.GET),
             "can_manage_visibility": has_capability(
                 request.user, _organization_id(request), Capability.MANAGE_WORKSHOP_VISIBILITY
             ),
@@ -191,6 +217,14 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             ),
         },
     )
+
+
+def _view_switch_query(source: QueryDict) -> str:
+    query = source.copy()
+    for key in list(query):
+        if key not in {"q", "state", "visibility"}:
+            query.pop(key, None)
+    return query.urlencode()
 
 
 @login_required

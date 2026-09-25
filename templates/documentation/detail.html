@@ -55,12 +55,13 @@
       {{ participant_formset.management_form }}
       <div data-formset-rows>
       {% for participant_form in participant_formset %}
-        <div class="participant-row {% if participant_form.instance.origin == registered_origin %}registered{% endif %}">
+        <div class="participant-row {% if participant_form.instance.registration_id %}registered{% endif %}">
           {{ participant_form.id }}
           <div class="field grow">{{ participant_form.display_name.label_tag }}{{ participant_form.display_name }}{{ participant_form.display_name.errors }}</div>
+          {% if participant_form.instance.registration_id %}{{ participant_form.origin.as_hidden }}{% else %}<div class="field">{{ participant_form.origin.label_tag }}{{ participant_form.origin }}{{ participant_form.origin.errors }}</div>{% endif %}
           <label class="check-field">{{ participant_form.present }} <span>Anwesend</span></label>
-          {% if participant_form.instance.origin != registered_origin %}<span hidden>{{ participant_form.DELETE }}</span><button class="row-remove" type="button" data-remove-row aria-label="Teilnehmer:in entfernen">−</button>{% endif %}
-          {% if participant_form.instance.origin == registered_origin %}<span class="origin-label">Pretix</span>{% else %}<span class="origin-label">Spontan</span>{% endif %}
+          {% if not participant_form.instance.registration_id %}<span hidden>{{ participant_form.DELETE }}</span><button class="row-remove" type="button" data-remove-row aria-label="Teilnehmer:in entfernen">−</button>{% endif %}
+          {% if participant_form.instance.registration_id %}<span class="origin-label">Pretix</span>{% endif %}
         </div>
       {% endfor %}
       </div>
@@ -68,14 +69,14 @@
         <div class="participant-row">
           {{ participant_formset.empty_form.id }}
           <div class="field grow">{{ participant_formset.empty_form.display_name.label_tag }}{{ participant_formset.empty_form.display_name }}</div>
+          <div class="field">{{ participant_formset.empty_form.origin.label_tag }}{{ participant_formset.empty_form.origin }}</div>
           <label class="check-field">{{ participant_formset.empty_form.present }} <span>Anwesend</span></label>
           <span hidden>{{ participant_formset.empty_form.DELETE }}</span>
           <button class="row-remove" type="button" data-remove-row aria-label="Teilnehmer:in entfernen">−</button>
-          <span class="origin-label">Spontan</span>
         </div>
       </template>
       <button class="button secondary row-add" type="button" data-add-row>+ Teilnehmer:in</button>
-      <p class="form-hint">Spontan erschienene Personen können bei Bedarf ergänzt werden.</p>
+      <p class="form-hint">Manuell ergänzte Personen können als spontan oder außerhalb von Pretix angemeldet erfasst werden.</p>
     </section>
 
     {% if custom_form.fields %}<section class="content-card form-stack"><h2>Zusatzangaben</h2>{{ custom_form.as_div }}</section>{% endif %}
