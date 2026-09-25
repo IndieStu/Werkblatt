@@ -6,6 +6,8 @@ entsprechende PEP-440-Schreibweise.
 
 ## Unveröffentlicht
 
+## 0.1.0rc2 – 2026-09-25
+
 ### Hinzugefügt
 
 - persönliche Standardansicht für Workshops mit Kalender als Voreinstellung
