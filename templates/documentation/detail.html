@@ -45,8 +45,9 @@
   <section class="content-card">
     <h2>Dokumentvorlage</h2>
     <div class="inline-form">{{ assignment_form.template }}{{ assignment_form.template.errors }}</div>
-    <p class="form-hint">Die Auswahl wird gemeinsam mit dem Entwurf beziehungsweise Abschluss gespeichert.</p>
+    <p class="form-hint">Die Eingabemaske wird direkt an die ausgewählte Vorlage angepasst.</p>
     {% if documentation.template_assignment %}<p class="form-hint">{{ documentation.template_assignment.template.name }} · Stand {{ documentation.template_assignment.template_version.number }}</p>{% endif %}
+    {% if newer_template_version_available %}<div class="message message-warning"><p>Für diese Dokumentation ist ein neuerer Vorlagenstand verfügbar.</p><button class="button secondary" type="submit" name="action" value="assign_template" formnovalidate>Aktuellen Vorlagenstand übernehmen</button></div>{% endif %}
     {% if attendance_available %}<button class="button secondary" type="submit" formaction="{% url 'generate-attendance' documentation.id %}" formnovalidate>Teilnahmeliste erzeugen</button>{% endif %}
   </section>
 
@@ -79,7 +80,7 @@
       <p class="form-hint">Manuell ergänzte Personen können als spontan oder außerhalb von Pretix angemeldet erfasst werden.</p>
     </section>
 
-    {% if custom_form.fields %}<section class="content-card form-stack"><h2>Zusatzangaben</h2>{{ custom_form.as_div }}</section>{% endif %}
+    {% include "documentation/_custom_fields.html" %}
 
     <section class="content-card" data-formset="facilitators">
       <h2>Durchführende</h2>
@@ -125,4 +126,4 @@
   </section>
 {% endif %}
 {% endblock %}
-{% block extra_scripts %}<script src="{% static 'werkblatt/js/formsets.js' %}" defer></script>{% endblock %}
+{% block extra_scripts %}<script src="{% static 'werkblatt/js/formsets.js' %}" defer></script><script src="{% static 'werkblatt/js/template-fields.js' %}" defer></script>{% endblock %}

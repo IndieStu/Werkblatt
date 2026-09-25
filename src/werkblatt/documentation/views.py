@@ -5,7 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from werkblatt.documents.rendering import render_revision_outputs
 from werkblatt.documents.storage import store_via_webdav
@@ -17,7 +18,7 @@ from .forms import (
     ParticipantFormSet,
     StatisticsFilterForm,
 )
-from .models import Documentation, ParticipantEntry, WorkshopTemplateAssignment
+from .models import Documentation, DocumentTemplate, ParticipantEntry, WorkshopTemplateAssignment
 from .services import (
     ConcurrentDocumentationUpdate,
     FacilitatorInput,
@@ -30,6 +31,35 @@ from .services import (
 )
 from .statistics import StatisticsPeriod, current_year_period, organization_statistics
 from .template_forms import DocumentationCustomFieldsForm, WorkshopTemplateForm
+
+
+@login_required
+@require_POST
+def documentation_custom_fields(request: HttpRequest) -> HttpResponse:
+    try:
+        template_id = UUID(request.POST.get("template", ""))
+    except (TypeError, ValueError) as exc:
+        raise Http404 from exc
+    template = get_object_or_404(
+        DocumentTemplate.objects.for_organization(request.organization_context.organization_id)
+        .filter(status=DocumentTemplate.Status.ACTIVE, current_version__isnull=False)
+        .select_related("current_version"),
+        pk=template_id,
+    )
+    values = {
+        name.removeprefix("custom_"): value
+        for name, value in request.POST.items()
+        if name.startswith("custom_")
+    }
+    custom_form = DocumentationCustomFieldsForm(
+        definitions=template.current_version.custom_fields.filter(active=True),
+        values=values,
+    )
+    return render(
+        request,
+        "documentation/_custom_fields.html",
+        {"custom_form": custom_form, "displayed_template_version_id": template.current_version_id},
+    )
 
 
 def _statistics_filter(request: HttpRequest):
@@ -278,8 +308,20 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
         if assignment_form.is_bound and assignment_form.is_valid()
         else None
     )
+    submitted_template_version = None
+    if selected_template is not None and is_documentation_post:
+        try:
+            submitted_template_version_id = UUID(
+                request.POST.get("displayed_template_version_id", "")
+            )
+        except (TypeError, ValueError):
+            submitted_template_version_id = None
+        if submitted_template_version_id:
+            submitted_template_version = selected_template.versions.filter(
+                pk=submitted_template_version_id
+            ).first()
     template_version = (
-        selected_template.current_version
+        submitted_template_version or selected_template.current_version
         if selected_template is not None
         else (
             documentation.template_assignment.template_version
@@ -297,6 +339,7 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
         definitions=definitions,
         values=existing_custom_values,
     )
+    displayed_template_version_id = template_version.id if template_version else ""
     participant_formset = ParticipantFormSet(
         documentation_data,
         instance=documentation,
@@ -311,12 +354,21 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
     )
 
     if is_documentation_post:
+        form_is_valid = form.is_valid()
+        template_fields_are_current = submitted_template_version is not None
+        if not template_fields_are_current:
+            form.add_error(
+                None,
+                "Die Eingabemaske wurde an die ausgewählte Vorlage angepasst. "
+                "Bitte prüfe die Zusatzangaben und speichere oder schließe danach erneut ab.",
+            )
         if (
-            form.is_valid()
+            form_is_valid
             and participant_formset.is_valid()
             and facilitator_formset.is_valid()
             and custom_form.is_valid()
             and assignment_form.is_valid()
+            and template_fields_are_current
         ):
             values = {
                 "documentation_id": documentation.id,
@@ -328,6 +380,7 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
                 "participants": _participant_inputs(participant_formset),
                 "facilitators": _facilitator_inputs(facilitator_formset),
                 "template_id": assignment_form.cleaned_data["template"].id,
+                "template_version_id": template_version.id,
                 "custom_values": custom_form.values_by_stable_key(),
             }
             try:
@@ -364,6 +417,12 @@ def documentation_detail(request: HttpRequest, workshop_id: UUID) -> HttpRespons
             "facilitator_formset": facilitator_formset,
             "assignment_form": assignment_form,
             "custom_form": custom_form,
+            "displayed_template_version_id": displayed_template_version_id,
+            "newer_template_version_available": bool(
+                documentation.template_assignment_id
+                and documentation.template_assignment.template_version_id
+                != documentation.template_assignment.template.current_version_id
+            ),
             "statistics": statistics_for(documentation),
             "revisions": documentation.revisions.all(),
             "attendance_available": (

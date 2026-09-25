@@ -55,7 +55,11 @@ Pretix angemeldet“ erfasst und später korrigiert werden. Manuelle Anmeldungen
 zählen in Statistik und Anwesenheitsquote als angemeldet; spontane Teilnahmen
 werden weiterhin getrennt ausgewiesen.
 
-Vor dem Abschluss wird eine Dokumentvorlage zugeordnet. Beim Finalisieren
+Vor dem Abschluss wird eine Dokumentvorlage zugeordnet. Ihre Zusatzfelder
+erscheinen unmittelbar nach der Auswahl; bereits eingegebene Teilnehmende,
+Durchführende und Berichtstexte bleiben erhalten. Bei einem neueren
+Vorlagenstand weist Werkblatt darauf hin und bietet dessen bewusste Übernahme
+an. Beim Finalisieren
 entsteht ein unveränderlicher Snapshot. Eine abgeschlossene Dokumentation kann
 erneut geöffnet, korrigiert und als neue Revision abgeschlossen werden; ältere
 Revisionen bleiben erhalten.
@@ -119,6 +123,8 @@ Werkblatt archiviert sie dabei sicher: Sie verschwinden aus neuen
 Workshopzuordnungen, während frühere Vorlagenstände, Revisionen und Dokumente
 erhalten bleiben. Archivierte Vorlagen werden getrennt angezeigt und können
 über einen neuen Vorlagenstand reaktiviert werden.
+Zusatzfelder lassen sich im Vorlageneditor mit „+ Weiteres Zusatzfeld“ in der
+benötigten Anzahl ergänzen und einzeln entfernen.
 
 Organization Admins besitzen dieselben redaktionellen Rechte und sehen unter
 „Verwaltung“ zusätzlich das Organisationsprofil. Organisationsbranding,
