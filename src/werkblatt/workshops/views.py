@@ -1,6 +1,7 @@
 import calendar
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -14,17 +15,32 @@ from django.views.decorators.http import require_POST
 
 from werkblatt.identities.models import User
 from werkblatt.identities.policies import Capability, has_capability, require_capability
+from werkblatt.integrations.pretix.client import (
+    PretixClient,
+    PretixConfigurationError,
+    PretixUnavailable,
+)
+from werkblatt.integrations.pretix.creation import PretixCreationPreset, PretixEventCreator
 
 from .forms import (
     NativeWorkshopForm,
+    PretixEventCreationPresetForm,
     PretixEventRuleForm,
+    PretixFundingTextForm,
     WorkshopFilterForm,
     WorkshopRequirementForm,
 )
-from .models import PretixEventRule, Workshop
+from .models import (
+    PretixEventCreationPreset,
+    PretixEventRule,
+    PretixFundingText,
+    Workshop,
+)
 from .services import (
     save_native_workshop,
+    save_pretix_creation_preset,
     save_pretix_event_rule,
+    save_pretix_funding_text,
     set_documentation_requirement,
     set_workshop_visibility,
 )
@@ -353,3 +369,134 @@ def pretix_rule_edit(request: HttpRequest, rule_id=None) -> HttpResponse:
         messages.success(request, "Pretix-Veranstaltungsregel gespeichert.")
         return redirect("pretix-rule-list")
     return render(request, "workshops/pretix_rules/form.html", {"form": form, "rule": rule})
+
+
+@login_required
+def pretix_creation_settings(request: HttpRequest) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_INTEGRATIONS,
+        "Nur Organization Admins dürfen Pretix-Erstellungsstandards verwalten.",
+    )
+    return render(
+        request,
+        "workshops/pretix_creation/settings.html",
+        {
+            "presets": PretixEventCreationPreset.objects.filter(
+                organization_id=_organization_id(request)
+            ),
+            "funding_texts": PretixFundingText.objects.filter(
+                organization_id=_organization_id(request)
+            ),
+        },
+    )
+
+
+@login_required
+def pretix_creation_preset_edit(request: HttpRequest, preset_id=None) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_INTEGRATIONS,
+        "Nur Organization Admins dürfen Pretix-Erstellungsstandards verwalten.",
+    )
+    preset = None
+    if preset_id:
+        preset = get_object_or_404(
+            PretixEventCreationPreset.objects.filter(organization_id=_organization_id(request)),
+            pk=preset_id,
+        )
+    form = PretixEventCreationPresetForm(
+        request.POST or None,
+        instance=preset,
+        organization_id=_organization_id(request),
+    )
+    if request.method == "POST" and form.is_valid():
+        save_pretix_creation_preset(
+            form=form,
+            organization=request.organization,
+            user=request.user,
+        )
+        messages.success(request, "Pretix-Erstellungsstandard gespeichert.")
+        return redirect("pretix-creation-settings")
+    return render(
+        request,
+        "workshops/pretix_creation/preset_form.html",
+        {"form": form, "preset": preset},
+    )
+
+
+@login_required
+def pretix_funding_text_edit(request: HttpRequest, funding_text_id=None) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_INTEGRATIONS,
+        "Nur Organization Admins dürfen Pretix-Fördertexte verwalten.",
+    )
+    funding_text = None
+    if funding_text_id:
+        funding_text = get_object_or_404(
+            PretixFundingText.objects.filter(organization_id=_organization_id(request)),
+            pk=funding_text_id,
+        )
+    form = PretixFundingTextForm(
+        request.POST or None,
+        instance=funding_text,
+        organization_id=_organization_id(request),
+    )
+    if request.method == "POST" and form.is_valid():
+        save_pretix_funding_text(
+            form=form,
+            organization=request.organization,
+            user=request.user,
+        )
+        messages.success(request, "Pretix-Fördertext gespeichert.")
+        return redirect("pretix-creation-settings")
+    return render(
+        request,
+        "workshops/pretix_creation/funding_text_form.html",
+        {"form": form, "funding_text": funding_text},
+    )
+
+
+@require_POST
+@login_required
+def pretix_creation_preset_check(request: HttpRequest, preset_id) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_INTEGRATIONS,
+        "Nur Organization Admins dürfen Pretix-Erstellungsstandards prüfen.",
+    )
+    preset = get_object_or_404(
+        PretixEventCreationPreset.objects.filter(organization_id=_organization_id(request)),
+        pk=preset_id,
+    )
+    client = None
+    try:
+        client = PretixClient(settings.PRETIX_BASE_URL, settings.PRETIX_API_TOKEN)
+        inspection = PretixEventCreator(client, settings.PRETIX_ORGANIZER).inspect_template(
+            PretixCreationPreset(
+                template_event_slug=preset.template_event_slug,
+                primary_item_internal_name=preset.primary_item_internal_name,
+                child_item_internal_name=preset.child_item_internal_name,
+            )
+        )
+    except (PretixConfigurationError, PretixUnavailable, ValueError):
+        messages.error(
+            request,
+            "Die Pretix-Vorlage konnte nicht sicher bestätigt werden. "
+            "Bitte Konfiguration und Vorlage prüfen.",
+        )
+    else:
+        capacity = "unbegrenzt" if inspection.capacity is None else str(inspection.capacity)
+        messages.success(
+            request,
+            f"Vorlage bestätigt: Standard- und Kinderticket, gemeinsame Kapazität {capacity}.",
+        )
+    finally:
+        if client is not None:
+            client.close()
+    return redirect("pretix-creation-settings")

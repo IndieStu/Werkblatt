@@ -132,3 +132,15 @@ spätere Pretix-HTTP-Aufruf findet zwischen `creating` und dem abschließenden
 offen. Ein in `creating` verbliebener Vorgang muss vor einer Wiederholung über
 den reservierten Slug gegen Pretix abgeglichen werden; ein blinder zweiter POST
 ist nicht zulässig.
+
+Die Administrationsoberfläche für Erstellungsstandards und optionale
+Fördertexte ist ebenfalls umgesetzt. Sie verwendet die bestehende
+Organisationsverwaltung und führt keine zweite Integrations- oder
+Einstellungsstruktur ein. Ausschließlich Organization Admins können diese
+Werte anlegen und ändern.
+
+Eine explizite Vorlagenprüfung liest Event, Produkte und Kontingente. Sie
+fordert `live = false` und `is_public = false`, eindeutige interne Namen für
+Standard- und Kinderprodukt sowie genau ein gemeinsames Kontingent. Die
+Prüfung führt weder POST noch PATCH aus und liest keine Bestellungen oder
+Teilnehmendendaten.

@@ -96,6 +96,22 @@ Teilnahmestatistiken ein; vorhandene abgeschlossene Revisionen bleiben erhalten.
 Wird ein Termin in Pretix wieder aktiviert, erscheint er nach dem nächsten
 Abgleich erneut als aktiv.
 
+Unter „Verwaltung → Pretix-Erstellung“ verwalten Organization Admins die
+Standards für den vereinfachten Erstellungsablauf. Ein Standard verweist auf
+eine dauerhaft inaktive und nicht öffentlich gelistete Pretix-Vorlage. Die
+Felder für Standard- und Kinderticket erwarten deren interne technische Namen;
+die öffentlich sichtbaren Ticketnamen werden dadurch nicht verändert.
+
+Mit „Vorlage prüfen“ liest Werkblatt ausschließlich Eventstatus, Produkte und
+Kontingente aus Pretix. Die Prüfung erzeugt oder verändert keine Veranstaltung
+und greift nicht auf Bestellungen oder Teilnehmerdaten zu. Sie bestätigt nur,
+dass die Vorlage verborgen ist, beide Produkte eindeutig zugeordnet sind und
+ein gemeinsames Kapazitätskontingent besitzen.
+
+Optionale Fördertexte werden auf derselben Verwaltungsseite gepflegt. Ein
+später erstellter Workshop erhält eine Kopie des ausgewählten Textstands, damit
+nachträgliche Änderungen vorhandene Erstellungsvorgänge nicht verändern.
+
 ## Statistik
 
 Die Statistik kann nach Workshopdatum eingegrenzt werden. Pro Dokumentation

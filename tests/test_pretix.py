@@ -493,6 +493,11 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         path = request.url.path
+        if request.method == "GET" and path.endswith("/blanko/"):
+            return httpx.Response(
+                200,
+                json={"slug": "blanko", "live": False, "is_public": False},
+            )
         if request.method == "GET" and path.endswith("/blanko/items/"):
             return httpx.Response(
                 200,
@@ -583,6 +588,7 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
     assert [request.method for request in requests] == [
         "GET",
         "GET",
+        "GET",
         "POST",
         "GET",
         "GET",
@@ -597,6 +603,11 @@ def test_creator_stops_when_template_item_mapping_is_not_stable():
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
+        if request.url.path.endswith("/blanko/"):
+            return httpx.Response(
+                200,
+                json={"slug": "blanko", "live": False, "is_public": False},
+            )
         if request.url.path.endswith("/items/"):
             return httpx.Response(
                 200,
@@ -630,4 +641,31 @@ def test_creator_stops_when_template_item_mapping_is_not_stable():
                     child_item_internal_name="werkblatt_child",
                 ),
             )
-    assert [request.method for request in requests] == ["GET"]
+    assert [request.method for request in requests] == ["GET", "GET"]
+
+
+def test_template_inspection_rejects_visible_template_before_product_requests():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={"slug": "blanko", "live": False, "is_public": True},
+        )
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+        )
+        with pytest.raises(PretixUnavailable, match="hidden"):
+            PretixEventCreator(client, "WORK").inspect_template(
+                PretixCreationPreset(
+                    template_event_slug="blanko",
+                    primary_item_internal_name="werkblatt_standard",
+                    child_item_internal_name="werkblatt_child",
+                )
+            )
+    assert len(requests) == 1

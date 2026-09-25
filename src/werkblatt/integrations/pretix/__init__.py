@@ -3,6 +3,7 @@ from .creation import (
     PretixCreationPreset,
     PretixEventCreator,
     PretixEventDraft,
+    PretixTemplateInspection,
     numbered_event_slug,
 )
 from .provider import PretixWorkshopProvider
@@ -14,6 +15,7 @@ __all__ = [
     "PretixCreationPreset",
     "PretixEventCreator",
     "PretixEventDraft",
+    "PretixTemplateInspection",
     "PretixWorkshopProvider",
     "numbered_event_slug",
 ]

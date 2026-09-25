@@ -141,6 +141,56 @@ def save_pretix_event_rule(*, form, organization, user):
 
 
 @transaction.atomic
+def save_pretix_creation_preset(*, form, organization, user):
+    require_capability(
+        user,
+        organization.id,
+        Capability.MANAGE_INTEGRATIONS,
+        "Nur Organization Admins dürfen Pretix-Erstellungsstandards verwalten.",
+    )
+    preset = form.save(commit=False)
+    if (
+        not preset._state.adding
+        and not PretixEventCreationPreset.objects.filter(
+            pk=preset.pk,
+            organization=organization,
+        ).exists()
+    ):
+        raise PermissionDenied
+    preset.organization = organization
+    preset.updated_by = user
+    if preset._state.adding:
+        preset.created_by = user
+    preset.save()
+    return preset
+
+
+@transaction.atomic
+def save_pretix_funding_text(*, form, organization, user):
+    require_capability(
+        user,
+        organization.id,
+        Capability.MANAGE_INTEGRATIONS,
+        "Nur Organization Admins dürfen Pretix-Fördertexte verwalten.",
+    )
+    funding_text = form.save(commit=False)
+    if (
+        not funding_text._state.adding
+        and not PretixFundingText.objects.filter(
+            pk=funding_text.pk,
+            organization=organization,
+        ).exists()
+    ):
+        raise PermissionDenied
+    funding_text.organization = organization
+    funding_text.updated_by = user
+    if funding_text._state.adding:
+        funding_text.created_by = user
+    funding_text.save()
+    return funding_text
+
+
+@transaction.atomic
 def reserve_pretix_event_creation(
     *,
     organization,

@@ -18,4 +18,34 @@ urlpatterns = [
     path("pretix-rules/", views.pretix_rule_list, name="pretix-rule-list"),
     path("pretix-rules/new/", views.pretix_rule_edit, name="pretix-rule-create"),
     path("pretix-rules/<uuid:rule_id>/", views.pretix_rule_edit, name="pretix-rule-edit"),
+    path(
+        "pretix-creation/",
+        views.pretix_creation_settings,
+        name="pretix-creation-settings",
+    ),
+    path(
+        "pretix-creation/presets/new/",
+        views.pretix_creation_preset_edit,
+        name="pretix-creation-preset-create",
+    ),
+    path(
+        "pretix-creation/presets/<uuid:preset_id>/",
+        views.pretix_creation_preset_edit,
+        name="pretix-creation-preset-edit",
+    ),
+    path(
+        "pretix-creation/presets/<uuid:preset_id>/check/",
+        views.pretix_creation_preset_check,
+        name="pretix-creation-preset-check",
+    ),
+    path(
+        "pretix-creation/funding-texts/new/",
+        views.pretix_funding_text_edit,
+        name="pretix-funding-text-create",
+    ),
+    path(
+        "pretix-creation/funding-texts/<uuid:funding_text_id>/",
+        views.pretix_funding_text_edit,
+        name="pretix-funding-text-edit",
+    ),
 ]
