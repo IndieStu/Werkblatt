@@ -150,3 +150,160 @@ class WorkshopRegistration(models.Model):
                 name="registration_unique_external_reference",
             ),
         ]
+
+
+class PretixEventCreationPreset(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="pretix_creation_presets",
+    )
+    display_name = models.CharField(max_length=200)
+    template_event_slug = models.CharField(max_length=255)
+    primary_item_internal_name = models.CharField(max_length=200)
+    child_item_internal_name = models.CharField(max_length=200)
+    active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_pretix_event_presets",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="updated_pretix_event_presets",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "display_name"],
+                name="pretix_creation_preset_unique_name_per_org",
+            ),
+            models.UniqueConstraint(
+                fields=["organization", "template_event_slug"],
+                name="pretix_creation_preset_unique_template_per_org",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(
+                    primary_item_internal_name=models.F("child_item_internal_name")
+                ),
+                name="pretix_creation_preset_distinct_items",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.display_name
+
+
+class PretixFundingText(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="pretix_funding_texts",
+    )
+    display_name = models.CharField(max_length=200)
+    text = models.TextField(max_length=5000)
+    active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_pretix_funding_texts",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="updated_pretix_funding_texts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "display_name"],
+                name="pretix_funding_text_unique_name_per_org",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.display_name
+
+
+class PretixEventCreation(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Entwurf"
+        CREATING = "creating", "Wird erstellt"
+        CREATED = "created", "Erstellt"
+        FAILED = "failed", "Fehlgeschlagen"
+
+    class FailureCode(models.TextChoices):
+        TEMPLATE_INVALID = "template_invalid", "Vorlage ungültig"
+        SLUG_CONFLICT = "slug_conflict", "Slug bereits vergeben"
+        PRETIX_UNAVAILABLE = "pretix_unavailable", "Pretix nicht erreichbar"
+        PRETIX_REJECTED = "pretix_rejected", "Pretix hat die Anfrage abgewiesen"
+        VERIFICATION_FAILED = "verification_failed", "Ergebnisprüfung fehlgeschlagen"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="pretix_event_creations",
+    )
+    preset = models.ForeignKey(
+        PretixEventCreationPreset,
+        on_delete=models.PROTECT,
+        related_name="event_creations",
+    )
+    funding_text = models.ForeignKey(
+        PretixFundingText,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="event_creations",
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(max_length=10000, blank=True)
+    funding_text_snapshot = models.TextField(max_length=5000, blank=True)
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField(null=True, blank=True)
+    location = models.CharField(max_length=300, blank=True)
+    capacity = models.PositiveIntegerField()
+    child_registration_enabled = models.BooleanField(default=False)
+    external_slug = models.CharField(max_length=255)
+    external_url = models.URLField(blank=True, max_length=500)
+    status = models.CharField(max_length=16, choices=Status, default=Status.DRAFT)
+    attempt_count = models.PositiveSmallIntegerField(default=0)
+    failure_code = models.CharField(max_length=80, choices=FailureCode, blank=True)
+    preset_snapshot = models.JSONField(default=dict)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_pretix_events",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    attempt_started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "external_slug"],
+                name="pretix_event_creation_unique_slug_per_org",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(capacity__gte=1),
+                name="pretix_event_creation_positive_capacity",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.external_slug})"
