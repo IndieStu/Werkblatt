@@ -224,3 +224,23 @@ def test_creation_status_transitions_are_retryable_and_tenant_scoped(creation_se
             organization=organization,
             user=user,
         )
+
+
+@pytest.mark.django_db
+def test_user_without_membership_cannot_reserve_creation(creation_setup):
+    organization, _, _, preset, funding_text = creation_setup
+    outsider = get_user_model().objects.create_user(username="outsider")
+    with pytest.raises(PermissionDenied):
+        reserve_pretix_event_creation(
+            organization=organization,
+            user=outsider,
+            preset=preset,
+            funding_text=funding_text,
+            title="Workshop",
+            description="",
+            starts_at=timezone.make_aware(datetime(2026, 10, 10, 10, 0)),
+            ends_at=None,
+            location="",
+            capacity=10,
+            child_registration_enabled=False,
+        )

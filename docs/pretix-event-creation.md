@@ -89,11 +89,13 @@ Pretix-Event wird nicht automatisch destruktiv gelöscht.
 ## Berechtigungen
 
 Die Verwaltung von Presets, Fördertexten, Produktzuordnungen und
-Pretix-Verbindungen bleibt Organization Admins vorbehalten. Vor Einführung der
-Bedienoberfläche wird separat festgelegt, ob Workshop User Events unmittelbar
-erstellen dürfen oder ob diese Fähigkeit zunächst Editor und Organization
-Admin vorbehalten bleibt. Veröffentlichung ist in jedem Fall eine eigene
-Capability und kein Nebeneffekt des Erstellens.
+Pretix-Verbindungen bleibt Organization Admins vorbehalten. Alle Rollen, die
+Workshops dokumentieren dürfen, dürfen innerhalb derselben Organisation auch
+Pretix-Workshops über den vereinfachten Werkblatt-Ablauf erstellen und
+veröffentlichen. Dafür existiert eine eigene fachliche Capability; sie ist in
+V1 Workshop User, Editor und Organization Admin zugewiesen. Veröffentlichung
+bleibt eine bewusste Aktion und ist kein unbeabsichtigter Nebeneffekt des
+Klonens.
 
 ## Umsetzungsstufen
 

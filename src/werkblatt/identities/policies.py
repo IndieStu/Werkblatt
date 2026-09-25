@@ -7,6 +7,7 @@ from .models import Membership
 
 class Capability(StrEnum):
     DOCUMENT_WORKSHOPS = "document_workshops"
+    CREATE_AND_PUBLISH_PRETIX_EVENTS = "create_and_publish_pretix_events"
     MANAGE_DOCUMENT_TEMPLATES = "manage_document_templates"
     MANAGE_DOCUMENT_ASSETS = "manage_document_assets"
     MANAGE_ORGANIZATION_PROFILE = "manage_organization_profile"
@@ -17,10 +18,16 @@ class Capability(StrEnum):
 
 
 ROLE_CAPABILITIES = {
-    Membership.Role.WORKSHOP_USER: frozenset({Capability.DOCUMENT_WORKSHOPS}),
+    Membership.Role.WORKSHOP_USER: frozenset(
+        {
+            Capability.DOCUMENT_WORKSHOPS,
+            Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        }
+    ),
     Membership.Role.EDITOR: frozenset(
         {
             Capability.DOCUMENT_WORKSHOPS,
+            Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
             Capability.MANAGE_DOCUMENT_TEMPLATES,
             Capability.MANAGE_DOCUMENT_ASSETS,
             Capability.MANAGE_WORKSHOP_VISIBILITY,

@@ -159,7 +159,7 @@ def reserve_pretix_event_creation(
     require_capability(
         user,
         organization.id,
-        Capability.DOCUMENT_WORKSHOPS,
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
         "Keine Berechtigung zum Vorbereiten einer Pretix-Veranstaltung.",
     )
     type(organization).objects.select_for_update().get(pk=organization.pk)
@@ -217,7 +217,7 @@ def claim_pretix_event_creation(*, creation_id, organization, user):
     require_capability(
         user,
         organization.id,
-        Capability.DOCUMENT_WORKSHOPS,
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
         "Keine Berechtigung zum Erstellen einer Pretix-Veranstaltung.",
     )
     try:

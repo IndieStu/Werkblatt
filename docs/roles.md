@@ -9,6 +9,7 @@ Organisation.
 |---|---:|---:|---:|
 | Workshops sehen und dokumentieren | ja | ja | ja |
 | Manuelle Workshops anlegen und bearbeiten | ja | ja | ja |
+| Pretix-Workshops erstellen und veröffentlichen | ja | ja | ja |
 | Dokumentationen finalisieren und Vorlagen verwenden | ja | ja | ja |
 | Organisationsstatistik und aggregierten CSV-Export sehen | ja | ja | ja |
 | Workshops reversibel aus- und einblenden | nein | ja | ja |
@@ -35,3 +36,9 @@ Rollenvererbung.
 
 Bestehende Memberships werden bei Einführung von Editor nicht verändert. Die
 OIDC-Zuordnung folgt der Priorität Organization Admin, Editor, Workshop User.
+
+Wer Workshops dokumentieren darf, darf innerhalb derselben Organisation auch
+eigene Pretix-Workshops über den vereinfachten Werkblatt-Ablauf erstellen und
+veröffentlichen. Die Verwaltung der zugrunde liegenden Pretix-Presets,
+Fördertexte, Produktzuordnungen und Integrationseinstellungen bleibt davon
+getrennt und ausschließlich Organization Admins vorbehalten.
