@@ -112,6 +112,30 @@ Optionale Fördertexte werden auf derselben Verwaltungsseite gepflegt. Ein
 später erstellter Workshop erhält eine Kopie des ausgewählten Textstands, damit
 nachträgliche Änderungen vorhandene Erstellungsvorgänge nicht verändern.
 
+Werkblatt bildet bewusst nur den einfachen Standardfall ab. Verpflichtende
+Fragen, zusätzliche Ticketarten oder Varianten, besondere E-Mail-Texte und
+weitere Pretix-Funktionen werden weiterhin in der Pretix-Verwaltung gepflegt.
+Der Verwaltungsbereich enthält dafür einen direkten Link zum `/control`-Bereich
+der konfigurierten Pretix-Instanz.
+
+Mit „Workshop mit Anmeldung“ öffnen Workshop User, Editor und Organization
+Admins den vereinfachten Erstellungsassistenten. Nach Auswahl des Standards
+werden Titel, Beginn, optionales Ende, Ort, Beschreibung, optionaler
+Fördertext, Kapazität und Kinderanmeldung erfasst. Der automatisch erzeugte
+Pretix-Slug erhält eine laufende Nummer.
+
+Vor dem externen Schreibzugriff zeigt Werkblatt eine vollständige
+Zusammenfassung. Erst „In Pretix erstellen und veröffentlichen“ klont die
+verborgene Vorlage, setzt Beschreibung, Fördertext, Kapazität und
+Kinderprodukt, überprüft das Ergebnis und veröffentlicht die Veranstaltung.
+Anschließend steht der Workshop unmittelbar zur Dokumentation bereit; der
+regelmäßige Sync ergänzt später eingehende Anmeldungen.
+
+Schlägt der Ablauf nach einem externen Teilschritt fehl, führt Werkblatt keine
+automatische Wiederholung aus. Dadurch wird kein zweites Event angelegt. Der
+Vorgang wird technisch markiert und muss zunächst in Pretix kontrolliert
+werden.
+
 ## Statistik
 
 Die Statistik kann nach Workshopdatum eingegrenzt werden. Pro Dokumentation

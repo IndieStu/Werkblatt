@@ -1,3 +1,4 @@
+import json
 import socket
 from datetime import date, datetime
 from unittest.mock import patch
@@ -545,6 +546,14 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
         if request.method == "PATCH" and path.endswith("/quotas/20/"):
             assert request.read() == b'{"size":24}'
             return httpx.Response(200, json={"id": 20, "size": 24})
+        if request.method == "PATCH" and path.endswith("/settings/"):
+            assert json.loads(request.read()) == {
+                "frontpage_text": {"de": "Beschreibung\n\nGefördert durch Test"}
+            }
+            return httpx.Response(
+                200,
+                json={"frontpage_text": {"de": "Beschreibung\n\nGefördert durch Test"}},
+            )
         if request.method == "GET" and path.endswith("/klimawerkstatt-1/"):
             return httpx.Response(
                 200,
@@ -574,6 +583,8 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
                 location="Werkstatt",
                 capacity=24,
                 child_registration_enabled=False,
+                description="Beschreibung",
+                funding_text="Gefördert durch Test",
             ),
             preset=PretixCreationPreset(
                 template_event_slug="blanko",
@@ -592,6 +603,7 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
         "POST",
         "GET",
         "GET",
+        "PATCH",
         "PATCH",
         "PATCH",
         "GET",
@@ -669,3 +681,29 @@ def test_template_inspection_rejects_visible_template_before_product_requests():
                 )
             )
     assert len(requests) == 1
+
+
+def test_publish_event_requires_confirmed_live_and_public_response():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "PATCH"
+        assert request.url.path.endswith("/events/workshop-1/")
+        assert request.read() == b'{"live":true,"is_public":true}'
+        return httpx.Response(
+            200,
+            json={
+                "slug": "workshop-1",
+                "public_url": "https://pretix.example/WORK/workshop-1/",
+                "live": True,
+                "is_public": True,
+            },
+        )
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+        )
+        published = PretixEventCreator(client, "WORK").publish_event("workshop-1")
+    assert published.live is True
+    assert published.is_public is True

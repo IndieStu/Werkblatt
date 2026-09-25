@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Pretix-Workshop prüfen – Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'workshop-index' %}">Workshops</a> / Zusammenfassung</nav>
+<p class="eyebrow">Vor Veröffentlichung prüfen</p><h1>{{ creation.title }}</h1>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<dl class="content-card">
+  <dt>Beginn</dt><dd>{{ creation.starts_at|date:"d.m.Y, H:i" }}</dd>
+  <dt>Ende</dt><dd>{% if creation.ends_at %}{{ creation.ends_at|date:"d.m.Y, H:i" }}{% else %}–{% endif %}</dd>
+  <dt>Ort</dt><dd>{{ creation.location|default:"–" }}</dd>
+  <dt>Kapazität</dt><dd>{{ creation.capacity }}</dd>
+  <dt>Kinderanmeldung</dt><dd>{% if creation.child_registration_enabled %}Ja{% else %}Nein{% endif %}</dd>
+  <dt>Pretix-Slug</dt><dd><code>{{ creation.external_slug }}</code></dd>
+  <dt>Beschreibung</dt><dd>{{ creation.description|default:"–"|linebreaksbr }}</dd>
+  <dt>Fördertext</dt><dd>{{ creation.funding_text_snapshot|default:"–"|linebreaksbr }}</dd>
+</dl>
+{% if creation.status == "draft" %}<form method="post" action="{% url 'pretix-workshop-publish' creation.id %}" class="content-card">{% csrf_token %}<p>Mit dem nächsten Schritt wird die Veranstaltung in Pretix erstellt und unmittelbar veröffentlicht.</p><button class="button" type="submit">In Pretix erstellen und veröffentlichen</button></form>{% elif creation.status == "created" %}<div class="message message-success">Die Veranstaltung wurde veröffentlicht.</div>{% elif creation.status == "failed" %}<div class="message message-error">Die Erstellung wurde nicht vollständig bestätigt. Bitte nicht erneut absenden und die Pretix-Verwaltung prüfen.</div>{% else %}<div class="message">Die Erstellung wird verarbeitet.</div>{% endif %}
+<p><a href="{{ pretix_control_url }}" target="_blank" rel="noopener noreferrer">Pretix-Verwaltung öffnen</a></p>
+{% endblock %}

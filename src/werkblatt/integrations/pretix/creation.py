@@ -38,6 +38,8 @@ class PretixEventDraft:
     location: str
     capacity: int
     child_registration_enabled: bool
+    description: str = ""
+    funding_text: str = ""
 
     def __post_init__(self) -> None:
         if not _valid_slug(self.slug):
@@ -148,6 +150,15 @@ class PretixEventCreator:
         )
         if updated_quota.get("size") != draft.capacity:
             raise PretixUnavailable("Pretix did not apply the workshop capacity")
+        frontpage_text = "\n\n".join(
+            part.strip() for part in (draft.description, draft.funding_text) if part.strip()
+        )
+        updated_settings = self.client.patch(
+            base_path + "/settings/",
+            {"frontpage_text": {"de": frontpage_text}},
+        )
+        if updated_settings.get("frontpage_text") != {"de": frontpage_text}:
+            raise PretixUnavailable("Pretix did not apply the workshop description")
         verified = self.client.get(base_path + "/")
         if verified.get("slug") != draft.slug:
             raise PretixUnavailable("Pretix returned an unexpected event reference")
@@ -158,6 +169,31 @@ class PretixEventCreator:
             public_url=str(verified.get("public_url") or event.get("public_url") or ""),
             live=False,
             is_public=False,
+        )
+
+    def list_event_slugs(self) -> set[str]:
+        path = f"/api/v1/organizers/{self.organizer}/events/"
+        return {
+            str(event["slug"])
+            for event in self.client.pages(path)
+            if isinstance(event.get("slug"), str) and event["slug"]
+        }
+
+    def publish_event(self, slug: str) -> CreatedPretixEvent:
+        if not _valid_slug(slug):
+            raise ValueError("Invalid Pretix event slug")
+        escaped_slug = quote(slug, safe="")
+        path = f"/api/v1/organizers/{self.organizer}/events/{escaped_slug}/"
+        updated = self.client.patch(path, {"live": True, "is_public": True})
+        if updated.get("live") is not True or updated.get("is_public") is not True:
+            raise PretixUnavailable("Pretix did not publish the event")
+        if updated.get("slug") != slug:
+            raise PretixUnavailable("Pretix returned an unexpected event reference")
+        return CreatedPretixEvent(
+            slug=slug,
+            public_url=str(updated.get("public_url") or ""),
+            live=True,
+            is_public=True,
         )
 
     def inspect_template(self, preset: PretixCreationPreset) -> PretixTemplateInspection:

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Pretix-Workshop erstellen – Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'workshop-index' %}">Workshops</a> / Mit Anmeldung erstellen</nav>
+<h1>Workshop mit Anmeldung erstellen</h1>
+<p class="lead">Werkblatt übernimmt den einfachen Standardfall und erstellt daraus eine veröffentlichte Pretix-Veranstaltung.</p>
+<aside class="content-card">
+  <h2>Mehr Möglichkeiten direkt in Pretix</h2>
+  <p>Verpflichtende Fragen, zusätzliche Ticketarten und Varianten, besondere E-Mail-Texte sowie weitere Einstellungen werden weiterhin direkt in der Pretix-Verwaltung gepflegt.</p>
+  <p><a href="{{ pretix_control_url }}" target="_blank" rel="noopener noreferrer">Pretix-Verwaltung öffnen</a></p>
+</aside>
+<form method="post" class="content-card">{% csrf_token %}{{ form.as_div }}<button class="button" type="submit">Zusammenfassung prüfen</button></form>
+{% endblock %}

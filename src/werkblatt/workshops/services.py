@@ -328,6 +328,45 @@ def complete_pretix_event_creation(*, creation_id, organization, external_url):
 
 
 @transaction.atomic
+def materialize_pretix_event_creation(*, creation_id, organization):
+    try:
+        creation = PretixEventCreation.objects.select_for_update().get(
+            pk=creation_id,
+            organization=organization,
+            status=PretixEventCreation.Status.CREATED,
+        )
+    except PretixEventCreation.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    rule = PretixEventRule.objects.filter(
+        organization=organization,
+        event_slug=creation.external_slug,
+    ).first()
+    defaults = {
+        "parent_external_reference": creation.external_slug,
+        "title": creation.title,
+        "starts_at": creation.starts_at,
+        "ends_at": creation.ends_at,
+        "location": creation.location,
+        "lifecycle_status": Workshop.LifecycleStatus.ACTIVE,
+    }
+    if rule:
+        defaults.update(
+            documentation_requirement=rule.documentation_requirement,
+            requirement_source=Workshop.RequirementSource.EVENT_RULE,
+            requirement_reason=rule.reason,
+            requirement_decided_by=rule.decided_by,
+            requirement_decided_at=timezone.now(),
+        )
+    workshop, _ = Workshop.objects.update_or_create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference=creation.external_slug,
+        defaults=defaults,
+    )
+    return workshop
+
+
+@transaction.atomic
 def fail_pretix_event_creation(*, creation_id, organization, failure_code):
     try:
         creation = PretixEventCreation.objects.select_for_update().get(

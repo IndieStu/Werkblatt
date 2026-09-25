@@ -8,6 +8,7 @@
     <p class="lead">Workshops im Monatsüberblick öffnen und dokumentieren.</p>
     <div class="view-switch"><form method="post" action="{% url 'workshop-view-preference' %}">{% csrf_token %}<input type="hidden" name="view" value="list"><input type="hidden" name="query" value="{{ view_switch_query }}"><button type="submit">Liste</button></form><span aria-current="page">Kalender</span></div>
   </div>
+  {% if can_create_pretix_workshops %}<a class="button" href="{% url 'pretix-workshop-create' %}">Workshop mit Anmeldung</a>{% endif %}
 </div>
 
 <section class="content-card calendar-toolbar">

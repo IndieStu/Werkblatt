@@ -32,7 +32,10 @@ def test_pretix_creation_settings_are_admin_only(admin_setup):
         client.force_login(users[role])
         assert client.get(reverse("pretix-creation-settings")).status_code == 403
     client.force_login(users[Membership.Role.ORGANIZATION_ADMIN])
-    assert client.get(reverse("pretix-creation-settings")).status_code == 200
+    response = client.get(reverse("pretix-creation-settings"))
+    assert response.status_code == 200
+    assert 'href="https://pretix.eu/control"' in response.content.decode()
+    assert "Verpflichtende Fragen" in response.content.decode()
 
 
 @pytest.mark.django_db
