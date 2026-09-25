@@ -39,6 +39,7 @@ class ParticipantInput:
     entry_id: UUID | None
     display_name: str
     present: bool
+    origin: str | None = None
     delete: bool = False
 
 
@@ -152,8 +153,11 @@ def _apply_participants(documentation: Documentation, rows: list[ParticipantInpu
             entry = existing.get(row.entry_id)
             if entry is None:
                 raise PermissionDenied("Ungültiger Teilnehmereintrag")
+            origin = row.origin or entry.origin
+            if origin not in ParticipantEntry.Origin.values:
+                raise ValidationError("Ungültige Art der Teilnahme")
             if row.delete:
-                if entry.origin == ParticipantEntry.Origin.REGISTERED:
+                if entry.registration_id is not None:
                     raise ValidationError("Importierte Anmeldungen können nicht gelöscht werden")
                 entry.delete()
                 continue
@@ -161,13 +165,19 @@ def _apply_participants(documentation: Documentation, rows: list[ParticipantInpu
                 raise ValidationError("Teilnehmernamen dürfen nicht leer sein")
             entry.display_name = name
             entry.present = row.present
-            entry.save(update_fields=["display_name", "present"])
+            if entry.registration_id is not None and origin != entry.origin:
+                raise ValidationError("Die Art importierter Anmeldungen kann nicht geändert werden")
+            entry.origin = origin
+            entry.save(update_fields=["display_name", "present", "origin"])
         elif name and not row.delete:
+            origin = row.origin or ParticipantEntry.Origin.WALK_IN
+            if origin not in ParticipantEntry.Origin.values:
+                raise ValidationError("Ungültige Art der Teilnahme")
             ParticipantEntry.objects.create(
                 organization_id=documentation.organization_id,
                 documentation=documentation,
                 display_name=name,
-                origin=ParticipantEntry.Origin.WALK_IN,
+                origin=origin,
                 present=row.present,
                 sort_order=next_order,
             )

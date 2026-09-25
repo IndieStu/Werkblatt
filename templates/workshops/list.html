@@ -2,7 +2,7 @@
 {% block title %}Workshops - Werkblatt{% endblock %}
 {% block content %}
 <div class="section-heading">
-  <div><p class="eyebrow">Workshop-Dokumentation</p><h1>Workshops</h1><p class="lead">Finde Workshops nach Zeitraum und Bearbeitungsstand.</p><div class="view-switch"><span aria-current="page">Liste</span><a href="{% url 'workshop-calendar' %}">Kalender</a></div></div>
+  <div><p class="eyebrow">Workshop-Dokumentation</p><h1>Workshops</h1><p class="lead">Finde Workshops nach Zeitraum und Bearbeitungsstand.</p><div class="view-switch"><span aria-current="page">Liste</span><form method="post" action="{% url 'workshop-view-preference' %}">{% csrf_token %}<input type="hidden" name="view" value="calendar"><input type="hidden" name="query" value="{{ view_switch_query }}"><button type="submit">Kalender</button></form></div></div>
   {% if can_edit_native_workshops %}<a class="button" href="{% url 'workshop-create' %}">Workshop anlegen</a>{% endif %}
 </div>
 {% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}

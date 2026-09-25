@@ -163,6 +163,106 @@ def test_statistics_are_mathematically_consistent(documentation_setup):
 
 
 @pytest.mark.django_db
+def test_manual_registered_participant_is_counted_and_remains_deletable(documentation_setup):
+    data = documentation_setup
+    documentation = data["documentation"]
+    rows = _participant_rows(documentation, walk_in_name="")
+    rows.append(
+        ParticipantInput(
+            entry_id=None,
+            display_name="Mail Anmeldung",
+            present=True,
+            origin=ParticipantEntry.Origin.REGISTERED,
+        )
+    )
+    save_draft(
+        documentation_id=documentation.id,
+        organization_id=data["organization"].id,
+        user=data["user"],
+        expected_version=documentation.version,
+        conducted_as_planned=True,
+        report="",
+        participants=rows,
+        facilitators=[],
+    )
+    manual = documentation.participants.get(display_name="Mail Anmeldung")
+    assert manual.registration_id is None
+    assert manual.origin == ParticipantEntry.Origin.REGISTERED
+    assert statistics_for(documentation)["registered"] == 3
+
+    documentation.refresh_from_db()
+    revision = finalize_documentation(
+        documentation_id=documentation.id,
+        organization_id=data["organization"].id,
+        user=data["user"],
+        expected_version=documentation.version,
+    )
+    snapshot_entry = next(
+        item
+        for item in revision.snapshot["participants"]
+        if item["display_name"] == "Mail Anmeldung"
+    )
+    assert snapshot_entry["origin"] == ParticipantEntry.Origin.REGISTERED
+    documentation.refresh_from_db()
+    reopen_documentation(
+        documentation_id=documentation.id,
+        organization_id=data["organization"].id,
+        user=data["user"],
+        expected_version=documentation.version,
+    )
+
+    documentation.refresh_from_db()
+    rows = _participant_rows(documentation, walk_in_name="")
+    rows = [
+        ParticipantInput(
+            entry_id=row.entry_id,
+            display_name=row.display_name,
+            present=row.present,
+            origin=ParticipantEntry.Origin.REGISTERED if row.entry_id == manual.id else None,
+            delete=row.entry_id == manual.id,
+        )
+        for row in rows
+    ]
+    save_draft(
+        documentation_id=documentation.id,
+        organization_id=data["organization"].id,
+        user=data["user"],
+        expected_version=documentation.version,
+        conducted_as_planned=True,
+        report="",
+        participants=rows,
+        facilitators=[],
+    )
+    assert not documentation.participants.filter(id=manual.id).exists()
+
+
+@pytest.mark.django_db
+def test_pretix_participant_origin_cannot_be_changed(documentation_setup):
+    data = documentation_setup
+    documentation = data["documentation"]
+    imported = documentation.participants.get(registration=data["registration_present"])
+
+    with pytest.raises(ValidationError, match="importierter Anmeldungen"):
+        save_draft(
+            documentation_id=documentation.id,
+            organization_id=data["organization"].id,
+            user=data["user"],
+            expected_version=documentation.version,
+            conducted_as_planned=True,
+            report="",
+            participants=[
+                ParticipantInput(
+                    entry_id=imported.id,
+                    display_name=imported.display_name,
+                    present=True,
+                    origin=ParticipantEntry.Origin.WALK_IN,
+                )
+            ],
+            facilitators=[],
+        )
+
+
+@pytest.mark.django_db
 def test_workshop_user_can_reopen_and_create_second_immutable_revision(documentation_setup):
     data = documentation_setup
     documentation = data["documentation"]

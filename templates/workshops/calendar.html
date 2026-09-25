@@ -6,7 +6,7 @@
     <p class="eyebrow">Workshop-Dokumentation</p>
     <h1>Workshopkalender</h1>
     <p class="lead">Workshops im Monatsüberblick öffnen und dokumentieren.</p>
-    <div class="view-switch"><a href="{% url 'workshop-list' %}">Liste</a><span aria-current="page">Kalender</span></div>
+    <div class="view-switch"><form method="post" action="{% url 'workshop-view-preference' %}">{% csrf_token %}<input type="hidden" name="view" value="list"><input type="hidden" name="query" value="{{ view_switch_query }}"><button type="submit">Liste</button></form><span aria-current="page">Kalender</span></div>
   </div>
 </div>
 

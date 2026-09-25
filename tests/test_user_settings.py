@@ -40,7 +40,28 @@ def test_user_can_save_personal_theme_without_changing_organization(settings_use
     organization.refresh_from_db()
     assert user.preferred_language == "de"
     assert user.theme == "dark"
+    assert user.preferred_workshop_view == "calendar"
     assert organization.name == original_name
+
+
+@pytest.mark.django_db
+def test_user_can_save_personal_workshop_view(settings_user):
+    _, user = settings_user
+    client = Client()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("user-settings"),
+        {
+            "preferred_language": "de",
+            "theme": "system",
+            "preferred_workshop_view": "list",
+        },
+    )
+
+    assert response.status_code == 302
+    user.refresh_from_db()
+    assert user.preferred_workshop_view == "list"
 
 
 @pytest.mark.django_db

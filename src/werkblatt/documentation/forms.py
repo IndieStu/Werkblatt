@@ -30,15 +30,34 @@ class DocumentationForm(forms.ModelForm):
 
 
 class ParticipantForm(forms.ModelForm):
+    origin = forms.ChoiceField(
+        choices=(
+            (ParticipantEntry.Origin.WALK_IN, "Spontan teilgenommen"),
+            (ParticipantEntry.Origin.REGISTERED, "Außerhalb von Pretix angemeldet"),
+        ),
+        label="Art",
+        required=False,
+    )
+
     class Meta:
         model = ParticipantEntry
-        fields = ["display_name", "present"]
+        fields = ["display_name", "origin", "present"]
         labels = {"display_name": "Name", "present": "Anwesend"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.is_bound and self.instance._state.adding:
             self.fields["present"].initial = True
+            self.fields["origin"].initial = ParticipantEntry.Origin.WALK_IN
+        if self.instance.registration_id:
+            self.fields["origin"].disabled = True
+
+    def clean_origin(self):
+        return (
+            self.cleaned_data.get("origin")
+            or self.instance.origin
+            or ParticipantEntry.Origin.WALK_IN
+        )
 
 
 class FacilitatorForm(forms.ModelForm):

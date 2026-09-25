@@ -3,8 +3,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("", views.workshop_list, name="workshop-list"),
+    path("", views.workshop_index, name="workshop-index"),
+    path("list/", views.workshop_list, name="workshop-list"),
     path("calendar/", views.workshop_calendar, name="workshop-calendar"),
+    path("view/", views.workshop_view_preference, name="workshop-view-preference"),
     path("new/", views.native_workshop_edit, name="workshop-create"),
     path("<uuid:workshop_id>/edit/", views.native_workshop_edit, name="workshop-edit"),
     path("<uuid:workshop_id>/visibility/", views.workshop_visibility, name="workshop-visibility"),

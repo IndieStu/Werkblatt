@@ -112,8 +112,9 @@ button.button { border: 0; cursor: pointer; font: inherit; }
 .inline-form, .inline-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
 .link-button { padding: 0; color: var(--brand-petrol-dark); background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; }
 .view-switch { display: inline-flex; gap: 0.25rem; padding: 0.25rem; background: var(--color-field); border: 1px solid var(--color-border); border-radius: var(--radius-small); }
-.view-switch a, .view-switch span { padding: 0.35rem 0.7rem; border-radius: calc(var(--radius-small) - 2px); }
-.view-switch a { text-decoration: none; }
+.view-switch form { display: contents; }
+.view-switch a, .view-switch span, .view-switch button { padding: 0.35rem 0.7rem; border-radius: calc(var(--radius-small) - 2px); }
+.view-switch a, .view-switch button { color: var(--color-text); background: transparent; border: 0; font: inherit; text-decoration: none; cursor: pointer; }
 .view-switch [aria-current="page"] { color: var(--color-on-primary); background: var(--brand-petrol-dark); font-weight: 600; }
 .calendar-toolbar { display: grid; gap: 1rem; }
 .calendar-navigation { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }

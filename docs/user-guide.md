@@ -27,6 +27,11 @@ Unter „Einstellungen“ kann das Erscheinungsbild gewählt werden:
 - **Systemeinstellung** folgt der Hell-/Dunkel-Einstellung des Browsers oder
   Betriebssystems.
 
+Zusätzlich kann die persönliche Standardansicht der Workshops gewählt werden.
+Ohne abweichende Auswahl öffnet Werkblatt den Kalender. Der Wechsel zwischen
+Kalender und Liste ist auch direkt in der Workshopübersicht möglich und wird
+für das eigene Benutzerkonto gespeichert.
+
 Werkblatt V1 ist derzeit vollständig auf Deutsch verfügbar. Weitere Sprachen
 werden erst auswählbar, wenn ihre Übersetzung vollständig bereitsteht.
 
@@ -42,6 +47,13 @@ Integration gepflegt und können dort nicht bearbeitet werden.
 Ein Workshop führt zur zugehörigen Dokumentation. Dort können berechtigte
 Nutzer der eigenen Organisation Entwurfsdaten, Teilnehmende, Anwesenheiten und
 weitere vorlagenabhängige Angaben bearbeiten.
+
+Aus Pretix übernommene Anmeldungen sind als „Pretix“ gekennzeichnet und können
+nicht versehentlich entfernt oder einer anderen Teilnahmeart zugeordnet werden.
+Manuell ergänzte Personen können als „Spontan teilgenommen“ oder „Außerhalb von
+Pretix angemeldet“ erfasst und später korrigiert werden. Manuelle Anmeldungen
+zählen in Statistik und Anwesenheitsquote als angemeldet; spontane Teilnahmen
+werden weiterhin getrennt ausgewiesen.
 
 Vor dem Abschluss wird eine Dokumentvorlage zugeordnet. Beim Finalisieren
 entsteht ein unveränderlicher Snapshot. Eine abgeschlossene Dokumentation kann
