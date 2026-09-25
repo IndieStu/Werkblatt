@@ -98,10 +98,12 @@ def roles(db, settings, tmp_path):
 def test_fixed_capability_matrix(roles):
     organization, _, users, _, _ = roles
     assert capabilities_for(users[Membership.Role.WORKSHOP_USER], organization.id) == {
-        Capability.DOCUMENT_WORKSHOPS
+        Capability.DOCUMENT_WORKSHOPS,
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
     }
     assert capabilities_for(users[Membership.Role.EDITOR], organization.id) == {
         Capability.DOCUMENT_WORKSHOPS,
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
         Capability.MANAGE_DOCUMENT_TEMPLATES,
         Capability.MANAGE_DOCUMENT_ASSETS,
         Capability.MANAGE_WORKSHOP_VISIBILITY,
@@ -212,6 +214,7 @@ def test_editor_sees_editorial_administration_only(roles):
     assert "Logos & Assets" in body
     assert "Organisationsprofil" not in body
     assert client.get(reverse("organization-profile")).status_code == 403
+    assert Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS in capabilities_for(editor, organization.id)
     assert Capability.MANAGE_INTEGRATIONS not in capabilities_for(editor, organization.id)
     assert Capability.MANAGE_MEMBERSHIPS not in capabilities_for(editor, organization.id)
 
@@ -222,6 +225,7 @@ def test_workshop_user_cannot_manage_editorial_content(roles):
     user = users[Membership.Role.WORKSHOP_USER]
     client = Client()
     client.force_login(user)
+    assert Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS in capabilities_for(user, organization.id)
     assert client.get(reverse("documentation-detail", args=[workshop.id])).status_code == 200
     assert client.get(reverse("template-create")).status_code == 403
     assert client.get(reverse("asset-create")).status_code == 403

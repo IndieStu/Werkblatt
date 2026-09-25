@@ -3,8 +3,15 @@ from django.db import transaction
 from django.utils import timezone
 
 from werkblatt.identities.policies import Capability, require_capability
+from werkblatt.integrations.pretix.creation import numbered_event_slug
 
-from .models import PretixEventRule, Workshop
+from .models import (
+    PretixEventCreation,
+    PretixEventCreationPreset,
+    PretixEventRule,
+    PretixFundingText,
+    Workshop,
+)
 
 
 @transaction.atomic
@@ -131,3 +138,160 @@ def save_pretix_event_rule(*, form, organization, user):
         requirement_decided_at=timezone.now(),
     )
     return rule
+
+
+@transaction.atomic
+def reserve_pretix_event_creation(
+    *,
+    organization,
+    user,
+    preset,
+    funding_text,
+    title,
+    description,
+    starts_at,
+    ends_at,
+    location,
+    capacity,
+    child_registration_enabled,
+    existing_external_slugs=frozenset(),
+):
+    require_capability(
+        user,
+        organization.id,
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        "Keine Berechtigung zum Vorbereiten einer Pretix-Veranstaltung.",
+    )
+    type(organization).objects.select_for_update().get(pk=organization.pk)
+    try:
+        preset = PretixEventCreationPreset.objects.get(
+            pk=preset.pk,
+            organization=organization,
+            active=True,
+        )
+    except PretixEventCreationPreset.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    if funding_text is not None:
+        try:
+            funding_text = PretixFundingText.objects.get(
+                pk=funding_text.pk,
+                organization=organization,
+                active=True,
+            )
+        except PretixFundingText.DoesNotExist as exc:
+            raise PermissionDenied from exc
+    occupied_slugs = set(existing_external_slugs)
+    occupied_slugs.update(
+        PretixEventCreation.objects.filter(organization=organization).values_list(
+            "external_slug", flat=True
+        )
+    )
+    creation = PretixEventCreation(
+        organization=organization,
+        preset=preset,
+        funding_text=funding_text,
+        title=title.strip(),
+        description=description.strip(),
+        funding_text_snapshot=funding_text.text if funding_text else "",
+        starts_at=starts_at,
+        ends_at=ends_at,
+        location=location.strip(),
+        capacity=capacity,
+        child_registration_enabled=child_registration_enabled,
+        external_slug=numbered_event_slug(title, occupied_slugs),
+        preset_snapshot={
+            "display_name": preset.display_name,
+            "template_event_slug": preset.template_event_slug,
+            "primary_item_internal_name": preset.primary_item_internal_name,
+            "child_item_internal_name": preset.child_item_internal_name,
+        },
+        created_by=user,
+    )
+    creation.full_clean()
+    creation.save()
+    return creation
+
+
+@transaction.atomic
+def claim_pretix_event_creation(*, creation_id, organization, user):
+    require_capability(
+        user,
+        organization.id,
+        Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        "Keine Berechtigung zum Erstellen einer Pretix-Veranstaltung.",
+    )
+    try:
+        creation = PretixEventCreation.objects.select_for_update().get(
+            pk=creation_id,
+            organization=organization,
+        )
+    except PretixEventCreation.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    if creation.status not in {
+        PretixEventCreation.Status.DRAFT,
+        PretixEventCreation.Status.FAILED,
+    }:
+        raise ValueError("Die Pretix-Erstellung kann in diesem Status nicht gestartet werden.")
+    creation.status = PretixEventCreation.Status.CREATING
+    creation.attempt_count += 1
+    creation.failure_code = ""
+    creation.attempt_started_at = timezone.now()
+    creation.completed_at = None
+    creation.save(
+        update_fields=[
+            "status",
+            "attempt_count",
+            "failure_code",
+            "attempt_started_at",
+            "completed_at",
+            "updated_at",
+        ]
+    )
+    return creation
+
+
+@transaction.atomic
+def complete_pretix_event_creation(*, creation_id, organization, external_url):
+    try:
+        creation = PretixEventCreation.objects.select_for_update().get(
+            pk=creation_id,
+            organization=organization,
+        )
+    except PretixEventCreation.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    if creation.status != PretixEventCreation.Status.CREATING:
+        raise ValueError("Die Pretix-Erstellung ist nicht aktiv.")
+    creation.status = PretixEventCreation.Status.CREATED
+    creation.external_url = external_url
+    creation.failure_code = ""
+    creation.completed_at = timezone.now()
+    creation.save(
+        update_fields=[
+            "status",
+            "external_url",
+            "failure_code",
+            "completed_at",
+            "updated_at",
+        ]
+    )
+    return creation
+
+
+@transaction.atomic
+def fail_pretix_event_creation(*, creation_id, organization, failure_code):
+    try:
+        creation = PretixEventCreation.objects.select_for_update().get(
+            pk=creation_id,
+            organization=organization,
+        )
+    except PretixEventCreation.DoesNotExist as exc:
+        raise PermissionDenied from exc
+    if creation.status != PretixEventCreation.Status.CREATING:
+        raise ValueError("Die Pretix-Erstellung ist nicht aktiv.")
+    if failure_code not in PretixEventCreation.FailureCode.values:
+        raise ValueError("Ungültiger Fehlercode für die Pretix-Erstellung.")
+    creation.status = PretixEventCreation.Status.FAILED
+    creation.failure_code = failure_code
+    creation.completed_at = None
+    creation.save(update_fields=["status", "failure_code", "completed_at", "updated_at"])
+    return creation

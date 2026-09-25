@@ -89,11 +89,13 @@ Pretix-Event wird nicht automatisch destruktiv gelöscht.
 ## Berechtigungen
 
 Die Verwaltung von Presets, Fördertexten, Produktzuordnungen und
-Pretix-Verbindungen bleibt Organization Admins vorbehalten. Vor Einführung der
-Bedienoberfläche wird separat festgelegt, ob Workshop User Events unmittelbar
-erstellen dürfen oder ob diese Fähigkeit zunächst Editor und Organization
-Admin vorbehalten bleibt. Veröffentlichung ist in jedem Fall eine eigene
-Capability und kein Nebeneffekt des Erstellens.
+Pretix-Verbindungen bleibt Organization Admins vorbehalten. Alle Rollen, die
+Workshops dokumentieren dürfen, dürfen innerhalb derselben Organisation auch
+Pretix-Workshops über den vereinfachten Werkblatt-Ablauf erstellen und
+veröffentlichen. Dafür existiert eine eigene fachliche Capability; sie ist in
+V1 Workshop User, Editor und Organization Admin zugewiesen. Veröffentlichung
+bleibt eine bewusste Aktion und ist kein unbeabsichtigter Nebeneffekt des
+Klonens.
 
 ## Umsetzungsstufen
 
@@ -109,3 +111,24 @@ Capability und kein Nebeneffekt des Erstellens.
    Pretix-Backend und kontrollierte Bereinigung.
 6. **Veröffentlichung:** getrennte Freigabeaktion erst nach weiterem
    Security- und Berechtigungsreview.
+
+## Implementierungsstand
+
+Der Adapter-Grundbau und die persistente Fachbasis sind umgesetzt. Die
+Fachbasis enthält organisationsbezogene Erstellungsstandards, optionale
+Fördertexte und einen tenantgebundenen Erstellungsvorgang mit den Zuständen
+`draft`, `creating`, `created` und `failed`.
+
+Beim Reservieren wird die Organisation kurz gesperrt, damit parallele
+Anfragen nicht dieselbe laufende Slugnummer erhalten. Preset- und Fördertext
+werden in den Vorgang kopiert; spätere Änderungen verändern einen bereits
+vorbereiteten Vorgang nicht. Jeder Versuch besitzt einen Startzeitpunkt und
+einen Zähler. Fehler werden ausschließlich mit fest definierten technischen
+Codes gespeichert, nicht als rohe externe Antwort.
+
+Die kurzen lokalen Statusänderungen sind bewusst getrennte Transaktionen. Der
+spätere Pretix-HTTP-Aufruf findet zwischen `creating` und dem abschließenden
+`created` beziehungsweise `failed` statt und hält keine Datenbanktransaktion
+offen. Ein in `creating` verbliebener Vorgang muss vor einer Wiederholung über
+den reservierten Slug gegen Pretix abgeglichen werden; ein blinder zweiter POST
+ist nicht zulässig.
