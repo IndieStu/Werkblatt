@@ -9,11 +9,18 @@ from django.core.management import CommandError, call_command
 from django.utils import timezone
 
 from werkblatt.integrations.pretix.client import (
+    MAX_PRETIX_REQUEST_BYTES,
     MAX_PRETIX_RESPONSE_BYTES,
     PretixClient,
     PretixConfigurationError,
     PretixUnavailable,
     validate_public_https_origin,
+)
+from werkblatt.integrations.pretix.creation import (
+    PretixCreationPreset,
+    PretixEventCreator,
+    PretixEventDraft,
+    numbered_event_slug,
 )
 from werkblatt.integrations.pretix.provider import PretixWorkshopProvider
 from werkblatt.integrations.pretix.types import (
@@ -427,3 +434,200 @@ def test_response_size_is_bounded():
         )
         with pytest.raises(PretixUnavailable, match="size limit"):
             client.get("/api/v1/organizers/WORK/events/")
+
+
+def test_write_requests_are_json_bounded_and_do_not_follow_redirects():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"slug": "synthetic-1"})
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+        )
+        assert client.post(
+            "/api/v1/organizers/WORK/events/",
+            {"name": {"de": "Synthetisch"}},
+            params={"clone_from": "blanko"},
+        ) == {"slug": "synthetic-1"}
+        assert client.patch(
+            "/api/v1/organizers/WORK/events/synthetic-1/",
+            {"is_public": False},
+        ) == {"slug": "synthetic-1"}
+        with pytest.raises(PretixConfigurationError, match="size limit"):
+            client.post(
+                "/api/v1/organizers/WORK/events/",
+                {"description": "x" * MAX_PRETIX_REQUEST_BYTES},
+            )
+
+    assert [request.method for request in requests] == ["POST", "PATCH"]
+    assert requests[0].url.params["clone_from"] == "blanko"
+    assert requests[0].headers["Authorization"] == "Token synthetic-token"
+
+
+def test_numbered_event_slug_is_automatic_stable_and_ascii_safe():
+    assert numbered_event_slug("Klimawerkstatt Gröpelingen", set()) == (
+        "klimawerkstatt-gropelingen-1"
+    )
+    assert (
+        numbered_event_slug(
+            "Klimawerkstatt Gröpelingen",
+            {
+                "klimawerkstatt-gropelingen-1",
+                "klimawerkstatt-gropelingen-2",
+                "anderer-workshop-9",
+            },
+        )
+        == "klimawerkstatt-gropelingen-3"
+    )
+    assert numbered_event_slug("***", set()) == "workshop-1"
+
+
+def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        path = request.url.path
+        if request.method == "GET" and path.endswith("/blanko/items/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {"id": 1, "internal_name": "werkblatt_standard", "active": True},
+                        {"id": 2, "internal_name": "werkblatt_child", "active": True},
+                    ],
+                    "next": None,
+                },
+            )
+        if request.method == "GET" and path.endswith("/blanko/quotas/"):
+            return httpx.Response(
+                200,
+                json={"results": [{"id": 3, "items": [1, 2]}], "next": None},
+            )
+        if request.method == "POST" and path.endswith("/events/"):
+            body = request.read().decode()
+            assert '"live":false' in body
+            assert '"is_public":false' in body
+            assert request.url.params["clone_from"] == "blanko"
+            return httpx.Response(201, json={"slug": "klimawerkstatt-1"})
+        if request.method == "GET" and path.endswith("/items/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {"id": 10, "internal_name": "werkblatt_standard", "active": True},
+                        {"id": 11, "internal_name": "werkblatt_child", "active": True},
+                    ],
+                    "next": None,
+                },
+            )
+        if request.method == "GET" and path.endswith("/quotas/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [{"id": 20, "name": "Kapazität", "items": [10, 11]}],
+                    "next": None,
+                },
+            )
+        if request.method == "PATCH" and path.endswith("/items/11/"):
+            assert request.read() == b'{"active":false}'
+            return httpx.Response(200, json={"id": 11, "active": False})
+        if request.method == "PATCH" and path.endswith("/quotas/20/"):
+            assert request.read() == b'{"size":24}'
+            return httpx.Response(200, json={"id": 20, "size": 24})
+        if request.method == "GET" and path.endswith("/klimawerkstatt-1/"):
+            return httpx.Response(
+                200,
+                json={
+                    "slug": "klimawerkstatt-1",
+                    "public_url": "https://pretix.example/WORK/klimawerkstatt-1/",
+                    "live": False,
+                    "is_public": False,
+                },
+            )
+        raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+    starts_at = timezone.make_aware(datetime(2026, 10, 10, 10, 0))
+    ends_at = timezone.make_aware(datetime(2026, 10, 10, 13, 0))
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+        )
+        created = PretixEventCreator(client, "WORK").create_from_template(
+            draft=PretixEventDraft(
+                slug="klimawerkstatt-1",
+                title="Klimawerkstatt",
+                starts_at=starts_at,
+                ends_at=ends_at,
+                location="Werkstatt",
+                capacity=24,
+                child_registration_enabled=False,
+            ),
+            preset=PretixCreationPreset(
+                template_event_slug="blanko",
+                primary_item_internal_name="werkblatt_standard",
+                child_item_internal_name="werkblatt_child",
+            ),
+        )
+
+    assert created.slug == "klimawerkstatt-1"
+    assert created.live is False
+    assert created.is_public is False
+    assert [request.method for request in requests] == [
+        "GET",
+        "GET",
+        "POST",
+        "GET",
+        "GET",
+        "PATCH",
+        "PATCH",
+        "GET",
+    ]
+
+
+def test_creator_stops_when_template_item_mapping_is_not_stable():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path.endswith("/items/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [{"id": 10, "internal_name": None}],
+                    "next": None,
+                },
+            )
+        raise AssertionError("No further request may happen with an invalid template mapping")
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+        )
+        with pytest.raises(PretixUnavailable, match="mapping"):
+            PretixEventCreator(client, "WORK").create_from_template(
+                draft=PretixEventDraft(
+                    slug="workshop-1",
+                    title="Workshop",
+                    starts_at=timezone.make_aware(datetime(2026, 10, 10, 10, 0)),
+                    ends_at=None,
+                    location="",
+                    capacity=10,
+                    child_registration_enabled=True,
+                ),
+                preset=PretixCreationPreset(
+                    template_event_slug="blanko",
+                    primary_item_internal_name="werkblatt_standard",
+                    child_item_internal_name="werkblatt_child",
+                ),
+            )
+    assert [request.method for request in requests] == ["GET"]
