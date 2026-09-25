@@ -7,7 +7,7 @@ Werkblatt ist als selbst hostbare, mandantenfähige Anwendung konzipiert. Anmeld
 Das unabhängige Open-Source-Projekt wurde von Timo Hecken initiiert und wird von
 ihm gepflegt. Zircula e.V. ist Erstanwender und enger Entwicklungspartner.
 
-Aktueller Stand: Release Candidate `0.1.0rc2` für den kontrollierten
+Aktueller Stand: Release Candidate `0.1.0rc3` für den kontrollierten
 Single-Tenant-Pilotbetrieb. Noch kein allgemeiner Hosted-Multi-Tenant-Release.
 
 ## Entwicklung
@@ -37,8 +37,8 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
   Hosted-Multi-Tenant-Auswahl.
 
 Änderungen und bekannte Grenzen stehen in [`CHANGELOG.md`](CHANGELOG.md). Die
-konkreten Hinweise für RC2 stehen in
-[`docs/releases/0.1.0-rc2.md`](docs/releases/0.1.0-rc2.md).
+konkreten Hinweise für RC3 stehen in
+[`docs/releases/0.1.0-rc3.md`](docs/releases/0.1.0-rc3.md).
 
 ## Lizenz
 

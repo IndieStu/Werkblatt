@@ -6,6 +6,20 @@ entsprechende PEP-440-Schreibweise.
 
 ## Unveröffentlicht
 
+## 0.1.0rc3 – 2026-09-25
+
+### Behoben
+
+- die Auswahl einer Dokumentvorlage aktualisiert die vorlagenabhängigen
+  Zusatzfelder unmittelbar, ohne bereits erfasste Dokumentationsdaten zu
+  verlieren;
+- ein Abschluss mit einer noch nicht zur ausgewählten Vorlage passenden
+  Eingabemaske wird serverseitig verhindert;
+- Entwürfe weisen auf neuere Vorlagenstände hin und bieten deren bewusste
+  Übernahme an;
+- in der Vorlagenverwaltung können beliebig viele Zusatzfelder dynamisch
+  hinzugefügt und entfernt werden.
+
 ## 0.1.0rc2 – 2026-09-25
 
 ### Hinzugefügt

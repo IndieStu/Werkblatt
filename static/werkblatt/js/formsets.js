@@ -8,7 +8,7 @@ for (const formset of document.querySelectorAll("[data-formset]")) {
   const addButton = formset.querySelector("[data-add-row]");
 
   const removeRow = (button) => {
-    const row = button.closest(".participant-row, .facilitator-row");
+    const row = button.closest("[data-formset-row], .participant-row, .facilitator-row");
     const deleteInput = row?.querySelector(`input[name$="-DELETE"]`);
     if (!row || !deleteInput) return;
     deleteInput.checked = true;

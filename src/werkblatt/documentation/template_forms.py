@@ -165,4 +165,4 @@ class CustomFieldDefinitionForm(forms.Form):
     )
 
 
-CustomFieldDefinitionFormSet = formset_factory(CustomFieldDefinitionForm, extra=2, can_delete=True)
+CustomFieldDefinitionFormSet = formset_factory(CustomFieldDefinitionForm, extra=0, can_delete=True)

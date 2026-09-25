@@ -222,7 +222,126 @@ def test_custom_field_choices_use_a_multiline_widget():
 
 
 @pytest.mark.django_db
-def test_selected_template_is_saved_atomically_when_documentation_is_finalized(phase3_setup):
+def test_template_selection_loads_current_custom_fields_without_saving_documentation(phase3_setup):
+    organization, admin, _, _ = phase3_setup
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data("Fördervorlage"),
+        assets=[],
+        outputs=output_rows(),
+        fields=gender_fields()[:3],
+    )
+    client = Client()
+    client.force_login(admin)
+
+    response = client.post(
+        reverse("documentation-custom-fields"),
+        {"template": str(template.id)},
+    )
+
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert str(template.current_version_id) in content
+    assert "Männlich" in content
+    assert "Weiblich" in content
+    assert "Divers" in content
+
+
+@pytest.mark.django_db
+def test_custom_field_endpoint_rejects_cross_tenant_template(phase3_setup):
+    _, admin, _, _ = phase3_setup
+    foreign = Organization.objects.create(slug="foreign", name="Foreign Organization")
+    foreign_admin = get_user_model().objects.create_user(username="foreign-admin")
+    Membership.objects.create(
+        organization=foreign,
+        user=foreign_admin,
+        role=Membership.Role.ORGANIZATION_ADMIN,
+    )
+    template = save_template(
+        organization=foreign,
+        user=foreign_admin,
+        template=None,
+        template_data=template_data("Fremde Vorlage"),
+        assets=[],
+        outputs=output_rows(),
+        fields=gender_fields()[:3],
+    )
+    client = Client()
+    client.force_login(admin)
+
+    response = client.post(
+        reverse("documentation-custom-fields"),
+        {"template": str(template.id)},
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_template_editor_supports_dynamic_custom_field_rows(phase3_setup):
+    _, admin, _, _ = phase3_setup
+    client = Client()
+    client.force_login(admin)
+
+    response = client.get(reverse("template-create"))
+
+    content = response.content.decode()
+    assert response.context["forms"][3].total_form_count() == 0
+    assert 'data-formset="fields"' in content
+    assert 'id="id_fields-TOTAL_FORMS"' in content
+    assert 'name="fields-__prefix__-label"' in content
+    assert "+ Weiteres Zusatzfeld" in content
+    assert 'aria-label="Zusatzfeld entfernen"' in content
+    assert "werkblatt/js/formsets.js" in content
+
+
+@pytest.mark.django_db
+def test_draft_offers_conscious_update_to_newer_template_version(phase3_setup):
+    organization, admin, _, workshop = phase3_setup
+    template = save_template(
+        organization=organization,
+        user=admin,
+        template=None,
+        template_data=template_data("Versionierte Vorlage"),
+        assets=[],
+        outputs=output_rows(),
+        fields=gender_fields()[:1],
+    )
+    first_version = template.current_version
+    client = Client()
+    client.force_login(admin)
+    client.get(reverse("documentation-detail", args=[workshop.id]))
+    save_template(
+        organization=organization,
+        user=admin,
+        template=template,
+        template_data=template_data("Versionierte Vorlage"),
+        assets=[],
+        outputs=output_rows(),
+        fields=gender_fields()[:3],
+    )
+
+    response = client.get(reverse("documentation-detail", args=[workshop.id]))
+
+    assert response.context["newer_template_version_available"] is True
+    assert response.context["displayed_template_version_id"] == first_version.id
+    assert "Aktuellen Vorlagenstand übernehmen" in response.content.decode()
+
+    response = client.post(
+        reverse("documentation-detail", args=[workshop.id]),
+        {"action": "assign_template", "template": str(template.id)},
+    )
+
+    assert response.status_code == 302
+    assignment = WorkshopTemplateAssignment.objects.get(workshop=workshop)
+    template.refresh_from_db()
+    assert assignment.template_version == template.current_version
+
+
+@pytest.mark.django_db
+def test_finalization_requires_visible_fields_for_selected_template(phase3_setup):
     organization, admin, _, workshop = phase3_setup
     data = template_data("Direkt gewählte Vorlage")
     data["is_default"] = False
@@ -242,32 +361,41 @@ def test_selected_template_is_saved_atomically_when_documentation_is_finalized(p
     facilitator = documentation.facilitators.get()
     assert documentation.template_assignment_id is None
 
+    post_data = {
+        "action": "finalize",
+        "template": str(template.id),
+        "expected_version": documentation.version,
+        "conducted_as_planned": "on",
+        "report": "Synthetischer Abschlussbericht",
+        "participants-TOTAL_FORMS": "2",
+        "participants-INITIAL_FORMS": "0",
+        "participants-MIN_NUM_FORMS": "0",
+        "participants-MAX_NUM_FORMS": "1000",
+        "participants-0-display_name": "",
+        "participants-0-present": "on",
+        "participants-1-display_name": "",
+        "participants-1-present": "on",
+        "facilitators-TOTAL_FORMS": "3",
+        "facilitators-INITIAL_FORMS": "1",
+        "facilitators-MIN_NUM_FORMS": "0",
+        "facilitators-MAX_NUM_FORMS": "1000",
+        "facilitators-0-id": str(facilitator.id),
+        "facilitators-0-display_name": facilitator.display_name,
+        "facilitators-1-display_name": "",
+        "facilitators-2-display_name": "",
+    }
     response = client.post(
         reverse("documentation-detail", args=[workshop.id]),
-        {
-            "action": "finalize",
-            "template": str(template.id),
-            "expected_version": documentation.version,
-            "conducted_as_planned": "on",
-            "report": "Synthetischer Abschlussbericht",
-            "participants-TOTAL_FORMS": "2",
-            "participants-INITIAL_FORMS": "0",
-            "participants-MIN_NUM_FORMS": "0",
-            "participants-MAX_NUM_FORMS": "1000",
-            "participants-0-display_name": "",
-            "participants-0-present": "on",
-            "participants-1-display_name": "",
-            "participants-1-present": "on",
-            "facilitators-TOTAL_FORMS": "3",
-            "facilitators-INITIAL_FORMS": "1",
-            "facilitators-MIN_NUM_FORMS": "0",
-            "facilitators-MAX_NUM_FORMS": "1000",
-            "facilitators-0-id": str(facilitator.id),
-            "facilitators-0-display_name": facilitator.display_name,
-            "facilitators-1-display_name": "",
-            "facilitators-2-display_name": "",
-        },
+        post_data,
     )
+
+    assert response.status_code == 200
+    assert "Eingabemaske wurde an die ausgewählte Vorlage angepasst" in response.content.decode()
+    documentation.refresh_from_db()
+    assert documentation.status == "draft"
+
+    post_data["displayed_template_version_id"] = str(template.current_version_id)
+    response = client.post(reverse("documentation-detail", args=[workshop.id]), post_data)
 
     assert response.status_code == 302
     documentation.refresh_from_db()

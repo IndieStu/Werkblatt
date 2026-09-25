@@ -14,6 +14,7 @@ from .models import (
     DocumentationCustomFieldValue,
     DocumentationRevision,
     DocumentTemplate,
+    DocumentTemplateVersion,
     Facilitator,
     ParticipantEntry,
     WorkshopTemplateAssignment,
@@ -222,6 +223,7 @@ def save_draft(
     participants: list[ParticipantInput],
     facilitators: list[FacilitatorInput],
     template_id: UUID | None = None,
+    template_version_id: UUID | None = None,
     custom_values: dict[str, object] | None = None,
 ) -> Documentation:
     documentation = _locked_documentation(documentation_id, organization_id)
@@ -242,12 +244,22 @@ def save_draft(
             )
         except DocumentTemplate.DoesNotExist as exc:
             raise PermissionDenied("Ungültige Dokumentvorlage") from exc
+        template_version = template.current_version
+        if template_version_id is not None:
+            try:
+                template_version = DocumentTemplateVersion.objects.get(
+                    pk=template_version_id,
+                    template=template,
+                    organization_id=organization_id,
+                )
+            except DocumentTemplateVersion.DoesNotExist as exc:
+                raise PermissionDenied("Ungültiger Vorlagenstand") from exc
         assignment, _ = WorkshopTemplateAssignment.objects.update_or_create(
             organization_id=organization_id,
             workshop=documentation.workshop,
             defaults={
                 "template": template,
-                "template_version": template.current_version,
+                "template_version": template_version,
                 "assigned_by": user,
             },
         )
@@ -463,6 +475,7 @@ def save_and_finalize(
     participants: list[ParticipantInput],
     facilitators: list[FacilitatorInput],
     template_id: UUID | None = None,
+    template_version_id: UUID | None = None,
     optional_change_reason: str = "",
     custom_values: dict[str, object] | None = None,
 ) -> DocumentationRevision:
@@ -476,6 +489,7 @@ def save_and_finalize(
         participants=participants,
         facilitators=facilitators,
         template_id=template_id,
+        template_version_id=template_version_id,
         custom_values=custom_values,
     )
     return finalize_documentation(

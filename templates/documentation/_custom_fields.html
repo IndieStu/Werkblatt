@@ -1,0 +1,9 @@
+<div id="custom-fields-region" data-custom-fields-url="{% url 'documentation-custom-fields' %}">
+  <input type="hidden" name="displayed_template_version_id" value="{{ displayed_template_version_id|default:'' }}">
+  {% if custom_form.fields %}
+    <section class="content-card form-stack">
+      <h2>Zusatzangaben</h2>
+      {{ custom_form.as_div }}
+    </section>
+  {% endif %}
+</div>
