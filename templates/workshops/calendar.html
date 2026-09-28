@@ -3,27 +3,30 @@
 {% block content %}
 <div class="section-heading">
   <div>
-    <p class="eyebrow">Workshop-Dokumentation</p>
-    <h1>Workshopkalender</h1>
-    <p class="lead">Workshops im Monatsüberblick öffnen und dokumentieren.</p>
+    <p class="eyebrow">{% if scope == 'upcoming' %}Planung{% else %}Workshop-Dokumentation{% endif %}</p>
+    <h1>{% if scope == 'upcoming' %}Anstehende Workshops{% else %}Zu dokumentieren{% endif %}</h1>
+    <p class="lead">{% if scope == 'upcoming' %}Kommende Termine und aktuelle Anmeldezahlen im Kalender.{% else %}Heutige und vergangene Workshops im Monatsüberblick.{% endif %}</p>
     <div class="view-switch"><form method="post" action="{% url 'workshop-view-preference' %}">{% csrf_token %}<input type="hidden" name="view" value="list"><input type="hidden" name="query" value="{{ view_switch_query }}"><button type="submit">Liste</button></form><span aria-current="page">Kalender</span></div>
   </div>
   {% if can_create_pretix_workshops %}<a class="button" href="{% url 'pretix-workshop-create' %}">Workshop mit Anmeldung</a>{% endif %}
 </div>
 
+<nav class="section-tabs" aria-label="Workshopbereiche"><a{% if scope != 'upcoming' %} aria-current="page"{% endif %} href="{% url 'workshop-calendar' %}">Zu dokumentieren</a><a{% if scope == 'upcoming' %} aria-current="page"{% endif %} href="{% url 'workshop-calendar' %}?scope=upcoming">Anstehende Workshops</a></nav>
+
 <section class="content-card calendar-toolbar">
   <div class="calendar-navigation">
-    <a class="button secondary" href="?month={{ previous_month|date:'Y-m' }}">Zurück</a>
+    <a class="button secondary" href="?month={{ previous_month|date:'Y-m' }}{% if scope == 'upcoming' %}&amp;scope=upcoming{% endif %}">Zurück</a>
     <h2>{{ month|date:"F Y" }}</h2>
-    <a class="button secondary" href="?month={{ next_month|date:'Y-m' }}">Weiter</a>
+    <a class="button secondary" href="?month={{ next_month|date:'Y-m' }}{% if scope == 'upcoming' %}&amp;scope=upcoming{% endif %}">Weiter</a>
   </div>
   <form method="get" class="statistics-filter">
     <input type="hidden" name="month" value="{{ month|date:'Y-m' }}">
+    {% if scope == 'upcoming' %}<input type="hidden" name="scope" value="upcoming">{% endif %}
     {{ filter_form.q.as_field_group }}
     {{ filter_form.state.as_field_group }}
     {{ filter_form.visibility.as_field_group }}
     <button class="button" type="submit">Filtern</button>
-    <a class="button secondary" href="{% url 'workshop-calendar' %}?month={{ month|date:'Y-m' }}">Zurücksetzen</a>
+    <a class="button secondary" href="{% url 'workshop-calendar' %}?month={{ month|date:'Y-m' }}{% if scope == 'upcoming' %}&amp;scope=upcoming{% endif %}">Zurücksetzen</a>
   </form>
 </section>
 
@@ -38,12 +41,12 @@
           <time datetime="{{ day.date|date:'Y-m-d' }}">{{ day.date|date:"j" }}</time>
           <div class="calendar-events">
             {% for workshop in day.workshops %}
-              {% if workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}<a class="calendar-event{% if workshop.documentation.status == 'finalized' %} finalized{% elif workshop.documentation.status == 'draft' %} draft{% else %} open{% endif %}" href="{% url 'documentation-detail' workshop.id %}">
-              {% else %}<div class="calendar-event{% if workshop.lifecycle_status == 'cancelled' %} cancelled{% else %} not-required{% endif %}">
+              {% if scope != 'upcoming' and workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}<a class="calendar-event{% if workshop.documentation.status == 'finalized' %} finalized{% elif workshop.documentation.status == 'draft' %} draft{% else %} open{% endif %}" href="{% url 'documentation-detail' workshop.id %}">
+              {% else %}<div class="calendar-event{% if scope == 'upcoming' %} upcoming{% elif workshop.lifecycle_status == 'cancelled' %} cancelled{% else %} not-required{% endif %}">
               {% endif %}
                 <strong>{{ workshop.starts_at|date:"H:i" }}</strong> {{ workshop.title }}
-                {% if workshop.lifecycle_status == "cancelled" %}<span>Abgesagt</span>{% elif workshop.documentation_requirement == "not_required" %}<span>Keine Dokumentation</span>{% elif workshop.documentation.status == "finalized" %}<span>Abgeschlossen</span>{% elif workshop.documentation.status == "draft" %}<span>Entwurf</span>{% else %}<span>Offen</span>{% endif %}
-              {% if workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}</a>{% else %}</div>{% endif %}
+                {% if scope == 'upcoming' %}<span>{{ workshop.active_registration_count }}{% if workshop.capacity is not None %}/{{ workshop.capacity }}{% endif %} Anmeldungen</span>{% elif workshop.lifecycle_status == "cancelled" %}<span>Abgesagt</span>{% elif workshop.documentation_requirement == "not_required" %}<span>Keine Dokumentation</span>{% elif workshop.documentation.status == "finalized" %}<span>Abgeschlossen</span>{% elif workshop.documentation.status == "draft" %}<span>Entwurf</span>{% else %}<span>Offen</span>{% endif %}
+              {% if scope != 'upcoming' and workshop.lifecycle_status == "active" and workshop.documentation_requirement == "required" %}</a>{% else %}</div>{% endif %}
             {% endfor %}
           </div>
         </section>

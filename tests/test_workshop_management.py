@@ -9,7 +9,7 @@ from django.utils import timezone
 from werkblatt.documentation.models import Documentation
 from werkblatt.identities.models import Membership
 from werkblatt.organizations.models import Organization
-from werkblatt.workshops.models import PretixEventRule, Workshop
+from werkblatt.workshops.models import PretixEventRule, Workshop, WorkshopRegistration
 
 
 @pytest.fixture
@@ -156,7 +156,7 @@ def test_workshop_list_filters_status_search_dates_and_paginates(workshop_manage
             organization=organization,
             source_type=Workshop.SourceType.NATIVE,
             title=f"Weiterer Termin {number:02d}",
-            starts_at=timezone.now() + timedelta(days=number),
+            starts_at=timezone.now() - timedelta(days=number),
         )
     client = Client()
     client.force_login(users[Membership.Role.WORKSHOP_USER])
@@ -169,6 +169,48 @@ def test_workshop_list_filters_status_search_dates_and_paginates(workshop_manage
     workshop.save(update_fields=["visibility"])
     response = client.get(reverse("workshop-list") + "?visibility=invalid")
     assert workshop.title not in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_upcoming_workshops_are_separate_and_show_registration_capacity(workshop_management):
+    organization, users, current_workshop, _ = workshop_management
+    future = Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="future:1",
+        title="Künftiger Workshop",
+        starts_at=timezone.now() + timedelta(days=2),
+        capacity=10,
+    )
+    for number in range(4):
+        WorkshopRegistration.objects.create(
+            organization=organization,
+            workshop=future,
+            external_reference=f"ORDER{number}:1",
+            display_name=f"Testperson {number}",
+        )
+    client = Client()
+    client.force_login(users[Membership.Role.WORKSHOP_USER])
+
+    documentation = client.get(reverse("workshop-list"))
+    assert current_workshop.title in documentation.content.decode()
+    assert future.title not in documentation.content.decode()
+
+    upcoming = client.get(reverse("workshop-list"), {"scope": "upcoming"})
+    content = upcoming.content.decode()
+    assert future.title in content
+    assert current_workshop.title not in content
+    assert "4/10" in content
+    assert reverse("documentation-detail", args=[future.id]) not in content
+
+    month = timezone.localtime(future.starts_at).strftime("%Y-%m")
+    upcoming_calendar = client.get(
+        reverse("workshop-calendar"), {"scope": "upcoming", "month": month}
+    )
+    calendar_content = upcoming_calendar.content.decode()
+    assert future.title in calendar_content
+    assert "4/10 Anmeldungen" in calendar_content
+    assert reverse("documentation-detail", args=[future.id]) not in calendar_content
 
 
 @pytest.mark.django_db

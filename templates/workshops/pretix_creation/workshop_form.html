@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Pretix-Workshop erstellen – Werkblatt{% endblock %}
 {% block content %}
 <nav class="breadcrumb"><a href="{% url 'workshop-index' %}">Workshops</a> / Mit Anmeldung erstellen</nav>
@@ -9,5 +10,24 @@
   <p>Verpflichtende Fragen, zusätzliche Ticketarten und Varianten, besondere E-Mail-Texte sowie weitere Einstellungen werden weiterhin direkt in der Pretix-Verwaltung gepflegt.</p>
   <p><a href="{{ pretix_control_url }}" target="_blank" rel="noopener noreferrer">Pretix-Verwaltung öffnen</a></p>
 </aside>
-<form method="post" class="content-card">{% csrf_token %}{{ form.as_div }}<button class="button" type="submit">Zusammenfassung prüfen</button></form>
+<form method="post" class="content-card form-stack workshop-creation-form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="form-grid form-grid-two">
+    {{ form.preset.as_field_group }}
+    {{ form.title.as_field_group }}
+    {{ form.starts_at.as_field_group }}
+    {{ form.ends_at.as_field_group }}
+    {{ form.location_choice.as_field_group }}
+    <div id="location-custom-field">{{ form.location.as_field_group }}</div>
+  </div>
+  {{ form.description.as_field_group }}
+  <div class="form-grid form-grid-two">
+    {{ form.funding_text.as_field_group }}
+    {{ form.capacity.as_field_group }}
+  </div>
+  {{ form.child_registration_enabled.as_field_group }}
+  <div class="form-actions"><button class="button" type="submit">Zusammenfassung prüfen</button></div>
+</form>
 {% endblock %}
+{% block extra_scripts %}<script src="{% static 'werkblatt/js/location-choice.js' %}" defer></script>{% endblock %}

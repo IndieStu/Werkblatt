@@ -64,7 +64,15 @@ entsteht ein unveränderlicher Snapshot. Eine abgeschlossene Dokumentation kann
 erneut geöffnet, korrigiert und als neue Revision abgeschlossen werden; ältere
 Revisionen bleiben erhalten.
 
-Die Workshopliste kann nach Titel oder Ort, Zeitraum, Sichtbarkeit und
+Die Workshopübersicht trennt „Zu dokumentieren“ von „Anstehende Workshops“.
+Im Dokumentationsbereich erscheinen ausschließlich heutige und vergangene
+Termine. Der Bereich „Anstehende Workshops“ zeigt zukünftige aktive Termine
+wahlweise als Liste oder Kalender und nennt die Zahl bestätigter Anmeldungen
+zusammen mit der aus Pretix synchronisierten eindeutigen Kapazität, zum Beispiel
+`4/10 Anmeldungen`. Bei mehreren widersprüchlichen Kontingenten zeigt Werkblatt
+keinen möglicherweise falschen Nenner.
+
+Beide Bereiche können nach Titel oder Ort, Zeitraum, Sichtbarkeit und
 Bearbeitungsstand gefiltert werden. Längere Listen werden auf mehrere Seiten
 verteilt. Editor und Organization Admin können Workshops aus der täglichen
 Ansicht ausblenden und über den Filter „Ausgeblendet“ wieder einblenden. Das
@@ -123,6 +131,12 @@ Admins den vereinfachten Erstellungsassistenten. Nach Auswahl des Standards
 werden Titel, Beginn, optionales Ende, Ort, Beschreibung, optionaler
 Fördertext, Kapazität und Kinderanmeldung erfasst. Der automatisch erzeugte
 Pretix-Slug erhält eine laufende Nummer.
+
+Die Ortsauswahl verwendet die bereits für die eigene Organisation aus Pretix
+synchronisierten Ortsangaben. Ein neuer oder einmaliger Ort kann weiterhin als
+Freitext erfasst werden. Pretix stellt keine eigenständige API-Ressource für
+wiederverwendbare Orte bereit; deshalb führt Werkblatt keine zweite globale
+Ortsbibliothek ein.
 
 Vor dem externen Schreibzugriff zeigt Werkblatt eine vollständige
 Zusammenfassung. Erst „In Pretix erstellen und veröffentlichen“ klont die

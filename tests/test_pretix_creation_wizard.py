@@ -55,11 +55,30 @@ def wizard_setup(settings):
 @pytest.mark.django_db
 def test_workshop_user_can_review_create_publish_and_open_documentation(wizard_setup):
     organization, user, _, preset, funding_text = wizard_setup
+    Workshop.objects.create(
+        organization=organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="known-place",
+        title="Bekannter Termin",
+        starts_at=timezone.now(),
+        location="WERK · Am Speicher XI 9, Bremen",
+    )
+    foreign_organization = Organization.objects.create(slug="foreign", name="Foreign")
+    Workshop.objects.create(
+        organization=foreign_organization,
+        source_type=Workshop.SourceType.PRETIX,
+        external_reference="foreign-place",
+        title="Fremder Termin",
+        starts_at=timezone.now(),
+        location="Nicht sichtbarer Fremdort",
+    )
     client = Client()
     client.force_login(user)
     form_page = client.get(reverse("pretix-workshop-create"))
     assert form_page.status_code == 200
     assert "Verpflichtende Fragen" in form_page.content.decode()
+    assert "WERK · Am Speicher XI 9, Bremen" in form_page.content.decode()
+    assert "Nicht sichtbarer Fremdort" not in form_page.content.decode()
     assert 'href="https://pretix.eu/control"' in form_page.content.decode()
 
     with (
@@ -77,7 +96,8 @@ def test_workshop_user_can_review_create_publish_and_open_documentation(wizard_s
                 "title": "Klimawerkstatt",
                 "starts_at": "2026-10-10T10:00",
                 "ends_at": "2026-10-10T13:00",
-                "location": "Werkstatt",
+                "location_choice": "WERK · Am Speicher XI 9, Bremen",
+                "location": "Nicht übernehmen",
                 "description": "Eine einfache Beschreibung.",
                 "funding_text": str(funding_text.id),
                 "capacity": "24",
@@ -88,6 +108,7 @@ def test_workshop_user_can_review_create_publish_and_open_documentation(wizard_s
     assert response.status_code == 302
     assert response.url == reverse("pretix-workshop-review", args=[creation.id])
     assert creation.external_slug == "klimawerkstatt-2"
+    assert creation.location == "WERK · Am Speicher XI 9, Bremen"
     assert creation.created_by == user
 
     review = client.get(response.url)

@@ -1,12 +1,12 @@
 import calendar
-from datetime import date, timedelta
+from datetime import date
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -59,6 +59,23 @@ from .services import (
 
 def _organization_id(request):
     return request.organization_context.organization_id
+
+
+WORKSHOP_SCOPE_DOCUMENTATION = "documentation"
+WORKSHOP_SCOPE_UPCOMING = "upcoming"
+
+
+def _workshop_scope(request: HttpRequest) -> str:
+    if request.GET.get("scope") == WORKSHOP_SCOPE_UPCOMING:
+        return WORKSHOP_SCOPE_UPCOMING
+    return WORKSHOP_SCOPE_DOCUMENTATION
+
+
+def _apply_workshop_scope(workshops, scope: str):
+    today = timezone.localdate()
+    if scope == WORKSHOP_SCOPE_UPCOMING:
+        return workshops.filter(starts_at__date__gt=today)
+    return workshops.filter(starts_at__date__lte=today)
 
 
 @login_required
@@ -132,8 +149,12 @@ def _filter_calendar_workshops(workshops, data):
 
 @login_required
 def workshop_calendar(request: HttpRequest) -> HttpResponse:
+    scope = _workshop_scope(request)
     month = _calendar_month(request.GET.get("month"))
-    form = WorkshopFilterForm(request.GET or {"visibility": Workshop.Visibility.ACTIVE})
+    form_data = request.GET.copy()
+    if "visibility" not in form_data:
+        form_data["visibility"] = Workshop.Visibility.ACTIVE
+    form = WorkshopFilterForm(form_data)
     month_calendar = calendar.Calendar(firstweekday=0)
     calendar_dates = month_calendar.monthdatescalendar(month.year, month.month)
     first_day = calendar_dates[0][0]
@@ -141,10 +162,18 @@ def workshop_calendar(request: HttpRequest) -> HttpResponse:
     workshops = (
         Workshop.objects.for_organization(_organization_id(request))
         .select_related("documentation")
+        .annotate(
+            active_registration_count=Count(
+                "registrations", filter=Q(registrations__active=True), distinct=True
+            )
+        )
         .filter(starts_at__date__range=(first_day, last_day))
     )
+    workshops = _apply_workshop_scope(workshops, scope)
     if form.is_valid():
         workshops = _filter_calendar_workshops(workshops, form.cleaned_data)
+        if scope == WORKSHOP_SCOPE_UPCOMING and not form.cleaned_data["state"]:
+            workshops = workshops.filter(lifecycle_status=Workshop.LifecycleStatus.ACTIVE)
     else:
         workshops = workshops.filter(visibility=Workshop.Visibility.ACTIVE)
     workshops_by_day = {}
@@ -172,6 +201,7 @@ def workshop_calendar(request: HttpRequest) -> HttpResponse:
             "previous_month": _shift_month(month, -1),
             "next_month": _shift_month(month, 1),
             "weeks": weeks,
+            "scope": scope,
             "view_switch_query": _view_switch_query(request.GET),
             "can_create_pretix_workshops": has_capability(
                 request.user,
@@ -184,14 +214,21 @@ def workshop_calendar(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def workshop_list(request: HttpRequest) -> HttpResponse:
-    defaults = {
-        "visibility": Workshop.Visibility.ACTIVE,
-        "date_from": timezone.localdate() - timedelta(days=30),
-    }
-    form = WorkshopFilterForm(request.GET or defaults)
-    workshops = Workshop.objects.for_organization(_organization_id(request)).select_related(
-        "documentation"
+    scope = _workshop_scope(request)
+    form_data = request.GET.copy()
+    if "visibility" not in form_data:
+        form_data["visibility"] = Workshop.Visibility.ACTIVE
+    form = WorkshopFilterForm(form_data)
+    workshops = (
+        Workshop.objects.for_organization(_organization_id(request))
+        .select_related("documentation")
+        .annotate(
+            active_registration_count=Count(
+                "registrations", filter=Q(registrations__active=True), distinct=True
+            )
+        )
     )
+    workshops = _apply_workshop_scope(workshops, scope)
     if form.is_valid():
         data = form.cleaned_data
         if data["visibility"] != "all":
@@ -222,11 +259,18 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             )
         elif state == "cancelled":
             workshops = workshops.filter(lifecycle_status=Workshop.LifecycleStatus.CANCELLED)
+        if scope == WORKSHOP_SCOPE_UPCOMING and not state:
+            workshops = workshops.filter(lifecycle_status=Workshop.LifecycleStatus.ACTIVE)
     else:
         workshops = workshops.filter(
             visibility=Workshop.Visibility.ACTIVE,
-            starts_at__date__gte=defaults["date_from"],
         )
+        if scope == WORKSHOP_SCOPE_UPCOMING:
+            workshops = workshops.filter(lifecycle_status=Workshop.LifecycleStatus.ACTIVE)
+    if scope == WORKSHOP_SCOPE_UPCOMING:
+        workshops = workshops.order_by("starts_at", "title")
+    else:
+        workshops = workshops.order_by("-starts_at", "title")
     page = Paginator(workshops, 25).get_page(request.GET.get("page"))
     query = request.GET.copy()
     query.pop("page", None)
@@ -237,6 +281,7 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
             "filter_form": form,
             "page": page,
             "query_without_page": query.urlencode(),
+            "scope": scope,
             "view_switch_query": _view_switch_query(request.GET),
             "can_manage_visibility": has_capability(
                 request.user, _organization_id(request), Capability.MANAGE_WORKSHOP_VISIBILITY
@@ -259,7 +304,7 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
 def _view_switch_query(source: QueryDict) -> str:
     query = source.copy()
     for key in list(query):
-        if key not in {"q", "state", "visibility"}:
+        if key not in {"q", "state", "visibility", "scope"}:
             query.pop(key, None)
     return query.urlencode()
 
@@ -532,9 +577,17 @@ def pretix_workshop_create(request: HttpRequest) -> HttpResponse:
         Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
         "Keine Berechtigung zum Erstellen von Pretix-Workshops.",
     )
+    location_choices = (
+        Workshop.objects.for_organization(_organization_id(request))
+        .exclude(location="")
+        .order_by("location")
+        .values_list("location", flat=True)
+        .distinct()
+    )
     form = PretixWorkshopCreationForm(
         request.POST or None,
         organization_id=_organization_id(request),
+        location_choices=location_choices,
     )
     if request.method == "POST" and form.is_valid():
         client = None

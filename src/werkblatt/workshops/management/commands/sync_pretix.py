@@ -131,6 +131,7 @@ class Command(BaseCommand):
                         "starts_at": item.starts_at,
                         "ends_at": item.ends_at,
                         "location": item.location,
+                        "capacity": item.capacity,
                         "lifecycle_status": (
                             Workshop.LifecycleStatus.ACTIVE
                             if item.active

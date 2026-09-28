@@ -68,13 +68,20 @@ class PretixWorkshopProvider:
             synchronized_event_slugs.add(event_slug)
             event_active = event.get("live") is True
             escaped_event_slug = quote(event_slug, safe="")
+            quota_path = f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/quotas/"
+            quotas = list(self.client.pages(quota_path))
             if event.get("has_subevents") is True:
                 subevent_path = (
                     f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/subevents/"
                 )
                 params = {"date_from_after": not_before.isoformat()} if not_before else None
                 for item in self.client.pages(subevent_path, params):
-                    workshop = self._map_workshop(event_slug, event, item)
+                    workshop = self._map_workshop(
+                        event_slug,
+                        event,
+                        item,
+                        capacity=self._capacity_for(quotas, item.get("id")),
+                    )
                     if workshop is not None and (
                         not_before is None or workshop.starts_at.date() >= not_before
                     ):
@@ -87,7 +94,12 @@ class PretixWorkshopProvider:
                             )
                         )
             else:
-                workshop = self._map_workshop(event_slug, event, event)
+                workshop = self._map_workshop(
+                    event_slug,
+                    event,
+                    event,
+                    capacity=self._capacity_for(quotas, None),
+                )
                 if workshop is not None and (
                     not_before is None or workshop.starts_at.date() >= not_before
                 ):
@@ -134,7 +146,11 @@ class PretixWorkshopProvider:
 
     @staticmethod
     def _map_workshop(
-        event_slug: str, event: dict[str, Any], item: dict[str, Any]
+        event_slug: str,
+        event: dict[str, Any],
+        item: dict[str, Any],
+        *,
+        capacity: int | None = None,
     ) -> ExternalWorkshop | None:
         starts_at = parse_time(item.get("date_from"))
         if starts_at is None:
@@ -148,4 +164,19 @@ class PretixWorkshopProvider:
             starts_at=starts_at,
             ends_at=parse_time(item.get("date_to")),
             location=translated(item.get("location") or event.get("location") or ""),
+            capacity=capacity,
         )
+
+    @staticmethod
+    def _capacity_for(quotas: list[dict[str, Any]], subevent_id: Any) -> int | None:
+        relevant_sizes = [
+            quota["size"]
+            for quota in quotas
+            if quota.get("subevent") == subevent_id
+            and quota.get("ignore_for_event_availability") is not True
+            and isinstance(quota.get("size"), int)
+            and quota["size"] >= 0
+        ]
+        if len(relevant_sizes) == 1:
+            return relevant_sizes[0]
+        return None
