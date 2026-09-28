@@ -14,6 +14,12 @@ Steuern, Zahlungsarten, Ticketfragen, E-Mail-Texte und Benachrichtigungen
 bleiben Teil der Pretix-Vorlage und werden nicht als Werkblatt-Felder
 dupliziert.
 
+Pretix führt Orte nicht als eigenständige wiederverwendbare Ressource, sondern
+als Event-/Terminattribute. Werkblatt bietet deshalb organisationsbezogen die
+bereits synchronisierten eindeutigen Ortsangaben zur Auswahl an und behält einen
+Freitext-Fallback. Koordinaten können später zusätzlich aus Eventdaten
+übernommen werden, ohne hierfür eine parallele globale Ortsstruktur anzulegen.
+
 ## Organisationsbezogene Erstellungsstandards
 
 Ein späteres Modell `PretixCreationPreset` gehört fachlich zur bestehenden

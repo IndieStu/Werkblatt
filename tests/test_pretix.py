@@ -92,6 +92,21 @@ def test_maps_event_series_and_subevent():
                     "next": None,
                 },
             )
+        if request.url.path.endswith("/quotas/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "id": 7,
+                            "size": 12,
+                            "subevent": 42,
+                            "ignore_for_event_availability": False,
+                        }
+                    ],
+                    "next": None,
+                },
+            )
         raise AssertionError(request.url)
 
     with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
@@ -103,6 +118,18 @@ def test_maps_event_series_and_subevent():
     assert workshops[0].reference == "reihe:42"
     assert workshops[0].event_slug == "reihe"
     assert workshops[0].title == "Termin"
+    assert workshops[0].capacity == 12
+
+
+def test_capacity_requires_one_unambiguous_relevant_quota():
+    quotas = [
+        {"size": 10, "subevent": 42, "ignore_for_event_availability": False},
+        {"size": 5, "subevent": 43, "ignore_for_event_availability": False},
+        {"size": 99, "subevent": 42, "ignore_for_event_availability": True},
+    ]
+    assert PretixWorkshopProvider._capacity_for(quotas, 42) == 10
+    quotas.append({"size": 10, "subevent": 42, "ignore_for_event_availability": False})
+    assert PretixWorkshopProvider._capacity_for(quotas, 42) is None
 
 
 def test_series_can_be_excluded_before_subevents_are_requested():
@@ -151,6 +178,8 @@ def test_subevent_import_cutoff_is_sent_to_pretix_and_enforced_locally():
                     "next": None,
                 },
             )
+        if request.url.path.endswith("/quotas/"):
+            return httpx.Response(200, json={"results": [], "next": None})
         assert request.url.params["date_from_after"] == "2026-08-25"
         return httpx.Response(
             200,

@@ -347,6 +347,7 @@ def materialize_pretix_event_creation(*, creation_id, organization):
         "starts_at": creation.starts_at,
         "ends_at": creation.ends_at,
         "location": creation.location,
+        "capacity": creation.capacity,
         "lifecycle_status": Workshop.LifecycleStatus.ACTIVE,
     }
     if rule:

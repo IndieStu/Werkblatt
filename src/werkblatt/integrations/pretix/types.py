@@ -9,6 +9,7 @@ class ExternalWorkshop:
     starts_at: datetime
     ends_at: datetime | None
     location: str
+    capacity: int | None = None
     event_slug: str = ""
     active: bool = True
 

@@ -44,6 +44,7 @@ class Workshop(models.Model):
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField(null=True, blank=True)
     location = models.CharField(max_length=300, blank=True)
+    capacity = models.PositiveIntegerField(null=True, blank=True)
     lifecycle_status = models.CharField(
         max_length=16,
         choices=LifecycleStatus,

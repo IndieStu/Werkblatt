@@ -50,7 +50,6 @@ class NativeWorkshopForm(forms.ModelForm):
 class WorkshopFilterForm(forms.Form):
     STATE_CHOICES = [
         ("", "Alle Bearbeitungsstände"),
-        ("upcoming", "Anstehend"),
         ("undocumented", "Nicht dokumentiert"),
         ("draft", "Entwurf"),
         ("finalized", "Abgeschlossen"),
@@ -254,6 +253,8 @@ class PretixFundingTextForm(forms.ModelForm):
 
 
 class PretixWorkshopCreationForm(forms.Form):
+    OTHER_LOCATION = "__other__"
+
     preset = forms.ModelChoiceField(
         queryset=PretixEventCreationPreset.objects.none(),
         label="Workshop-Standard",
@@ -270,7 +271,13 @@ class PretixWorkshopCreationForm(forms.Form):
         widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
         input_formats=["%Y-%m-%dT%H:%M"],
     )
-    location = forms.CharField(required=False, max_length=300, label="Ort")
+    location_choice = forms.ChoiceField(required=False, label="Bekannter Ort")
+    location = forms.CharField(
+        required=False,
+        max_length=300,
+        label="Anderer Ort",
+        help_text="Nur ausfüllen, wenn der gewünschte Ort nicht in der Auswahl steht.",
+    )
     description = forms.CharField(
         required=False,
         max_length=10000,
@@ -289,8 +296,15 @@ class PretixWorkshopCreationForm(forms.Form):
         label="Anmeldung für Kinder anbieten",
     )
 
-    def __init__(self, *args, organization_id=None, **kwargs):
+    def __init__(self, *args, organization_id=None, location_choices=(), **kwargs):
         super().__init__(*args, **kwargs)
+        self.known_locations = tuple(dict.fromkeys(location_choices))
+        self.fields["location_choice"].choices = [
+            ("", "Ort auswählen"),
+            *((location, location) for location in self.known_locations),
+            (self.OTHER_LOCATION, "Anderer Ort"),
+        ]
+        self.fields["location_choice"].widget.attrs["aria-controls"] = "location-custom-field"
         self.fields["preset"].queryset = PretixEventCreationPreset.objects.filter(
             organization_id=organization_id,
             active=True,
@@ -306,4 +320,16 @@ class PretixWorkshopCreationForm(forms.Form):
         ends_at = cleaned.get("ends_at")
         if starts_at and ends_at and ends_at <= starts_at:
             self.add_error("ends_at", "Das Ende muss nach dem Beginn liegen.")
+        selected_location = cleaned.get("location_choice", "")
+        custom_location = cleaned.get("location", "").strip()
+        if selected_location in self.known_locations:
+            cleaned["location"] = selected_location
+        elif selected_location == self.OTHER_LOCATION:
+            if not custom_location:
+                self.add_error("location", "Bitte den anderen Ort eintragen.")
+            cleaned["location"] = custom_location
+        elif custom_location:
+            cleaned["location"] = custom_location
+        else:
+            cleaned["location"] = ""
         return cleaned
