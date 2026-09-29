@@ -1,6 +1,7 @@
 import calendar
 import csv
 from datetime import date
+from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -69,6 +70,24 @@ def _organization_id(request):
 
 WORKSHOP_SCOPE_DOCUMENTATION = "documentation"
 WORKSHOP_SCOPE_UPCOMING = "upcoming"
+
+
+def _pretix_control_orders_url(workshop: Workshop) -> str:
+    if workshop.source_type != Workshop.SourceType.PRETIX:
+        return ""
+    event_slug = workshop.parent_external_reference or workshop.external_reference.partition(":")[0]
+    if not event_slug or not settings.PRETIX_ORGANIZER:
+        return ""
+    base = settings.PRETIX_BASE_URL.rstrip("/")
+    organizer = quote(settings.PRETIX_ORGANIZER, safe="")
+    event = quote(event_slug, safe="")
+    url = f"{base}/control/event/{organizer}/{event}/orders/"
+    prefix = f"{event_slug}:"
+    if workshop.external_reference.startswith(prefix):
+        subevent_id = workshop.external_reference[len(prefix) :]
+        if subevent_id.isdigit():
+            url = f"{url}?{urlencode({'subevent': subevent_id})}"
+    return url
 
 
 def _workshop_scope(request: HttpRequest) -> str:
@@ -184,6 +203,7 @@ def workshop_calendar(request: HttpRequest) -> HttpResponse:
         workshops = workshops.filter(visibility=Workshop.Visibility.ACTIVE)
     workshops_by_day = {}
     for workshop in workshops.order_by("starts_at", "title"):
+        workshop.pretix_control_orders_url = _pretix_control_orders_url(workshop)
         local_day = timezone.localtime(workshop.starts_at).date()
         workshops_by_day.setdefault(local_day, []).append(workshop)
     weeks = [
@@ -278,6 +298,8 @@ def workshop_list(request: HttpRequest) -> HttpResponse:
     else:
         workshops = workshops.order_by("-starts_at", "title")
     page = Paginator(workshops, 25).get_page(request.GET.get("page"))
+    for workshop in page.object_list:
+        workshop.pretix_control_orders_url = _pretix_control_orders_url(workshop)
     query = request.GET.copy()
     query.pop("page", None)
     return render(

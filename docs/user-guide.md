@@ -168,6 +168,13 @@ automatische Wiederholung aus. Dadurch wird kein zweites Event angelegt. Der
 Vorgang wird technisch markiert und muss zunächst in Pretix kontrolliert
 werden.
 
+Bei anstehenden, aus Pretix stammenden Workshops führt „Anmeldungen in Pretix
+ansehen“ direkt zur Bestellübersicht des zugehörigen Pretix-Events. Bei einem
+Termin einer Veranstaltungsreihe wird dessen Termin-ID als Filter mitgegeben.
+Pretix prüft beim Öffnen selbst, ob der angemeldete Pretix-User die notwendigen
+Rechte zum Lesen der Bestellungen besitzt. Werkblatt gibt dabei keine
+Teilnehmerdaten aus.
+
 ## Statistik
 
 Die Statistik kann nach Workshopdatum eingegrenzt werden. Pro Dokumentation

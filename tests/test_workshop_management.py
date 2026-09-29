@@ -172,7 +172,10 @@ def test_workshop_list_filters_status_search_dates_and_paginates(workshop_manage
 
 
 @pytest.mark.django_db
-def test_upcoming_workshops_are_separate_and_show_registration_capacity(workshop_management):
+def test_upcoming_workshops_are_separate_and_show_registration_capacity(
+    workshop_management, settings
+):
+    settings.PRETIX_ORGANIZER = "WORK"
     organization, users, current_workshop, _ = workshop_management
     future = Workshop.objects.create(
         organization=organization,
@@ -201,6 +204,8 @@ def test_upcoming_workshops_are_separate_and_show_registration_capacity(workshop
     assert future.title in content
     assert current_workshop.title not in content
     assert "4/10" in content
+    expected_control_url = "https://pretix.eu/control/event/WORK/future/orders/?subevent=1"
+    assert expected_control_url in content
     assert reverse("documentation-detail", args=[future.id]) not in content
 
     month = timezone.localtime(future.starts_at).strftime("%Y-%m")
@@ -210,6 +215,7 @@ def test_upcoming_workshops_are_separate_and_show_registration_capacity(workshop
     calendar_content = upcoming_calendar.content.decode()
     assert future.title in calendar_content
     assert "4/10 Anmeldungen" in calendar_content
+    assert expected_control_url in calendar_content
     assert reverse("documentation-detail", args=[future.id]) not in calendar_content
 
 

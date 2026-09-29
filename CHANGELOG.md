@@ -15,6 +15,13 @@ entsprechende PEP-440-Schreibweise.
   erfasst werden;
 - eine getrennte, filterbare Statistik mit CSV-Export wertet Termine,
   Teilnahmen, Durchschnitt und Geschlechterangaben offener Werkstätten aus.
+- anstehende Pretix-Workshops verlinken direkt auf die zugehörige
+  Bestellübersicht in der Pretix-Verwaltung.
+
+### Geändert
+
+- die Verwaltungs- und Redaktionsübersicht verwendet klar ausgerichtete,
+  vollständig klickbare Karten mit konsistenten Abständen und Umbrüchen.
 
 ## 0.1.0rc3 – 2026-09-25
 

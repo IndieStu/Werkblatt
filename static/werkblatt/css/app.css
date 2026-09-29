@@ -98,6 +98,11 @@ button.button { border: 0; cursor: pointer; font: inherit; }
 .revision-history li { margin: 0.35rem 0; color: var(--color-muted); }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
 .settings-grid, .asset-grid, .two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.settings-grid { align-items: stretch; }
+.settings-grid > .content-card.card-link { display: flex; min-height: 9rem; margin: 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.65rem; color: var(--color-ink); text-decoration: none; }
+.settings-grid > .content-card.card-link h2 { max-width: 100%; margin: 0; color: var(--brand-petrol-dark); overflow-wrap: anywhere; }
+.settings-grid > .content-card.card-link p { max-width: 42rem; margin: 0; color: var(--color-muted); line-height: 1.5; }
+.settings-grid > .content-card.card-link:hover { background: color-mix(in srgb, var(--color-panel) 92%, var(--brand-turquoise-light)); border-color: var(--brand-turquoise); }
 .asset-card img, .asset-preview img { display: block; max-width: 100%; max-height: 9rem; object-fit: contain; margin: 0 auto 1rem; }
 .form-stack { display: grid; gap: 1rem; }
 .form-stack label, .template-row label { display: block; margin-bottom: 0.3rem; font-weight: 600; }
@@ -138,6 +143,7 @@ button.button { border: 0; cursor: pointer; font: inherit; }
 .calendar-events { display: grid; gap: 0.35rem; margin-top: 0.35rem; }
 .calendar-event { display: block; overflow-wrap: anywhere; padding: 0.4rem; color: var(--color-ink); background: var(--brand-turquoise-light); border-left: 3px solid var(--brand-petrol); border-radius: var(--radius-small); text-decoration: none; font-size: 0.76rem; line-height: 1.3; }
 .calendar-event span { display: block; color: var(--color-muted); font-size: 0.68rem; }
+.calendar-event .calendar-control-link { display: inline-block; margin-top: 0.3rem; color: var(--brand-petrol-dark); font-size: 0.68rem; font-weight: 600; text-decoration: underline; }
 .calendar-event.finalized { border-left-color: var(--color-success-border); }
 .calendar-event.draft { border-left-color: var(--color-warning-border); }
 .calendar-event.cancelled { opacity: 0.72; border-left-color: var(--color-error-border); text-decoration: line-through; }
