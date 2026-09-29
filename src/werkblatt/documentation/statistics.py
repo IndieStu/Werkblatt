@@ -29,14 +29,14 @@ def _period_bounds(period: StatisticsPeriod) -> tuple[datetime, datetime]:
     return start, end
 
 
-def _latest_revisions(organization_id, period: StatisticsPeriod):
+def _latest_revisions(organization_id, period: StatisticsPeriod, template_id=None):
     start, end = _period_bounds(period)
     latest_revision_id = (
         DocumentationRevision.objects.filter(documentation_id=OuterRef("documentation_id"))
         .order_by("-number")
         .values("id")[:1]
     )
-    return list(
+    revisions = (
         DocumentationRevision.objects.filter(
             organization_id=organization_id,
             documentation__workshop__starts_at__range=(start, end),
@@ -49,6 +49,9 @@ def _latest_revisions(organization_id, period: StatisticsPeriod):
         .select_related("documentation", "documentation__workshop")
         .order_by("documentation_id")
     )
+    if template_id is not None:
+        revisions = revisions.filter(snapshot__template__id=str(template_id))
+    return list(revisions)
 
 
 def _number(value) -> Decimal | None:
@@ -66,7 +69,7 @@ def _decimal_display(value: Decimal) -> str:
     return format(value.normalize(), "f").replace(".", ",")
 
 
-def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dict:
+def organization_statistics(*, organization_id, period: StatisticsPeriod, template_id=None) -> dict:
     start, end = _period_bounds(period)
     period_workshops = Workshop.objects.for_organization(organization_id).filter(
         starts_at__range=(start, end)
@@ -80,17 +83,26 @@ def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dic
         documentation_requirement=Workshop.DocumentationRequirement.REQUIRED
     ).count()
     not_required_workshop_count = workshop_count - required_workshop_count
-    latest_revisions = _latest_revisions(organization_id, period)
+    latest_revisions = _latest_revisions(organization_id, period, template_id)
     totals = defaultdict(int)
     custom_totals = defaultdict(Decimal)
     groups = {}
     correction_pending = 0
+    workshop_rows = []
 
     for revision in latest_revisions:
         snapshot = revision.snapshot
         statistics = snapshot.get("statistics", {})
         for key in ["registered", "present_registered", "walk_ins", "present_total", "no_shows"]:
             totals[key] += int(statistics.get(key, 0) or 0)
+        workshop_rows.append(
+            {
+                "title": revision.documentation.workshop.title,
+                "starts_at": revision.documentation.workshop.starts_at,
+                "present_total": int(statistics.get("present_total", 0) or 0),
+                "revision": revision.number,
+            }
+        )
 
         template = snapshot.get("template") or {}
         group_key = template.get("id") or "without-template"
@@ -143,6 +155,12 @@ def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dic
             }
         )
 
+    if template_id is not None:
+        workshop_count = len(latest_revisions)
+        required_workshop_count = workshop_count
+        not_required_workshop_count = 0
+        cancelled_workshop_count = 0
+
     return {
         "period": period,
         "workshops": workshop_count,
@@ -166,4 +184,5 @@ def organization_statistics(*, organization_id, period: StatisticsPeriod) -> dic
             for label, value in sorted(custom_totals.items())
         ],
         "groups": group_rows,
+        "workshop_rows": sorted(workshop_rows, key=lambda item: (item["starts_at"], item["title"])),
     }

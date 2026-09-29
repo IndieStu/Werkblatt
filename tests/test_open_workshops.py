@@ -126,6 +126,31 @@ def test_dashboard_and_csv_are_tenant_bound_and_aggregate(open_workshop_setup):
         unspecified=1,
         recorded_by=users[Membership.Role.WORKSHOP_USER],
     )
+    OpenWorkshopAttendance.objects.create(
+        organization=organization,
+        series=series,
+        occurred_on=date(2026, 9, 29),
+        total=6,
+        female=3,
+        male=2,
+        diverse=0,
+        unspecified=1,
+        recorded_by=users[Membership.Role.WORKSHOP_USER],
+    )
+    second_series = OpenWorkshopSeries.objects.create(
+        organization=organization, name="Reparaturtreff"
+    )
+    OpenWorkshopAttendance.objects.create(
+        organization=organization,
+        series=second_series,
+        occurred_on=date(2026, 9, 28),
+        total=4,
+        female=2,
+        male=1,
+        diverse=0,
+        unspecified=1,
+        recorded_by=users[Membership.Role.WORKSHOP_USER],
+    )
     foreign_user = get_user_model().objects.create_user(username="foreign")
     OpenWorkshopAttendance.objects.create(
         organization=other,
@@ -140,7 +165,13 @@ def test_dashboard_and_csv_are_tenant_bound_and_aggregate(open_workshop_setup):
     dashboard = client.get(reverse("open-workshop-dashboard"))
     exported = client.get(reverse("open-workshop-statistics-csv"))
     assert dashboard.status_code == 200
-    assert dashboard.context["totals"]["total"] == 8
+    assert dashboard.context["totals"]["total"] == 18
     assert b"99" not in exported.content
     assert "'=Nähwerk" in exported.content.decode("utf-8-sig")
     assert "Fremde Reihe" not in exported.content.decode("utf-8-sig")
+    assert "Kumulierte Auswertung;Reihe;Termine;Teilnehmende" in exported.content.decode(
+        "utf-8-sig"
+    )
+    assert "Reihe;'=Nähwerk;2;14" in exported.content.decode("utf-8-sig")
+    assert "Reihe;Reparaturtreff;1;4" in exported.content.decode("utf-8-sig")
+    assert "Gesamt;Alle Reihen;3;18" in exported.content.decode("utf-8-sig")

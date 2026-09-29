@@ -64,13 +64,16 @@ def documentation_custom_fields(request: HttpRequest) -> HttpResponse:
 
 def _statistics_filter(request: HttpRequest):
     default_period = current_year_period()
+    organization_id = request.organization_context.organization_id
     if not request.GET:
         form = StatisticsFilterForm(
-            initial={"date_from": default_period.date_from, "date_to": default_period.date_to}
+            initial={"date_from": default_period.date_from, "date_to": default_period.date_to},
+            organization_id=organization_id,
         )
         return form, default_period
     form = StatisticsFilterForm(
         request.GET,
+        organization_id=organization_id,
     )
     if form.is_valid():
         return form, StatisticsPeriod(form.cleaned_data["date_from"], form.cleaned_data["date_to"])
@@ -91,6 +94,9 @@ def statistics_dashboard(request: HttpRequest) -> HttpResponse:
         organization_statistics(
             organization_id=request.organization_context.organization_id,
             period=period,
+            template_id=form.cleaned_data.get("template").id
+            if form.is_valid() and form.cleaned_data.get("template")
+            else None,
         )
         if period
         else None
@@ -115,6 +121,7 @@ def statistics_csv(request: HttpRequest) -> HttpResponse:
     statistics = organization_statistics(
         organization_id=request.organization_context.organization_id,
         period=period,
+        template_id=form.cleaned_data["template"].id if form.cleaned_data.get("template") else None,
     )
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = (
@@ -156,6 +163,17 @@ def statistics_csv(request: HttpRequest) -> HttpResponse:
             write_row(["Projekt", group_label, label, group[key]])
         for item in group["custom_statistics"]:
             write_row(["Projekt", group_label, item["label"], item["value"]])
+    write_row([])
+    write_row(["Workshops", "", "Workshop", "Teilnehmende"])
+    for workshop in statistics["workshop_rows"]:
+        write_row(
+            [
+                "Workshop",
+                workshop["starts_at"].date().isoformat(),
+                workshop["title"],
+                workshop["present_total"],
+            ]
+        )
     return response
 
 

@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Documentation, Facilitator, ParticipantEntry
+from .models import Documentation, DocumentTemplate, Facilitator, ParticipantEntry
 
 
 class DocumentationForm(forms.ModelForm):
@@ -70,6 +70,18 @@ class FacilitatorForm(forms.ModelForm):
 class StatisticsFilterForm(forms.Form):
     date_from = forms.DateField(label="Von", widget=forms.DateInput(attrs={"type": "date"}))
     date_to = forms.DateField(label="Bis", widget=forms.DateInput(attrs={"type": "date"}))
+    template = forms.ModelChoiceField(
+        queryset=DocumentTemplate.objects.none(),
+        required=False,
+        empty_label="Alle Projekte / Vorlagen",
+        label="Projekt / Dokumentvorlage",
+    )
+
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["template"].queryset = DocumentTemplate.objects.for_organization(
+            organization_id
+        ).order_by("name")
 
     def clean(self):
         cleaned = super().clean()

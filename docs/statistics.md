@@ -2,8 +2,9 @@
 
 Werkblatt stellt angemeldeten Workshop Usern, Editoren und Organization Admins
 eine tenantgebundene Statistikansicht unter `/documentation/statistics/` bereit.
-Sie enthält keine Teilnehmer:innen-, Workshop- oder Benutzernamen. Der
-CSV-Export bildet ausschließlich dieselben aggregierten Werte ab.
+Sie enthält keine Teilnehmer:innen- oder Benutzernamen. Der CSV-Export bildet
+die aggregierten Werte ab und ergänzt für Verwendungsnachweise Workshopnamen
+mit der jeweiligen aggregierten Teilnahmezahl.
 
 ## Datenbasis und Revisionen
 
@@ -34,14 +35,38 @@ Teilnahmen stehen separat und können die Quote daher nicht über 100 Prozent
 heben. Aggregierte Custom Fields werden anhand ihres im Snapshot eingefrorenen
 Labels summiert und zusätzlich nach Projekt und Dokumentvorlage gruppiert.
 
+Die Auswertung kann optional nach einer organisationsbezogenen Dokumentvorlage
+gefiltert werden. Als Projektzuordnung gilt die Vorlage, die im jeweils letzten
+abgeschlossenen Revisionssnapshot eingefroren ist. Bei einer geöffneten
+Korrektur bleibt damit weiterhin die letzte abgeschlossene Revision relevant.
+In diesem Filtermodus beziehen sich Workshopanzahl und Summen ausschließlich
+auf die abgeschlossenen Dokumentationen dieser Vorlage.
+
 ## Datenschutz und Tenant-Isolation
 
 Alle Abfragen beginnen mit dem serverseitig validierten Organisationskontext.
-Requestparameter können keine Organisation auswählen. Der CSV-Export enthält
-weder Teilnehmendennamen noch Workshoptitel, Benutzerkennungen oder
-Freitextberichte. Cross-Tenant- und Revisionsregeln sind automatisiert getestet.
+Requestparameter können keine Organisation auswählen. Auch die
+Dokumentvorlagenauswahl ist auf die aktive Organisation begrenzt. Der
+CSV-Export enthält zwar die für Verwendungsnachweise benötigten Workshoptitel,
+aber weder Teilnehmendennamen noch Benutzerkennungen oder Freitextberichte.
+Cross-Tenant- und Revisionsregeln sind automatisiert getestet.
 
 Die Statistik ist eine operative Auswertung und kein behördliches oder
 revisionspflichtiges Fachverfahren. Ihre Nachvollziehbarkeit entsteht aus den
 unveränderlichen Dokumentationsrevisionen, nicht aus einem separaten
 Statistikdatenbestand.
+
+## Workshopbezogene CSV-Ausgabe
+
+Für Verwendungsnachweise enthält der CSV-Export zusätzlich zur bestehenden
+Gesamtauswertung eine workshopbezogene Zusammenfassung. Innerhalb des
+gewählten Zeitraums weist sie aus:
+
+- die Gesamtzahl der berücksichtigten Workshops;
+- je Workshop den Workshopnamen und die aggregierte Zahl der Teilnehmenden;
+- die optionale Projektauswahl anhand der verwendeten Dokumentvorlage.
+
+Bis ein eigenständiges Projektmodell fachlich erforderlich wird, gilt die bei
+der maßgeblichen abgeschlossenen Revision eingefrorene Dokumentvorlage als
+Projektzuordnung. Teilnehmer:innennamen, Freitexte und andere personenbezogene
+Angaben bleiben vom Export ausgeschlossen.

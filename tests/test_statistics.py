@@ -6,7 +6,7 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from werkblatt.documentation.models import Documentation, DocumentationRevision
+from werkblatt.documentation.models import Documentation, DocumentationRevision, DocumentTemplate
 from werkblatt.documentation.statistics import StatisticsPeriod, organization_statistics
 from werkblatt.documentation.views import _csv_cell
 from werkblatt.identities.models import Membership
@@ -23,7 +23,15 @@ def test_csv_cells_neutralize_spreadsheet_formulas(value):
     assert _csv_cell(value) == f"'{value}"
 
 
-def snapshot(*, registered, present_registered, walk_ins, project="Klimaprojekt", custom=4):
+def snapshot(
+    *,
+    registered,
+    present_registered,
+    walk_ins,
+    project="Klimaprojekt",
+    custom=4,
+    template_id="template-1",
+):
     return {
         "schema_version": 2,
         "statistics": {
@@ -34,7 +42,7 @@ def snapshot(*, registered, present_registered, walk_ins, project="Klimaprojekt"
             "no_shows": registered - present_registered,
         },
         "template": {
-            "id": "template-1",
+            "id": str(template_id),
             "name": "Fördernachweis",
             "project_title": project,
             "custom_fields": [
@@ -77,6 +85,18 @@ def statistics_setup(db, settings):
         user=user,
         role=Membership.Role.WORKSHOP_USER,
     )
+    template = DocumentTemplate.objects.create(
+        organization=organization,
+        name="Fördernachweis",
+        created_by=user,
+        updated_by=user,
+    )
+    historical_template = DocumentTemplate.objects.create(
+        organization=organization,
+        name="Frühere Förderung",
+        created_by=user,
+        updated_by=user,
+    )
     workshop = Workshop.objects.create(
         organization=organization,
         source_type=Workshop.SourceType.NATIVE,
@@ -90,12 +110,28 @@ def statistics_setup(db, settings):
         created_by=user,
         updated_by=user,
     )
-    add_revision(documentation, user, 1, snapshot(registered=10, present_registered=7, walk_ins=1))
+    add_revision(
+        documentation,
+        user,
+        1,
+        snapshot(
+            registered=10,
+            present_registered=7,
+            walk_ins=1,
+            template_id=historical_template.id,
+        ),
+    )
     add_revision(
         documentation,
         user,
         2,
-        snapshot(registered=12, present_registered=9, walk_ins=2, custom=5),
+        snapshot(
+            registered=12,
+            present_registered=9,
+            walk_ins=2,
+            custom=5,
+            template_id=template.id,
+        ),
     )
     Workshop.objects.create(
         organization=organization,
@@ -131,12 +167,12 @@ def statistics_setup(db, settings):
         1,
         snapshot(registered=500, present_registered=500, walk_ins=0, custom=500),
     )
-    return organization, user
+    return organization, user, template, historical_template, other
 
 
 @pytest.mark.django_db
 def test_statistics_use_only_latest_revision_and_report_open_correction(statistics_setup):
-    organization, _ = statistics_setup
+    organization, _, _, _, _ = statistics_setup
 
     result = organization_statistics(
         organization_id=organization.id,
@@ -159,8 +195,10 @@ def test_statistics_use_only_latest_revision_and_report_open_correction(statisti
 
 
 @pytest.mark.django_db
-def test_statistics_dashboard_and_csv_are_tenant_bound_and_name_free(statistics_setup):
-    _, user = statistics_setup
+def test_statistics_dashboard_and_csv_are_tenant_bound_and_export_workshop_rows(
+    statistics_setup,
+):
+    _, user, _, _, _ = statistics_setup
     client = Client()
     client.force_login(user)
     query = "?date_from=2026-01-01&date_to=2026-12-31"
@@ -175,14 +213,17 @@ def test_statistics_dashboard_and_csv_are_tenant_bound_and_name_free(statistics_
     assert csv_response["Content-Type"].startswith("text/csv")
     exported = csv_response.content.decode("utf-8-sig")
     assert "Klimaprojekt · Fördernachweis" in exported
-    assert "Workshop mit Korrektur" not in exported
+    assert "Workshops im Zeitraum" in exported
+    assert "Workshop mit Korrektur" in exported
+    assert "2026-05-10" in exported
+    assert ";11" in exported
     assert "statistics-user" not in exported
     assert "500" not in exported
 
 
 @pytest.mark.django_db
 def test_statistics_reject_invalid_period(statistics_setup):
-    _, user = statistics_setup
+    _, user, _, _, _ = statistics_setup
     client = Client()
     client.force_login(user)
     query = "?date_from=2026-12-31&date_to=2026-01-01"
@@ -193,7 +234,7 @@ def test_statistics_reject_invalid_period(statistics_setup):
 
 @pytest.mark.django_db
 def test_not_required_workshops_are_not_reported_as_missing_finalization(statistics_setup):
-    organization, _ = statistics_setup
+    organization, _, _, _, _ = statistics_setup
     workshop = Workshop.objects.get(organization=organization, title="Noch nicht abgeschlossen")
     workshop.documentation_requirement = Workshop.DocumentationRequirement.NOT_REQUIRED
     workshop.save(update_fields=["documentation_requirement"])
@@ -205,3 +246,36 @@ def test_not_required_workshops_are_not_reported_as_missing_finalization(statist
 
     assert result["without_finalization"] == 0
     assert result["not_required_workshops"] == 1
+
+
+@pytest.mark.django_db
+def test_statistics_template_filter_uses_snapshot_and_rejects_cross_tenant_template(
+    statistics_setup,
+):
+    organization, user, template, historical_template, other = statistics_setup
+    foreign_template = DocumentTemplate.objects.create(
+        organization=other,
+        name="Fremde Vorlage",
+        created_by=user,
+        updated_by=user,
+    )
+    client = Client()
+    client.force_login(user)
+    base_query = "?date_from=2026-01-01&date_to=2026-12-31&template="
+
+    response = client.get(reverse("statistics-dashboard") + base_query + str(template.id))
+    exported = client.get(reverse("statistics-csv") + base_query + str(template.id))
+
+    assert response.status_code == 200
+    assert response.context["statistics"]["workshops"] == 1
+    assert response.context["statistics"]["present_total"] == 11
+    assert "Workshop mit Korrektur" in exported.content.decode("utf-8-sig")
+    historical_response = client.get(
+        reverse("statistics-dashboard") + base_query + str(historical_template.id)
+    )
+    assert historical_response.context["statistics"]["workshops"] == 0
+    assert historical_response.context["statistics"]["present_total"] == 0
+    assert (
+        client.get(reverse("statistics-csv") + base_query + str(foreign_template.id)).status_code
+        == 400
+    )

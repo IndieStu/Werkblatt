@@ -38,3 +38,18 @@ Die getrennte Auswertung kann nach Zeitraum und Reihe gefiltert werden. Sie
 enthält Anzahl der Termine, Gesamtteilnahmen, Durchschnitt pro Termin,
 Geschlechterangaben und Summen je Reihe. Der CSV-Export enthält nur diese
 aggregierten beziehungsweise terminbezogenen Werte und keine Usernamen.
+
+## Kumulierte CSV-Ausgabe
+
+Der CSV-Export enthält zusätzlich zu den bisherigen terminbezogenen Zeilen eine
+kumulierte Auswertung für den ausgewählten Zeitraum enthalten:
+
+- je Veranstaltungsreihe den Namen, die Gesamtzahl ihrer Termine und die Summe
+  ihrer Teilnehmenden;
+- über alle im Filter enthaltenen Reihen hinweg eine Gesamtsumme der Termine
+  und Teilnehmenden.
+
+Der bestehende Zeitraum- und Reihenfilter gilt auch für diese Summen. Die
+kumulierte Ausgabe ersetzt den Detailbereich nicht. Sie bleibt vollständig
+tenantgebunden und enthält keine Namen von Teilnehmenden oder erfassenden
+Usern.

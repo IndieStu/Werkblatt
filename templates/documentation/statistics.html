@@ -9,8 +9,9 @@
   <form method="get" class="statistics-filter">
     <div class="field">{{ filter_form.date_from.label_tag }}{{ filter_form.date_from }}{{ filter_form.date_from.errors }}</div>
     <div class="field">{{ filter_form.date_to.label_tag }}{{ filter_form.date_to }}{{ filter_form.date_to.errors }}</div>
-    <button class="button" type="submit">Zeitraum anwenden</button>
-    {% if statistics %}<a class="button secondary" href="{% url 'statistics-csv' %}?date_from={{ statistics.period.date_from|date:'Y-m-d' }}&amp;date_to={{ statistics.period.date_to|date:'Y-m-d' }}">CSV exportieren</a>{% endif %}
+    <div class="field">{{ filter_form.template.label_tag }}{{ filter_form.template }}{{ filter_form.template.errors }}</div>
+    <button class="button" type="submit">Filter anwenden</button>
+    {% if statistics %}<a class="button secondary" href="{% url 'statistics-csv' %}?date_from={{ statistics.period.date_from|date:'Y-m-d' }}&amp;date_to={{ statistics.period.date_to|date:'Y-m-d' }}{% if filter_form.template.value %}&amp;template={{ filter_form.template.value }}{% endif %}">CSV exportieren</a>{% endif %}
   </form>
   {% if filter_form.non_field_errors %}<div class="message message-error">{{ filter_form.non_field_errors }}</div>{% endif %}
 </section>
