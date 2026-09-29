@@ -43,6 +43,7 @@ class PretixEventDraft:
     location: str
     capacity: int
     child_registration_enabled: bool
+    registration_deadline: datetime | None = None
     description: str = ""
     funding_text: str = ""
 
@@ -57,6 +58,11 @@ class PretixEventDraft:
             raise ValueError("Pretix event end must include a timezone")
         if self.ends_at is not None and self.ends_at <= self.starts_at:
             raise ValueError("Pretix event end must be after its start")
+        if self.registration_deadline is not None:
+            if self.registration_deadline.utcoffset() is None:
+                raise ValueError("Pretix registration deadline must include a timezone")
+            if self.registration_deadline >= self.starts_at:
+                raise ValueError("Pretix registration deadline must be before its start")
         if self.capacity < 1:
             raise ValueError("Pretix event capacity must be positive")
 
@@ -117,7 +123,9 @@ class PretixEventCreator:
             "date_admission": None,
             "is_public": False,
             "presale_start": None,
-            "presale_end": None,
+            "presale_end": (
+                draft.registration_deadline.isoformat() if draft.registration_deadline else None
+            ),
             "location": {"de": draft.location.strip()} if draft.location.strip() else None,
             "geo_lat": None,
             "geo_lon": None,
@@ -169,6 +177,16 @@ class PretixEventCreator:
             raise PretixUnavailable("Pretix returned an unexpected event reference")
         if verified.get("live") is not False or verified.get("is_public") is not False:
             raise PretixUnavailable("Pretix created an event in an unsafe publication state")
+        if draft.registration_deadline is not None:
+            returned_deadline = verified.get("presale_end")
+            try:
+                parsed_deadline = datetime.fromisoformat(
+                    str(returned_deadline).replace("Z", "+00:00")
+                )
+            except ValueError as exc:
+                raise PretixUnavailable("Pretix did not return the registration deadline") from exc
+            if parsed_deadline != draft.registration_deadline:
+                raise PretixUnavailable("Pretix did not apply the registration deadline")
         return CreatedPretixEvent(
             slug=str(verified.get("slug") or event.get("slug") or ""),
             public_url=str(verified.get("public_url") or event.get("public_url") or ""),

@@ -1,4 +1,5 @@
 import calendar
+import csv
 from datetime import date
 
 from django.conf import settings
@@ -6,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -28,6 +29,9 @@ from werkblatt.integrations.pretix.creation import (
 
 from .forms import (
     NativeWorkshopForm,
+    OpenWorkshopAttendanceForm,
+    OpenWorkshopSeriesForm,
+    OpenWorkshopStatisticsFilterForm,
     PretixEventCreationPresetForm,
     PretixEventRuleForm,
     PretixFundingTextForm,
@@ -36,6 +40,8 @@ from .forms import (
     WorkshopRequirementForm,
 )
 from .models import (
+    OpenWorkshopAttendance,
+    OpenWorkshopSeries,
     PretixEventCreation,
     PretixEventCreationPreset,
     PretixEventRule,
@@ -611,6 +617,7 @@ def pretix_workshop_create(request: HttpRequest) -> HttpResponse:
                 description=form.cleaned_data["description"],
                 starts_at=form.cleaned_data["starts_at"],
                 ends_at=form.cleaned_data["ends_at"],
+                registration_deadline=form.cleaned_data["registration_deadline"],
                 location=form.cleaned_data["location"],
                 capacity=form.cleaned_data["capacity"],
                 child_registration_enabled=form.cleaned_data["child_registration_enabled"],
@@ -693,6 +700,7 @@ def pretix_workshop_publish(request: HttpRequest, creation_id) -> HttpResponse:
                 title=creation.title,
                 starts_at=creation.starts_at,
                 ends_at=creation.ends_at,
+                registration_deadline=creation.registration_deadline,
                 location=creation.location,
                 capacity=creation.capacity,
                 child_registration_enabled=creation.child_registration_enabled,
@@ -739,3 +747,192 @@ def pretix_workshop_publish(request: HttpRequest, creation_id) -> HttpResponse:
     )
     messages.success(request, "Workshop in Pretix erstellt und veröffentlicht.")
     return redirect("documentation-detail", workshop_id=workshop.id)
+
+
+def _open_workshop_attendances(request: HttpRequest, form):
+    attendances = OpenWorkshopAttendance.objects.filter(
+        organization_id=_organization_id(request)
+    ).select_related("series")
+    if form.is_valid():
+        if form.cleaned_data["date_from"]:
+            attendances = attendances.filter(occurred_on__gte=form.cleaned_data["date_from"])
+        if form.cleaned_data["date_to"]:
+            attendances = attendances.filter(occurred_on__lte=form.cleaned_data["date_to"])
+        if form.cleaned_data["series"]:
+            attendances = attendances.filter(series=form.cleaned_data["series"])
+    return attendances
+
+
+def _csv_cell(value) -> str:
+    text = "" if value is None else str(value)
+    if text.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return f"'{text}"
+    return text
+
+
+@login_required
+def open_workshop_dashboard(request: HttpRequest) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.RECORD_OPEN_WORKSHOP_ATTENDANCE,
+        "Keine Berechtigung für offene Werkstätten.",
+    )
+    filter_form = OpenWorkshopStatisticsFilterForm(
+        request.GET,
+        organization_id=_organization_id(request),
+    )
+    attendances = _open_workshop_attendances(request, filter_form)
+    totals = attendances.aggregate(
+        visits=Count("id"),
+        total=Sum("total"),
+        female=Sum("female"),
+        male=Sum("male"),
+        diverse=Sum("diverse"),
+        unspecified=Sum("unspecified"),
+    )
+    visits = totals["visits"] or 0
+    totals["average"] = round((totals["total"] or 0) / visits, 1) if visits else 0
+    by_series = (
+        attendances.values("series__name")
+        .annotate(visits=Count("id"), total=Sum("total"))
+        .order_by("series__name")
+    )
+    return render(
+        request,
+        "workshops/open_workshops/dashboard.html",
+        {
+            "filter_form": filter_form,
+            "totals": totals,
+            "by_series": by_series,
+            "recent_attendances": attendances.order_by("-occurred_on", "series__name")[:25],
+            "can_manage_series": has_capability(
+                request.user,
+                _organization_id(request),
+                Capability.MANAGE_OPEN_WORKSHOP_SERIES,
+            ),
+        },
+    )
+
+
+@login_required
+def open_workshop_attendance_edit(request: HttpRequest, attendance_id=None) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.RECORD_OPEN_WORKSHOP_ATTENDANCE,
+        "Keine Berechtigung zum Erfassen offener Werkstätten.",
+    )
+    attendance = None
+    if attendance_id:
+        attendance = get_object_or_404(
+            OpenWorkshopAttendance.objects.filter(organization_id=_organization_id(request)),
+            pk=attendance_id,
+        )
+    form = OpenWorkshopAttendanceForm(
+        request.POST or None,
+        instance=attendance,
+        organization_id=_organization_id(request),
+    )
+    if request.method == "POST" and form.is_valid():
+        saved = form.save(commit=False)
+        saved.organization = request.organization
+        if saved._state.adding:
+            saved.recorded_by = request.user
+        saved.full_clean()
+        saved.save()
+        messages.success(request, "Besuchszahlen gespeichert.")
+        return redirect("open-workshop-dashboard")
+    return render(
+        request,
+        "workshops/open_workshops/attendance_form.html",
+        {"form": form, "attendance": attendance},
+    )
+
+
+@login_required
+def open_workshop_series_list(request: HttpRequest) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_OPEN_WORKSHOP_SERIES,
+        "Nur Editors und Organization Admins dürfen Reihen konfigurieren.",
+    )
+    series = OpenWorkshopSeries.objects.filter(organization_id=_organization_id(request))
+    return render(
+        request,
+        "workshops/open_workshops/series_list.html",
+        {"series_list": series},
+    )
+
+
+@login_required
+def open_workshop_series_edit(request: HttpRequest, series_id=None) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.MANAGE_OPEN_WORKSHOP_SERIES,
+        "Nur Editors und Organization Admins dürfen Reihen konfigurieren.",
+    )
+    series = None
+    if series_id:
+        series = get_object_or_404(
+            OpenWorkshopSeries.objects.filter(organization_id=_organization_id(request)),
+            pk=series_id,
+        )
+    form = OpenWorkshopSeriesForm(
+        request.POST or None,
+        instance=series,
+        organization_id=_organization_id(request),
+    )
+    if request.method == "POST" and form.is_valid():
+        saved = form.save(commit=False)
+        saved.organization = request.organization
+        saved.full_clean()
+        saved.save()
+        messages.success(request, "Reihe gespeichert.")
+        return redirect("open-workshop-series-list")
+    return render(
+        request,
+        "workshops/open_workshops/series_form.html",
+        {"form": form, "series": series},
+    )
+
+
+@login_required
+def open_workshop_statistics_csv(request: HttpRequest) -> HttpResponse:
+    require_capability(
+        request.user,
+        _organization_id(request),
+        Capability.RECORD_OPEN_WORKSHOP_ATTENDANCE,
+        "Keine Berechtigung für offene Werkstätten.",
+    )
+    form = OpenWorkshopStatisticsFilterForm(
+        request.GET,
+        organization_id=_organization_id(request),
+    )
+    if not form.is_valid():
+        return HttpResponse("Ungültiger Statistikzeitraum.", status=400)
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="Werkblatt_Offene_Werkstaetten.csv"'
+    response.write("\ufeff")
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow(["Datum", "Reihe", "Gesamt", "Weiblich", "Männlich", "Divers", "Keine Angabe"])
+    for attendance in _open_workshop_attendances(request, form).order_by(
+        "occurred_on", "series__name"
+    ):
+        writer.writerow(
+            [
+                _csv_cell(value)
+                for value in (
+                    attendance.occurred_on.isoformat(),
+                    attendance.series.name,
+                    attendance.total,
+                    attendance.female,
+                    attendance.male,
+                    attendance.diverse,
+                    attendance.unspecified,
+                )
+            ]
+        )
+    return response

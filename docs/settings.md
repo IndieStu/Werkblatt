@@ -20,8 +20,8 @@ und Markenfarben ab. Die PDF-Ausgaben sind davon unabhängig.
 ## Organisationsverwaltung
 
 `/administration/` ist der gemeinsame Einstieg für rollenabhängige fachliche
-Verwaltung. Editor sehen dort die redaktionellen Bereiche Dokumentvorlagen und
-dokumentbezogene Logos und Assets. Organization Admins sehen zusätzlich das
+Verwaltung. Editor sehen dort die redaktionellen Bereiche Dokumentvorlagen,
+dokumentbezogene Logos und Assets sowie offene Werkstattreihen. Organization Admins sehen zusätzlich das
 Organisationsprofil; später gehören dazu auch Organisationsbranding,
 Integrationen und Memberships. Ein Editor darf ein vorhandenes Organisationslogo
 in einer Dokumentvorlage verwenden, aber nicht verändern, ersetzen oder als

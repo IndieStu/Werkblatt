@@ -8,7 +8,7 @@ bildet es deren vollständige Event-, Produkt- oder Steuerkonfiguration nach.
 Stattdessen klont Werkblatt eine von der Organisation in Pretix gepflegte
 Veranstaltungsvorlage und ändert ausschließlich freigegebene Werte.
 
-Der Assistent soll zunächst Titel, Beginn, Ende, Ort, Beschreibung,
+Der Assistent erfasst Titel, Beginn, Ende, einen optionalen Anmeldeschluss, Ort, Beschreibung,
 Fördertext, Gesamtkapazität und die Freigabe der Kinderanmeldung erfassen.
 Steuern, Zahlungsarten, Ticketfragen, E-Mail-Texte und Benachrichtigungen
 bleiben Teil der Pretix-Vorlage und werden nicht als Werkblatt-Felder
@@ -80,11 +80,12 @@ Vorgangsprotokoll erhalten, auch wenn das externe Event später gelöscht wird.
 5. Event mit `live = false` und `is_public = false` klonen.
 6. Kinderprodukt aktivieren oder deaktivieren.
 7. gemeinsames Kontingent auf die gewünschte Kapazität setzen.
-8. Beschreibung und ausgewählten Fördertext über explizit freigegebene
+8. optionalen Anmeldeschluss als `presale_end` setzen.
+9. Beschreibung und ausgewählten Fördertext über explizit freigegebene
    Pretix-Einstellungen aktualisieren.
-9. Event erneut aus Pretix lesen und den sicheren Zustand prüfen.
-10. Erstellungsstatus und externe Referenz lokal speichern.
-11. Event erst über eine getrennte, bewusste Aktion veröffentlichen.
+10. Event erneut aus Pretix lesen und den sicheren Zustand prüfen.
+11. Erstellungsstatus und externe Referenz lokal speichern.
+12. Event erst über eine getrennte, bewusste Aktion veröffentlichen.
 
 Während externer HTTP-Aufrufe bleibt keine lang laufende Datenbanktransaktion
 offen. Wiederholte Formularübermittlung verwendet dieselbe lokale

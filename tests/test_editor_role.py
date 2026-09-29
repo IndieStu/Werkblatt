@@ -100,10 +100,13 @@ def test_fixed_capability_matrix(roles):
     assert capabilities_for(users[Membership.Role.WORKSHOP_USER], organization.id) == {
         Capability.DOCUMENT_WORKSHOPS,
         Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        Capability.RECORD_OPEN_WORKSHOP_ATTENDANCE,
     }
     assert capabilities_for(users[Membership.Role.EDITOR], organization.id) == {
         Capability.DOCUMENT_WORKSHOPS,
         Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS,
+        Capability.RECORD_OPEN_WORKSHOP_ATTENDANCE,
+        Capability.MANAGE_OPEN_WORKSHOP_SERIES,
         Capability.MANAGE_DOCUMENT_TEMPLATES,
         Capability.MANAGE_DOCUMENT_ASSETS,
         Capability.MANAGE_WORKSHOP_VISIBILITY,
@@ -212,6 +215,7 @@ def test_editor_sees_editorial_administration_only(roles):
     assert response.status_code == 200
     assert "Dokumentvorlagen" in body
     assert "Logos & Assets" in body
+    assert "Offene Werkstätten" in body
     assert "Organisationsprofil" not in body
     assert client.get(reverse("organization-profile")).status_code == 403
     assert Capability.CREATE_AND_PUBLISH_PRETIX_EVENTS in capabilities_for(editor, organization.id)

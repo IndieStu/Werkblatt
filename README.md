@@ -32,7 +32,9 @@ Die vollständige Phase-0-Entscheidung steht unter [`docs/phase-0-architektur.md
   Web-Branding, Dokumentationsrevisionen, versionierte Asset-Bibliothek,
   wiederverwendbare und sicher archivierbare Dokumentvorlagen, Custom Fields,
   Abschluss-PDFs, druckbare Teilnahmelisten, optionaler WebDAV-Storage sowie
-  organisationsbezogene aggregierte Statistik mit CSV-Export;
+  organisationsbezogene aggregierte Statistik mit CSV-Export, ein optionaler
+  Pretix-Anmeldeschluss sowie eine eigene aggregierte Besuchserfassung für
+  offene Werkstattreihen ohne PDF- oder Namensdaten;
 - noch nicht vorhanden: lokale Accounts, öffentlicher Demo-Modus und sichere
   Hosted-Multi-Tenant-Auswahl.
 

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Offene Werkstattreihe – Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'open-workshop-series-list' %}">Reihen</a> / {% if series %}Bearbeiten{% else %}Anlegen{% endif %}</nav>
+<h1>{% if series %}Reihe bearbeiten{% else %}Reihe anlegen{% endif %}</h1>
+<form method="post" class="content-card form-stack">{% csrf_token %}{{ form.as_div }}<div class="form-actions"><button class="button" type="submit">Speichern</button><a class="button secondary" href="{% url 'open-workshop-series-list' %}">Abbrechen</a></div></form>
+{% endblock %}

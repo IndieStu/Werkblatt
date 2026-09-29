@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Offene Werkstätten – Werkblatt{% endblock %}
+{% block content %}
+<div class="section-heading">
+  <div><p class="eyebrow">Besuchserfassung</p><h1>Offene Werkstätten</h1><p class="lead">Besuchszahlen wiederkehrender offener Angebote ohne Namen und PDF-Dokumentation erfassen.</p></div>
+  <div class="button-row"><a class="button" href="{% url 'open-workshop-attendance-create' %}">Termin erfassen</a>{% if can_manage_series %}<a class="button secondary" href="{% url 'open-workshop-series-list' %}">Reihen verwalten</a>{% endif %}</div>
+</div>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<section class="content-card">
+  <form method="get" class="statistics-filter">{{ filter_form.as_div }}<button class="button" type="submit">Auswerten</button><a class="button secondary" href="{% url 'open-workshop-dashboard' %}">Zurücksetzen</a><a class="button secondary" href="{% url 'open-workshop-statistics-csv' %}?{{ request.GET.urlencode }}">CSV exportieren</a></form>
+  {% if filter_form.non_field_errors %}<div class="message message-error">{{ filter_form.non_field_errors }}</div>{% endif %}
+</section>
+<section class="statistics statistics-overview" aria-label="Statistik offener Werkstätten">
+  <div><strong>{{ totals.visits }}</strong><span>Termine</span></div>
+  <div><strong>{{ totals.total|default:0 }}</strong><span>Teilnahmen</span></div>
+  <div><strong>{{ totals.average }}</strong><span>Durchschnitt pro Termin</span></div>
+  <div><strong>{{ totals.female|default:0 }}</strong><span>Weiblich</span></div>
+  <div><strong>{{ totals.male|default:0 }}</strong><span>Männlich</span></div>
+  <div><strong>{{ totals.diverse|default:0 }}</strong><span>Divers</span></div>
+  <div><strong>{{ totals.unspecified|default:0 }}</strong><span>Keine Angabe</span></div>
+</section>
+<section class="content-card"><h2>Nach Reihe</h2>{% if by_series %}<div class="table-scroll"><table><thead><tr><th>Offene Werkstatt</th><th>Termine</th><th>Teilnahmen</th></tr></thead><tbody>{% for item in by_series %}<tr><td>{{ item.series__name }}</td><td>{{ item.visits }}</td><td>{{ item.total }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Im gewählten Zeitraum liegen keine Einträge vor.</p>{% endif %}</section>
+<section class="content-card"><h2>Erfasste Termine</h2>{% if recent_attendances %}<div class="table-scroll"><table><thead><tr><th>Datum</th><th>Reihe</th><th>Gesamt</th><th>Geschlechterangaben</th><th></th></tr></thead><tbody>{% for attendance in recent_attendances %}<tr><td>{{ attendance.occurred_on|date:"d.m.Y" }}</td><td>{{ attendance.series.name }}</td><td>{{ attendance.total }}</td><td>W {{ attendance.female }} · M {{ attendance.male }} · D {{ attendance.diverse }} · ohne Angabe {{ attendance.unspecified }}</td><td><a href="{% url 'open-workshop-attendance-edit' attendance.id %}">Bearbeiten</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Noch keine Termine erfasst.</p>{% endif %}</section>
+{% endblock %}
