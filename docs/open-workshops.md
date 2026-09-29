@@ -39,9 +39,9 @@ enthält Anzahl der Termine, Gesamtteilnahmen, Durchschnitt pro Termin,
 Geschlechterangaben und Summen je Reihe. Der CSV-Export enthält nur diese
 aggregierten beziehungsweise terminbezogenen Werte und keine Usernamen.
 
-## Vorgemerkte kumulierte CSV-Ausgabe
+## Kumulierte CSV-Ausgabe
 
-Der CSV-Export soll zusätzlich zu den bisherigen terminbezogenen Zeilen eine
+Der CSV-Export enthält zusätzlich zu den bisherigen terminbezogenen Zeilen eine
 kumulierte Auswertung für den ausgewählten Zeitraum enthalten:
 
 - je Veranstaltungsreihe den Namen, die Gesamtzahl ihrer Termine und die Summe

@@ -6,6 +6,14 @@ entsprechende PEP-440-Schreibweise.
 
 ## Unveröffentlicht
 
+### Hinzugefügt
+
+- der CSV-Export offener Werkstätten enthält zusätzlich Summen je Reihe sowie
+  eine Gesamtsumme für Termine und Teilnehmende im gewählten Filter;
+- die Dokumentationsstatistik kann organisationsgebunden nach der in der
+  letzten abgeschlossenen Revision verwendeten Dokumentvorlage gefiltert
+  werden und exportiert Workshopnamen mit aggregierten Teilnahmezahlen.
+
 ### Behoben
 
 - der Pretix-Client drosselt lesende API-Aufrufe und respektiert begrenzt den

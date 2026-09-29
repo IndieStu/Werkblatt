@@ -940,9 +940,8 @@ def open_workshop_statistics_csv(request: HttpRequest) -> HttpResponse:
     response.write("\ufeff")
     writer = csv.writer(response, delimiter=";")
     writer.writerow(["Datum", "Reihe", "Gesamt", "Weiblich", "Männlich", "Divers", "Keine Angabe"])
-    for attendance in _open_workshop_attendances(request, form).order_by(
-        "occurred_on", "series__name"
-    ):
+    attendances = _open_workshop_attendances(request, form)
+    for attendance in attendances.order_by("occurred_on", "series__name"):
         writer.writerow(
             [
                 _csv_cell(value)
@@ -957,4 +956,24 @@ def open_workshop_statistics_csv(request: HttpRequest) -> HttpResponse:
                 )
             ]
         )
+    by_series = (
+        attendances.values("series__name")
+        .annotate(visits=Count("id"), total_participants=Sum("total"))
+        .order_by("series__name")
+    )
+    totals = attendances.aggregate(visits=Count("id"), total_participants=Sum("total"))
+    writer.writerow([])
+    writer.writerow(["Kumulierte Auswertung", "Reihe", "Termine", "Teilnehmende"])
+    for item in by_series:
+        writer.writerow(
+            [
+                "Reihe",
+                _csv_cell(item["series__name"]),
+                item["visits"],
+                item["total_participants"] or 0,
+            ]
+        )
+    writer.writerow(
+        ["Gesamt", "Alle Reihen", totals["visits"] or 0, totals["total_participants"] or 0]
+    )
     return response
