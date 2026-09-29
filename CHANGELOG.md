@@ -6,6 +6,8 @@ entsprechende PEP-440-Schreibweise.
 
 ## Unveröffentlicht
 
+## 0.1.0rc4 – 2026-09-29
+
 ### Hinzugefügt
 
 - der Pretix-Erstellungsassistent unterstützt einen optionalen validierten
@@ -22,6 +24,15 @@ entsprechende PEP-440-Schreibweise.
 
 - die Verwaltungs- und Redaktionsübersicht verwendet klar ausgerichtete,
   vollständig klickbare Karten mit konsistenten Abständen und Umbrüchen.
+
+### Migration
+
+- `workshops.0005_pretix_event_creation` ergänzt die organisationsbezogenen
+  Pretix-Erstellungsstandards, Fördertexte und idempotenten Erstellungsvorgänge;
+- `workshops.0006_workshop_capacity` ergänzt die importierte Kapazität;
+- `workshops.0007_pretixeventcreation_registration_deadline_and_more` ergänzt
+  Anmeldeschluss sowie Reihen und aggregierte Besuchstermine offener
+  Werkstätten.
 
 ## 0.1.0rc3 – 2026-09-25
 

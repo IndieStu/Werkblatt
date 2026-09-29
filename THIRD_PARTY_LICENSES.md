@@ -1,6 +1,6 @@
 # Drittkomponenten und Lizenzhinweise
 
-Stand: 24. September 2026
+Stand: 29. September 2026
 Bezugsstand: `uv.lock`
 Maschinenlesbare Baseline: `THIRD_PARTY_LICENSES.lock.sha256`
 
