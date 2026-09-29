@@ -45,3 +45,20 @@ Die Statistik ist eine operative Auswertung und kein behördliches oder
 revisionspflichtiges Fachverfahren. Ihre Nachvollziehbarkeit entsteht aus den
 unveränderlichen Dokumentationsrevisionen, nicht aus einem separaten
 Statistikdatenbestand.
+
+## Vorgemerkte Exporterweiterung
+
+Für Verwendungsnachweise soll der CSV-Export zusätzlich zur bestehenden
+Gesamtauswertung eine workshopbezogene Zusammenfassung erhalten. Innerhalb des
+gewählten Zeitraums soll sie ausweisen:
+
+- die Gesamtzahl der berücksichtigten Workshops;
+- je Workshop den Workshopnamen und die aggregierte Zahl der Teilnehmenden;
+- eine optionale Projektauswahl anhand der verwendeten Dokumentvorlage.
+
+Bis ein eigenständiges Projektmodell fachlich erforderlich wird, gilt die bei
+der maßgeblichen abgeschlossenen Revision eingefrorene Dokumentvorlage als
+Projektzuordnung. Bei einer geöffneten Korrektur bleibt entsprechend die letzte
+abgeschlossene Revision relevant. Der Filter muss tenantgebunden sein und darf
+keine Vorlagen anderer Organisationen akzeptieren. Teilnehmer:innennamen,
+Freitexte und andere personenbezogene Angaben bleiben vom Export ausgeschlossen.
