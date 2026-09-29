@@ -212,6 +212,52 @@ def test_subevent_import_cutoff_is_sent_to_pretix_and_enforced_locally():
     assert [workshop.reference for workshop in workshops] == ["reihe:2"]
 
 
+def test_import_cutoff_skips_quota_requests_for_old_events():
+    requested_paths = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested_paths.append(request.url.path)
+        if request.url.path.endswith("/events/"):
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "slug": "old-event",
+                            "name": {"de": "Alter Workshop"},
+                            "live": True,
+                            "testmode": False,
+                            "has_subevents": False,
+                            "date_from": "2026-08-01T18:00:00+02:00",
+                        },
+                        {
+                            "slug": "old-series",
+                            "name": {"de": "Alte Reihe"},
+                            "live": True,
+                            "testmode": False,
+                            "has_subevents": True,
+                        },
+                    ],
+                    "next": None,
+                },
+            )
+        if request.url.path.endswith("/old-series/subevents/"):
+            assert request.url.params["date_from_after"] == "2026-08-25"
+            return httpx.Response(200, json={"results": [], "next": None})
+        pytest.fail(f"Unnötiger Pretix-Aufruf: {request.url}")
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.eu", "synthetic-token", transport=httpx.MockTransport(handler)
+        )
+        workshops = PretixWorkshopProvider(client, "example-organizer").list_workshops(
+            not_before=date(2026, 8, 25)
+        )
+
+    assert workshops == []
+    assert all(not path.endswith("/quotas/") for path in requested_paths)
+
+
 def test_testmode_events_require_explicit_opt_in():
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -497,6 +543,99 @@ def test_write_requests_are_json_bounded_and_do_not_follow_redirects():
     assert [request.method for request in requests] == ["POST", "PATCH"]
     assert requests[0].url.params["clone_from"] == "blanko"
     assert requests[0].headers["Authorization"] == "Token synthetic-token"
+
+
+def test_get_retries_rate_limit_using_retry_after():
+    attempts = []
+    sleeps = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts.append(request)
+        if len(attempts) == 1:
+            return httpx.Response(429, headers={"Retry-After": "7"})
+        return httpx.Response(200, json={"results": [], "next": None})
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+            sleeper=sleeps.append,
+        )
+        assert client.get("/api/v1/organizers/WORK/events/") == {
+            "results": [],
+            "next": None,
+        }
+
+    assert len(attempts) == 2
+    assert sleeps == [7]
+
+
+def test_real_client_request_interval_is_enforced_when_configured():
+    now = [0.0]
+    sleeps = []
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(
+                lambda _request: httpx.Response(200, json={"results": [], "next": None})
+            ),
+            sleeper=sleep,
+            monotonic=lambda: now[0],
+            request_interval_seconds=0.2,
+        )
+        client.get("/api/v1/organizers/WORK/events/")
+        client.get("/api/v1/organizers/WORK/events/")
+
+    assert sleeps == [0.2]
+
+
+@pytest.mark.parametrize("retry_after", [None, "invalid", "61"])
+def test_get_does_not_retry_unsafe_retry_after(retry_after):
+    attempts = []
+    headers = {"Retry-After": retry_after} if retry_after is not None else {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts.append(request)
+        return httpx.Response(429, headers=headers)
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+            sleeper=lambda _seconds: pytest.fail("request must not sleep"),
+        )
+        with pytest.raises(PretixUnavailable):
+            client.get("/api/v1/organizers/WORK/events/")
+
+    assert len(attempts) == 1
+
+
+def test_post_is_never_retried_after_rate_limit():
+    attempts = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts.append(request)
+        return httpx.Response(429, headers={"Retry-After": "1"})
+
+    with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
+        client = PretixClient(
+            "https://pretix.example",
+            "synthetic-token",
+            transport=httpx.MockTransport(handler),
+            sleeper=lambda _seconds: pytest.fail("request must not sleep"),
+        )
+        with pytest.raises(PretixUnavailable):
+            client.post("/api/v1/organizers/WORK/events/", {"name": {"de": "Test"}})
+
+    assert len(attempts) == 1
 
 
 def test_numbered_event_slug_is_automatic_stable_and_ascii_safe():

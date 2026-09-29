@@ -68,42 +68,50 @@ class PretixWorkshopProvider:
             synchronized_event_slugs.add(event_slug)
             event_active = event.get("live") is True
             escaped_event_slug = quote(event_slug, safe="")
-            quota_path = f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/quotas/"
-            quotas = list(self.client.pages(quota_path))
             if event.get("has_subevents") is True:
                 subevent_path = (
                     f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/subevents/"
                 )
                 params = {"date_from_after": not_before.isoformat()} if not_before else None
+                candidates = []
                 for item in self.client.pages(subevent_path, params):
-                    workshop = self._map_workshop(
-                        event_slug,
-                        event,
-                        item,
-                        capacity=self._capacity_for(quotas, item.get("id")),
-                    )
+                    workshop = self._map_workshop(event_slug, event, item)
                     if workshop is not None and (
                         not_before is None or workshop.starts_at.date() >= not_before
                     ):
-                        workshops.append(
-                            replace(
-                                workshop,
-                                active=event_active
-                                and item.get("active") is True
-                                and item.get("is_public", True) is True,
-                            )
-                        )
-            else:
-                workshop = self._map_workshop(
-                    event_slug,
-                    event,
-                    event,
-                    capacity=self._capacity_for(quotas, None),
+                        candidates.append((workshop, item))
+                if not candidates:
+                    continue
+                quota_path = (
+                    f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/quotas/"
                 )
+                quotas = list(self.client.pages(quota_path))
+                for workshop, item in candidates:
+                    workshops.append(
+                        replace(
+                            workshop,
+                            capacity=self._capacity_for(quotas, item.get("id")),
+                            active=event_active
+                            and item.get("active") is True
+                            and item.get("is_public", True) is True,
+                        )
+                    )
+            else:
+                workshop = self._map_workshop(event_slug, event, event)
                 if workshop is not None and (
                     not_before is None or workshop.starts_at.date() >= not_before
                 ):
-                    workshops.append(replace(workshop, active=event_active))
+                    quota_path = (
+                        f"/api/v1/organizers/{self.organizer}/events/{escaped_event_slug}/quotas/"
+                    )
+                    quotas = list(self.client.pages(quota_path))
+                    workshops.append(
+                        replace(
+                            workshop,
+                            capacity=self._capacity_for(quotas, None),
+                            active=event_active,
+                        )
+                    )
         return ExternalWorkshopBatch(
             workshops=tuple(sorted(workshops, key=lambda item: item.starts_at)),
             synchronized_event_slugs=frozenset(synchronized_event_slugs),
