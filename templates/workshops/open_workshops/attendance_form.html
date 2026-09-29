@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Besuchszahlen erfassen – Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'open-workshop-dashboard' %}">Offene Werkstätten</a> / {% if attendance %}Termin bearbeiten{% else %}Termin erfassen{% endif %}</nav>
+<h1>{% if attendance %}Besuchszahlen bearbeiten{% else %}Besuchszahlen erfassen{% endif %}</h1>
+<p class="lead">Erfasst werden ausschließlich aggregierte Zahlen, keine Namen.</p>
+<form method="post" class="content-card form-stack">{% csrf_token %}{{ form.non_field_errors }}<div class="form-grid form-grid-two">{{ form.series.as_field_group }}{{ form.occurred_on.as_field_group }}{{ form.total.as_field_group }}{{ form.female.as_field_group }}{{ form.male.as_field_group }}{{ form.diverse.as_field_group }}{{ form.unspecified.as_field_group }}</div>{{ form.note.as_field_group }}<div class="form-actions"><button class="button" type="submit">Speichern</button><a class="button secondary" href="{% url 'open-workshop-dashboard' %}">Abbrechen</a></div></form>
+{% endblock %}

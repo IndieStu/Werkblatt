@@ -7,6 +7,33 @@ urlpatterns = [
     path("list/", views.workshop_list, name="workshop-list"),
     path("calendar/", views.workshop_calendar, name="workshop-calendar"),
     path("view/", views.workshop_view_preference, name="workshop-view-preference"),
+    path("open/", views.open_workshop_dashboard, name="open-workshop-dashboard"),
+    path(
+        "open/attendance/new/",
+        views.open_workshop_attendance_edit,
+        name="open-workshop-attendance-create",
+    ),
+    path(
+        "open/attendance/<uuid:attendance_id>/",
+        views.open_workshop_attendance_edit,
+        name="open-workshop-attendance-edit",
+    ),
+    path("open/series/", views.open_workshop_series_list, name="open-workshop-series-list"),
+    path(
+        "open/series/new/",
+        views.open_workshop_series_edit,
+        name="open-workshop-series-create",
+    ),
+    path(
+        "open/series/<uuid:series_id>/",
+        views.open_workshop_series_edit,
+        name="open-workshop-series-edit",
+    ),
+    path(
+        "open/export.csv",
+        views.open_workshop_statistics_csv,
+        name="open-workshop-statistics-csv",
+    ),
     path("new/", views.native_workshop_edit, name="workshop-create"),
     path("pretix/new/", views.pretix_workshop_create, name="pretix-workshop-create"),
     path(

@@ -128,7 +128,7 @@ der konfigurierten Pretix-Instanz.
 
 Mit „Workshop mit Anmeldung“ öffnen Workshop User, Editor und Organization
 Admins den vereinfachten Erstellungsassistenten. Nach Auswahl des Standards
-werden Titel, Beginn, optionales Ende, Ort, Beschreibung, optionaler
+werden Titel, Beginn, optionales Ende, optionaler Anmeldeschluss, Ort, Beschreibung, optionaler
 Fördertext, Kapazität und Kinderanmeldung erfasst. Der automatisch erzeugte
 Pretix-Slug erhält eine laufende Nummer.
 
@@ -144,6 +144,24 @@ verborgene Vorlage, setzt Beschreibung, Fördertext, Kapazität und
 Kinderprodukt, überprüft das Ergebnis und veröffentlicht die Veranstaltung.
 Anschließend steht der Workshop unmittelbar zur Dokumentation bereit; der
 regelmäßige Sync ergänzt später eingehende Anmeldungen.
+
+## Offene Werkstätten
+
+„Offene Werkstätten“ ist eine eigene aggregierte Besuchserfassung für
+wiederkehrende Angebote ohne klassische Workshopdokumentation. Editor und
+Organization Admin konfigurieren Reihen mit Bezeichnung, Ort,
+Terminbeschreibung und Aktivstatus. Workshop User, Editor und Organization
+Admin erfassen anschließend einzelne stattgefundene Termine.
+
+Pro Termin werden Datum, Gesamtzahl sowie die Zahlen weiblich, männlich,
+divers und keine Angabe gespeichert. Diese vier Angaben müssen zusammen der
+Gesamtzahl entsprechen. Namen werden nicht erhoben; es entstehen weder
+Teilnahmelisten noch Dokumentationsrevisionen oder PDFs.
+
+Die eigenständige Statistik kann nach Zeitraum und Reihe gefiltert werden. Sie
+zeigt Anzahl der Termine, Teilnahmen, Durchschnitt pro Termin und die
+aggregierten Geschlechterangaben. Der CSV-Export enthält ebenfalls keine
+Personennamen. Inaktiv gesetzte Reihen bleiben mit ihrer Historie auswertbar.
 
 Schlägt der Ablauf nach einem externen Teilschritt fehl, führt Werkblatt keine
 automatische Wiederholung aus. Dadurch wird kein zweites Event angelegt. Der

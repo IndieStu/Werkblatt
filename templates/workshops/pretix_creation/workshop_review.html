@@ -7,6 +7,7 @@
 <dl class="content-card">
   <dt>Beginn</dt><dd>{{ creation.starts_at|date:"d.m.Y, H:i" }}</dd>
   <dt>Ende</dt><dd>{% if creation.ends_at %}{{ creation.ends_at|date:"d.m.Y, H:i" }}{% else %}–{% endif %}</dd>
+  <dt>Anmeldung möglich bis</dt><dd>{% if creation.registration_deadline %}{{ creation.registration_deadline|date:"d.m.Y, H:i" }}{% else %}–{% endif %}</dd>
   <dt>Ort</dt><dd>{{ creation.location|default:"–" }}</dd>
   <dt>Kapazität</dt><dd>{{ creation.capacity }}</dd>
   <dt>Kinderanmeldung</dt><dd>{% if creation.child_registration_enabled %}Ja{% else %}Nein{% endif %}</dd>

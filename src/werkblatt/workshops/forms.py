@@ -1,6 +1,10 @@
 from django import forms
+from django.db.models import Q
+from django.utils import timezone
 
 from .models import (
+    OpenWorkshopAttendance,
+    OpenWorkshopSeries,
     PretixEventCreationPreset,
     PretixEventRule,
     PretixFundingText,
@@ -271,6 +275,13 @@ class PretixWorkshopCreationForm(forms.Form):
         widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
         input_formats=["%Y-%m-%dT%H:%M"],
     )
+    registration_deadline = forms.DateTimeField(
+        required=False,
+        label="Anmeldung möglich bis",
+        help_text="Optional. Danach schließt Pretix die Anmeldung automatisch.",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        input_formats=["%Y-%m-%dT%H:%M"],
+    )
     location_choice = forms.ChoiceField(required=False, label="Bekannter Ort")
     location = forms.CharField(
         required=False,
@@ -320,6 +331,12 @@ class PretixWorkshopCreationForm(forms.Form):
         ends_at = cleaned.get("ends_at")
         if starts_at and ends_at and ends_at <= starts_at:
             self.add_error("ends_at", "Das Ende muss nach dem Beginn liegen.")
+        registration_deadline = cleaned.get("registration_deadline")
+        if starts_at and registration_deadline and registration_deadline >= starts_at:
+            self.add_error(
+                "registration_deadline",
+                "Der Anmeldeschluss muss vor dem Workshopbeginn liegen.",
+            )
         selected_location = cleaned.get("location_choice", "")
         custom_location = cleaned.get("location", "").strip()
         if selected_location in self.known_locations:
@@ -332,4 +349,141 @@ class PretixWorkshopCreationForm(forms.Form):
             cleaned["location"] = custom_location
         else:
             cleaned["location"] = ""
+        return cleaned
+
+
+class OpenWorkshopSeriesForm(forms.ModelForm):
+    class Meta:
+        model = OpenWorkshopSeries
+        fields = ["name", "location", "schedule_description", "active"]
+        labels = {
+            "name": "Bezeichnung",
+            "location": "Ort",
+            "schedule_description": "Wiederkehrender Termin",
+            "active": "Für neue Erfassungen auswählbar",
+        }
+        help_texts = {
+            "schedule_description": "Zum Beispiel: Jeden Dienstag, 15 bis 18 Uhr.",
+        }
+
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization_id = organization_id
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        if (
+            OpenWorkshopSeries.objects.filter(
+                organization_id=self.organization_id,
+                name=name,
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("Diese Bezeichnung wird bereits verwendet.")
+        return name
+
+
+class OpenWorkshopAttendanceForm(forms.ModelForm):
+    class Meta:
+        model = OpenWorkshopAttendance
+        fields = [
+            "series",
+            "occurred_on",
+            "total",
+            "female",
+            "male",
+            "diverse",
+            "unspecified",
+            "note",
+        ]
+        labels = {
+            "series": "Offene Werkstatt",
+            "occurred_on": "Datum",
+            "total": "Teilnehmende insgesamt",
+            "female": "Weiblich",
+            "male": "Männlich",
+            "diverse": "Divers",
+            "unspecified": "Keine Angabe",
+            "note": "Interne Notiz",
+        }
+        widgets = {
+            "occurred_on": forms.DateInput(attrs={"type": "date"}),
+            "note": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization_id = organization_id
+        selectable = Q(active=True)
+        if self.instance.pk and self.instance.series_id:
+            selectable |= Q(pk=self.instance.series_id)
+        self.fields["series"].queryset = OpenWorkshopSeries.objects.filter(
+            selectable,
+            organization_id=organization_id,
+        )
+        for field in ("total", "female", "male", "diverse", "unspecified"):
+            self.fields[field].widget.attrs["min"] = 0
+
+    def clean(self):
+        cleaned = super().clean()
+        series = cleaned.get("series")
+        if series and series.organization_id != self.organization_id:
+            raise forms.ValidationError("Die Reihe gehört nicht zur aktiven Organisation.")
+        values = [cleaned.get(field) for field in ("female", "male", "diverse", "unspecified")]
+        total = cleaned.get("total")
+        if total is not None and all(value is not None for value in values):
+            if sum(values) != total:
+                raise forms.ValidationError(
+                    "Die Geschlechterangaben müssen zusammen der Gesamtzahl entsprechen."
+                )
+        occurred_on = cleaned.get("occurred_on")
+        if occurred_on and occurred_on > timezone.localdate():
+            self.add_error("occurred_on", "Zukünftige Termine können nicht erfasst werden.")
+        if (
+            series
+            and occurred_on
+            and (
+                OpenWorkshopAttendance.objects.filter(
+                    organization_id=self.organization_id,
+                    series=series,
+                    occurred_on=occurred_on,
+                )
+                .exclude(pk=self.instance.pk)
+                .exists()
+            )
+        ):
+            self.add_error("occurred_on", "Für diese Reihe ist das Datum bereits erfasst.")
+        return cleaned
+
+
+class OpenWorkshopStatisticsFilterForm(forms.Form):
+    date_from = forms.DateField(
+        required=False,
+        label="Von",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    date_to = forms.DateField(
+        required=False,
+        label="Bis",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    series = forms.ModelChoiceField(
+        queryset=OpenWorkshopSeries.objects.none(),
+        required=False,
+        empty_label="Alle offenen Werkstätten",
+        label="Reihe",
+    )
+
+    def __init__(self, *args, organization_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["series"].queryset = OpenWorkshopSeries.objects.filter(
+            organization_id=organization_id
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("date_from") and cleaned.get("date_to"):
+            if cleaned["date_from"] > cleaned["date_to"]:
+                raise forms.ValidationError("Das Von-Datum darf nicht nach dem Bis-Datum liegen.")
         return cleaned

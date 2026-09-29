@@ -6,6 +6,16 @@ entsprechende PEP-440-Schreibweise.
 
 ## Unveröffentlicht
 
+### Hinzugefügt
+
+- der Pretix-Erstellungsassistent unterstützt einen optionalen validierten
+  Anmeldeschluss;
+- offene Werkstattreihen können organisationsgebunden konfiguriert und ihre
+  einzelnen Termine ohne Namen oder PDF mit Gesamt- und Geschlechterzahlen
+  erfasst werden;
+- eine getrennte, filterbare Statistik mit CSV-Export wertet Termine,
+  Teilnahmen, Durchschnitt und Geschlechterangaben offener Werkstätten aus.
+
 ## 0.1.0rc3 – 2026-09-25
 
 ### Behoben

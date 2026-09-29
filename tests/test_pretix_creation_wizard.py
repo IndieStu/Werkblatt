@@ -96,6 +96,7 @@ def test_workshop_user_can_review_create_publish_and_open_documentation(wizard_s
                 "title": "Klimawerkstatt",
                 "starts_at": "2026-10-10T10:00",
                 "ends_at": "2026-10-10T13:00",
+                "registration_deadline": "2026-10-09T18:00",
                 "location_choice": "WERK · Am Speicher XI 9, Bremen",
                 "location": "Nicht übernehmen",
                 "description": "Eine einfache Beschreibung.",
@@ -109,12 +110,16 @@ def test_workshop_user_can_review_create_publish_and_open_documentation(wizard_s
     assert response.url == reverse("pretix-workshop-review", args=[creation.id])
     assert creation.external_slug == "klimawerkstatt-2"
     assert creation.location == "WERK · Am Speicher XI 9, Bremen"
+    assert timezone.localtime(creation.registration_deadline).strftime("%Y-%m-%dT%H:%M") == (
+        "2026-10-09T18:00"
+    )
     assert creation.created_by == user
 
     review = client.get(response.url)
     assert review.status_code == 200
     assert "In Pretix erstellen und veröffentlichen" in review.content.decode()
     assert "Gefördert durch ein synthetisches Programm" in review.content.decode()
+    assert "09.10.2026, 18:00" in review.content.decode()
 
     with (
         patch("werkblatt.workshops.views.PretixClient.__init__", return_value=None),

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Offene Werkstattreihen – Werkblatt{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{% url 'open-workshop-dashboard' %}">Offene Werkstätten</a> / Reihen</nav>
+<div class="section-heading"><div><h1>Reihen verwalten</h1><p class="lead">Wiederkehrende offene Angebote für die Besuchserfassung konfigurieren.</p></div><a class="button" href="{% url 'open-workshop-series-create' %}">Reihe anlegen</a></div>
+{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<div class="workshop-list">{% for series in series_list %}<article class="workshop-card"><p class="eyebrow">{% if series.active %}Aktiv{% else %}Inaktiv{% endif %}</p><h2>{{ series.name }}</h2>{% if series.location %}<p>{{ series.location }}</p>{% endif %}{% if series.schedule_description %}<p>{{ series.schedule_description }}</p>{% endif %}<a href="{% url 'open-workshop-series-edit' series.id %}">Bearbeiten</a></article>{% empty %}<div class="empty-state"><h2>Noch keine Reihen</h2><p>Lege zuerst ein wiederkehrendes offenes Angebot an.</p></div>{% endfor %}</div>
+{% endblock %}

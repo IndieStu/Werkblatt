@@ -10,6 +10,8 @@ Organisation.
 | Workshops sehen und dokumentieren | ja | ja | ja |
 | Manuelle Workshops anlegen und bearbeiten | ja | ja | ja |
 | Pretix-Workshops erstellen und veröffentlichen | ja | ja | ja |
+| Besuchszahlen offener Werkstätten erfassen | ja | ja | ja |
+| Offene Werkstattreihen konfigurieren | nein | ja | ja |
 | Dokumentationen finalisieren und Vorlagen verwenden | ja | ja | ja |
 | Organisationsstatistik und aggregierten CSV-Export sehen | ja | ja | ja |
 | Workshops reversibel aus- und einblenden | nein | ja | ja |

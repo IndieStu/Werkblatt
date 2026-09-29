@@ -568,9 +568,10 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
                 json={"results": [{"id": 3, "items": [1, 2]}], "next": None},
             )
         if request.method == "POST" and path.endswith("/events/"):
-            body = request.read().decode()
-            assert '"live":false' in body
-            assert '"is_public":false' in body
+            body = json.loads(request.read())
+            assert body["live"] is False
+            assert body["is_public"] is False
+            assert body["presale_end"] == "2026-10-09T18:00:00+02:00"
             assert request.url.params["clone_from"] == "blanko"
             return httpx.Response(201, json={"slug": "klimawerkstatt-1"})
         if request.method == "GET" and path.endswith("/items/"):
@@ -614,12 +615,14 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
                     "public_url": "https://pretix.example/WORK/klimawerkstatt-1/",
                     "live": False,
                     "is_public": False,
+                    "presale_end": "2026-10-09T18:00:00+02:00",
                 },
             )
         raise AssertionError(f"Unexpected request: {request.method} {request.url}")
 
     starts_at = timezone.make_aware(datetime(2026, 10, 10, 10, 0))
     ends_at = timezone.make_aware(datetime(2026, 10, 10, 13, 0))
+    registration_deadline = timezone.make_aware(datetime(2026, 10, 9, 18, 0))
     with patch("socket.getaddrinfo", return_value=PUBLIC_DNS):
         client = PretixClient(
             "https://pretix.example",
@@ -635,6 +638,7 @@ def test_creator_clones_hidden_event_and_configures_capacity_and_child_item():
                 location="Werkstatt",
                 capacity=24,
                 child_registration_enabled=False,
+                registration_deadline=registration_deadline,
                 description="Beschreibung",
                 funding_text="Gefördert durch Test",
             ),

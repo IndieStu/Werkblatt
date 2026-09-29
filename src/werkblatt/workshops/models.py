@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -274,6 +275,7 @@ class PretixEventCreation(models.Model):
     funding_text_snapshot = models.TextField(max_length=5000, blank=True)
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField(null=True, blank=True)
+    registration_deadline = models.DateTimeField(null=True, blank=True)
     location = models.CharField(max_length=300, blank=True)
     capacity = models.PositiveIntegerField()
     child_registration_enabled = models.BooleanField(default=False)
@@ -308,3 +310,89 @@ class PretixEventCreation(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title} ({self.external_slug})"
+
+    def clean(self):
+        super().clean()
+        if self.registration_deadline and self.registration_deadline >= self.starts_at:
+            raise ValidationError(
+                {"registration_deadline": "Der Anmeldeschluss muss vor dem Beginn liegen."}
+            )
+
+
+class OpenWorkshopSeries(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="open_workshop_series",
+    )
+    name = models.CharField(max_length=300)
+    location = models.CharField(max_length=300, blank=True)
+    schedule_description = models.CharField(max_length=300, blank=True)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="open_workshop_series_unique_name_per_org",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class OpenWorkshopAttendance(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="open_workshop_attendances",
+    )
+    series = models.ForeignKey(
+        OpenWorkshopSeries,
+        on_delete=models.PROTECT,
+        related_name="attendances",
+    )
+    occurred_on = models.DateField()
+    total = models.PositiveIntegerField()
+    female = models.PositiveIntegerField(default=0)
+    male = models.PositiveIntegerField(default=0)
+    diverse = models.PositiveIntegerField(default=0)
+    unspecified = models.PositiveIntegerField(default=0)
+    note = models.CharField(max_length=500, blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="recorded_open_workshop_attendances",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-occurred_on", "series__name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "series", "occurred_on"],
+                name="open_workshop_attendance_unique_date",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.series.name} ({self.occurred_on:%d.%m.%Y})"
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.series_id and self.organization_id:
+            if self.series.organization_id != self.organization_id:
+                errors["series"] = "Die Reihe gehört nicht zur Organisation."
+        breakdown = self.female + self.male + self.diverse + self.unspecified
+        if breakdown != self.total:
+            errors["total"] = "Die Geschlechterangaben müssen zusammen der Gesamtzahl entsprechen."
+        if errors:
+            raise ValidationError(errors)
