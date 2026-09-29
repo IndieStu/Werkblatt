@@ -6,6 +6,13 @@ entsprechende PEP-440-Schreibweise.
 
 ## Unveröffentlicht
 
+### Behoben
+
+- der Pretix-Client drosselt lesende API-Aufrufe und respektiert begrenzt den
+  `Retry-After`-Header bei HTTP 429, ohne schreibende Anfragen automatisch zu
+  wiederholen oder Teilstände eines Imports zu speichern; Quoten alter, vom
+  Importstichtag ausgeschlossener Veranstaltungen werden nicht mehr geladen.
+
 ## 0.1.0rc4 – 2026-09-29
 
 ### Hinzugefügt

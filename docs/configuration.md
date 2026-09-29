@@ -94,6 +94,17 @@ Deployment-Plattform regelmäßig starten, beispielsweise alle 15 Minuten mit
 Scheduler oder Worker-Stack mit. Ein fehlgeschlagener Lauf muss ungleich null
 enden und über das betriebliche Monitoring sichtbar werden.
 
+Der Client begrenzt die eigene Abrufrate und respektiert bei lesenden
+API-Anfragen einen numerischen Pretix-Header `Retry-After`. Höchstens zwei
+Wiederholungen und maximal 60 Sekunden Wartezeit pro Rate-Limit-Antwort
+verhindern unkontrollierte oder sehr lange Wiederholungsschleifen. Schreibende
+Anfragen werden nach HTTP 429 niemals automatisch wiederholt. Scheitert ein
+vollständiger Import trotzdem, wird kein teilweise geladener Stand gespeichert;
+der Scheduler kann den gesamten idempotenten Lauf später erneut starten.
+Quoten werden erst nach der Stichtagsprüfung und nur für tatsächlich in den
+Importumfang fallende Einzel- beziehungsweise Reihentermine abgefragt. Alte
+Pretix-Veranstaltungen verursachen dadurch keine unnötigen Quotenabfragen.
+
 Der Abgleich markiert inaktive, nicht öffentliche oder aus dem abgefragten
 Pretix-Umfang entfernte Termine als abgesagt, statt sie zu löschen. Bewusst
 ausgeschlossene Reihen und Testevents werden nicht durch einen regulären Lauf
